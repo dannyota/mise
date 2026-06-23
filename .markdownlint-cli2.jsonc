@@ -1,0 +1,17 @@
+// Markdown lint for the mise docs — run: pnpm dlx markdownlint-cli2 "docs/**/*.md" "*.md"
+// Format with Prettier (.prettierrc.json); markdownlint enforces structure/consistency.
+{
+  "config": {
+    "default": true,
+    "MD010": { "code_blocks": false }, // tabs are legitimate inside code fences (e.g. go.mod / Go)
+    "MD013": { "line_length": 100, "tables": false, "code_blocks": false }, // long tables/code ok
+    "MD024": { "siblings_only": true }, // repeated section titles ok across different parents
+    "MD029": false, // DECISIONS uses stable IDs 1–18 split across Locked/Open headings, not sequential-from-1
+    "MD033": false, // allow inline HTML (e.g. <br/> in mermaid node labels)
+    "MD040": false, // schema + dir-tree listings use intentional language-less fences (DOC_STYLE)
+    "MD041": true, // every doc starts with a top-level H1 (DOC_STYLE)
+    "MD058": false, // table blank-line spacing is Prettier's job (the README doc-index tables)
+    "MD060": false  // table column style is Prettier's job, not markdownlint's
+  },
+  "globs": ["docs/**/*.md", "*.md"]
+}

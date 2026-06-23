@@ -1,0 +1,109 @@
+# Mise — Testing Strategy
+
+The test pyramid across Go · TS · Vue, the **MCP/REST contract test** that keeps the
+services from drifting, the **eval golden-set harness** (mapping quality), and the
+**load test** that proves the read-path SLO. This doc owns _how we test_; the per-language
+test rules live in the CODE_STYLE docs.
+
+See also: [TOOLCHAIN.md](./TOOLCHAIN.md) · [CI-CD.md](./CI-CD.md) (gates) ·
+[API-CONTRACT.md](../design/API-CONTRACT.md) (the contract under test) ·
+[OBSERVABILITY.md](./OBSERVABILITY.md) §4 (SLOs) ·
+[DATA-MODEL.md](../design/DATA-MODEL.md) §8 (golden set).
+
+---
+
+## 1. 🧭 The pyramid
+
+| Level           | Scope                                               | Tools                                  | Where                        |
+| --------------- | --------------------------------------------------- | -------------------------------------- | ---------------------------- |
+| **Unit**        | pure logic, parsers, RRF merge, metadata extraction | Go table-driven · Vitest               | every package/module         |
+| **Integration** | DB queries + **RLS**, MCP server, ingest activities | Go + **testcontainers** (AlloyDB Omni) | `serving`, `store`, `worker` |
+| **Contract**    | the MCP/REST surface `web`+`reasoning` depend on    | schema/contract tests (§4)             | repo-wide gate               |
+| **E2E**         | a real Q&A: web → reasoning → serving → DB          | Playwright + a seeded corpus           | smoke, pre-release           |
+| **Eval**        | mapping precision/recall, retrieval recall@k        | golden-set harness (§5)                | nightly + per release        |
+| **Load**        | read-path latency SLO                               | k6/vegeta                              | pre-release                  |
+
+---
+
+## 2. 🧪 Go
+
+- **Table-driven** with `t.Run`; **`-race` in CI** (CODE_STYLE_GO).
+- **`testing/synctest`** (Go 1.25, TOOLCHAIN §3) for concurrency/timeout/backoff in the
+  Temporal activities and worker pools — virtual time, deterministic, no flakes.
+- **Vertex seams faked** via their Go interfaces (embed · parse · judge · ground) — the
+  offline path (LOCAL-DEV §4 Mode B) **is** the unit-test path.
+- **RLS tests are mandatory**: a low-tier caller must not see `group-std`/`local-policy` rows
+  even through a cross-corpus graph join (DATA-GOVERNANCE §2). Test against real AlloyDB
+  Omni via testcontainers, not a mock.
+
+## 3. 🖥️ TS (reasoning) & Vue (web)
+
+- **Vitest**; mock the **model + MCP at the seam** and assert the **cite/abstain** path and
+  tool calls (CODE_STYLE_TS). Assert refusals and iteration-cap handling explicitly.
+- Vue: **Vue Test Utils** for components; assert the browser **never calls a model**
+  (no model client in `web`) and that tier-gated screens hide what RLS would deny.
+
+---
+
+## 4. 🔌 Contract test (the anti-drift gate)
+
+`web` and `reasoning` both consume `serving`'s **MCP tools + REST**
+([API-CONTRACT.md](../design/API-CONTRACT.md)).
+A single source of truth (API-CONTRACT §5) generates types; the contract test asserts
+**provider and consumers agree**:
+
+- **Provider:** `serving` responses validate against the published JSON Schemas for every
+  MCP tool (`search`/`document`/`graph`) + REST endpoint.
+- **Consumers:** `reasoning` (Zod) and `web` (typed client) build against the **generated**
+  types — a schema change that isn't regenerated **fails the build** (CI-CD §2).
+- Run in CI repo-wide so a serving change can't silently break either consumer.
+
+---
+
+## 5. 🤖 Eval harness (mapping quality — first-class, not a notebook)
+
+The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gate:
+
+- **Golden set** = human-attested edges (DATA-MODEL §8) — promote/reject/relink decisions
+  accumulate into it.
+- **Metrics, floors & targets.** Retrieval-side metrics and **floors** are **inherited
+  from the banhmi engine's proven `cmd/eval` harness** (same engine, measured on its VN
+  golden set) — real gates from day one. The cross-corpus **mapping** metric is **new to
+  mise** and **unbuilt / unmeasured at design time**, so its numbers below are **provisional
+  planning targets, not gates** — set the real bar from the **first eval run** on the
+  bootstrap golden set (DECISIONS 18). Tracked **per release** and trended (a drop on a
+  gated metric = a model/threshold change shipped badly — model change-control,
+  AI-GOVERNANCE §3).
+
+  | Metric                                           | Floor / target    | Basis                                                               |
+  | ------------------------------------------------ | ----------------- | ------------------------------------------------------------------- |
+  | retrieval **recall@k**                           | ≥ 0.90            | banhmi hybrid measured ~0.89–1.0                                    |
+  | retrieval **MRR@k**                              | ≥ 0.85            | banhmi ~0.85–0.89                                                   |
+  | **current-law precision** (in-force)             | = 1.0             | banhmi 1.0 — validity correctness is non-negotiable                 |
+  | **abstention accuracy**                          | ≥ 0.95            | banhmi 1.0                                                          |
+  | **citation correctness**                         | ≥ 0.95            | banhmi citation gate                                                |
+  | **mapping precision** (cross-corpus `satisfies`) | ~0.70 provisional | **new to mise** — no banhmi basis; calibrate at first eval (DEC 18) |
+  | **mapping recall@k**                             | ~0.60 provisional | as above                                                            |
+
+- **Cold-start:** before any human attestation exists, seed a small hand-labelled set so
+  the harness produces a baseline (this is the bootstrap gap flagged for discussion).
+- Runs nightly on `main` against a fixed corpus snapshot so results are comparable.
+
+---
+
+## 6. 📊 Load test (prove the SLO)
+
+- Drive the read path (cache-hit and cache-miss mix) to assert **p95 < 150 ms / < 500 ms**
+  (OBSERVABILITY §4) at the default 2-vCPU AlloyDB sizing — this is also how we **validate the
+  sizing decision** (DECISIONS 4) rather than assuming it.
+- Include a **filtered** query mix (every read is access-tier/RLS filtered) so the test
+  reflects ScaNN's filtered-search path, the reason AlloyDB was chosen.
+
+---
+
+## 7. ⚖️ Open choices
+
+- testcontainers vs a shared ephemeral AlloyDB Omni in CI.
+- Playwright E2E in PR (slow) vs nightly/pre-release only.
+- Whether the contract types are generated from Zod→JSON Schema→Go, or from Go→TS
+  (resolved in API-CONTRACT §5).

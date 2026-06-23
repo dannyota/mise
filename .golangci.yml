@@ -1,0 +1,67 @@
+# golangci-lint v2 — mise Go backend (serving · worker · mcp · store)
+# Run:    go tool golangci-lint run
+# Format: go tool golangci-lint fmt
+# Pinned via the go.mod `tool` directive — see docs/engineering/TOOLCHAIN.md §2 / §4.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard           # errcheck · govet · ineffassign · staticcheck · unused
+  enable:
+    # --- modernization: detect + auto-fix to current Go idioms -----------------
+    # `modernize` is go-version-aware — it reads `go 1.26` from go.mod and suggests
+    # behavior-preserving fixes to 1.26 idioms (min/max, slices/maps, any,
+    # `for range N`, strings.CutPrefix, ...). Apply with `golangci-lint run --fix`.
+    - modernize               # gopls modernize analyzer (idiom upgrades)
+    - usestdlibvars           # use stdlib constants (http.StatusOK, time.RFC3339, ...)
+    - intrange                # `for i := range n` (Go 1.22+)
+    - copyloopvar             # drop redundant loop-var copies (Go 1.22+)
+    - perfsprint              # faster fmt.Sprint alternatives
+    - sloglint                # structured-logging idioms (log/slog)
+    # --- correctness / safety --------------------------------------------------
+    - errorlint               # correct errors.Is/As + %w wrapping
+    - gosec                   # security (bank backend)
+    - bodyclose               # leaked HTTP response bodies
+    - noctx                   # HTTP/DB calls without a context
+    - contextcheck            # context propagation across call boundaries
+    - rowserrcheck            # missing sql.Rows.Err()
+    - sqlclosecheck           # unclosed sql.Rows / sql.Stmt
+    - nilerr                  # returning nil after a non-nil error
+    - prealloc                # slice preallocation in hot loops
+    - revive                  # golint successor (style, exported-doc, file/line limits)
+    # --- size / shape: keep files & functions small (CODE_STYLE_GO) -------------
+    - funlen                  # function length limit
+    - lll                     # line length limit
+  settings:
+    funlen:
+      lines: 80               # max function body lines
+      statements: 50
+    lll:
+      line-length: 120        # Go has no hard limit; we cap at 120
+    revive:
+      rules:
+        - name: exported            # document every exported identifier
+        - name: file-length-limit   # keep files small; split when they grow
+          arguments: [{ max: 500, skipComments: true, skipBlankLines: true }]
+        - name: cognitive-complexity
+          arguments: [30]
+        - name: var-naming          # Go naming (MixedCaps, initialisms)
+  exclusions:
+    rules:
+      # sqlc-generated query code — not ours to lint
+      - path: '(.+)\.sql\.go'
+        linters: [revive, errcheck, gosec]
+      # tests may skip a few security/resource checks
+      - path: '_test\.go'
+        linters: [gosec, bodyclose, noctx]
+
+formatters:
+  enable:
+    - gofumpt                 # stricter gofmt
+    - goimports               # import grouping/ordering
+  settings:
+    goimports:
+      local-prefixes:
+        - danny.vn/mise

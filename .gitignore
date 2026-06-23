@@ -1,0 +1,30 @@
+# Local config and secrets — never commit
+.env
+*.env
+*.key
+*.pem
+
+# Data, temp, build artifacts
+/data/
+/tmp/
+
+# Go build output
+/bin/
+*.test
+*.out
+
+# Node / pnpm / Vue build
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Coverage
+/coverage/
+*.lcov
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
