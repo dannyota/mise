@@ -1,18 +1,25 @@
 # Mise — Decision Log
 
-The locked and open decisions that shape mise. Cited elsewhere as **`DECISIONS N`** (e.g.
-`DECISIONS 10`). **Locked** = settled for this design; **Open** = still to resolve (several
-feed the planning phase). Cost figures live in [COST.md](./COST.md); the build sequence that
-honours these decisions is [PLAN.md](./PLAN.md).
+The decisions that shape mise. Cited elsewhere as **`DECISIONS N`** (e.g. `DECISIONS 10`).
+**Locked** = settled for the reference design. **Open** = needs implementation-time review,
+eval evidence, or security design before it can be locked. Adopter-owned deployment settings
+(credentials, region, sizing, security sign-offs) are not project decisions. Cost figures live in
+[COST.md](./COST.md); the build sequence that honours these decisions is [PLAN.md](./PLAN.md).
 
-See also: [PLAN.md](./PLAN.md) (build plan) · [ARCHITECTURE.md](../design/ARCHITECTURE.md) ·
-[DATA-GOVERNANCE.md](../design/DATA-GOVERNANCE.md) ·
-[AI-GOVERNANCE.md](../design/AI-GOVERNANCE.md) ·
-[DELIVERY-MODEL.md](../engineering/DELIVERY-MODEL.md) · [COST.md](./COST.md).
+See also:
+
+- [PLAN.md](./PLAN.md) (build plan)
+- [ARCHITECTURE.md](../design/ARCHITECTURE.md)
+- [DATA-GOVERNANCE.md](../design/DATA-GOVERNANCE.md)
+- [AI-GOVERNANCE.md](../design/AI-GOVERNANCE.md)
+- [DELIVERY-MODEL.md](../engineering/DELIVERY-MODEL.md)
+- [COST.md](./COST.md)
 
 ---
 
 ## ⚖️ Locked
+
+<!-- prettier-ignore-start -->
 
 1. **Embedding:** `gemini-embedding-001` @ **1536-d**, shared across all corpora. On read the
    query is embedded with the **same** model and the vector is **cached** (key = a **hash** of
@@ -63,50 +70,73 @@ See also: [PLAN.md](./PLAN.md) (build plan) · [ARCHITECTURE.md](../design/ARCHI
    always-on; ingestion workers scale to zero (indexing is infrequent); **auto scale-down**
    (KEDA + cluster autoscaler). Cost ranges in COST.md (the license floor stays; see decision
    16); delivery model in DELIVERY-MODEL; runtime in DEPLOYMENT; threat view in THREAT-MODEL §3.
+10. **Confidential-tier Vertex processing:** **yes for the reference deployment.** Confidential
+    internal text may be processed by Vertex-hosted models because mise is deployed
+    single-tenant in the adopter bank's **own GCP project**, under the bank's **own** Vertex
+    contract, IAM, region choice, VPC-SC/CMEK posture, and security review. This is **not**
+    upstream/vendor runtime access: upstream ships source only, holds no data, and cannot reach
+    the instance (decision 9; DELIVERY-MODEL). This applies to Doc AI parse, document/query
+    embedding, Gemini judge/grounding, the Claude reasoning endpoint, and confidential-tier
+    translation when enabled. Controls stay mandatory: server-side model calls only, RLS/tier
+    filtering before read-side evidence reaches a model, audit of every model turn, and a
+    deployment-time capability flag for optional translation. The **self-hosted AI stack remains
+    a fallback variant**, not the default design, if an adopter's procurement/legal review
+    forbids managed Vertex processing.
+12. **Runtime sizing is a reference default, not an upstream gate.** The published deployment
+    ships conservative defaults (one GKE cluster, no HA, small node pool, 1–2 vCPU AlloyDB Omni
+    with **2 vCPU as the safe default**) and the cost model shows the trade-offs. Because mise is
+    AGPL source deployed by the adopter, each bank can scale node size/count, DB vCPU, and worker
+    concurrency in its own project without an upstream design change.
+13. **Internal-source access contract:** the connector shape is locked by decision 2. Upstream
+    ships the `ingest.Source` interface, the authenticated SharePoint web-crawl default, the SMB
+    option, the optional Graph connector path, Secret Manager wiring, and the metadata-envelope
+    config. The adopter supplies its approved AD service account or Graph app, any MFA /
+    Conditional-Access exception, source URLs/shares, crawl cadence, and source-column mapping in
+    deploy config. Build and CI use fixtures or a non-bank test site until a real adopter
+    environment is available; that is integration input, not a mise decision.
+15. **Scale-down is decided; tuning is deploy config.** Auto scale-down stays in the reference
+    deployment (KEDA + cluster autoscaler; workers scale to zero; DB idle-stop/pre-warm policy in
+    DEPLOYMENT/COST). Exact cadence, idle thresholds, and pre-warm windows are operator settings,
+    not product decisions.
+16. **AlloyDB Omni remains the reference store.** Decision 4 locks AlloyDB Omni for the reference
+    deployment because filtered ScaNN lands on the always-filtered read path. License metering and
+    vCPU rates belong in COST.md; if an adopter's economics differ, it can resize or carry a
+    pgvector fork, but upstream DB strategy stays settled.
+17. **Data class and region posture:** the reference corpora are public regulation plus
+    bank-internal control documents, **not customer/user datasets**. Vietnamese personal-data
+    cross-border rules apply to data that identifies a person (e.g. Luật Bảo vệ dữ liệu cá nhân
+    91/2025/QH15 Điều 2) and Decree 53/2022/NĐ-CP Article 26 localizes service-user data; neither
+    makes generic policy/SOP/control text a blocker. Internal names/emails/signers, where
+    kept, are bank-controlled corporate contact metadata and are minimized/role-anchored
+    (DATA-MODEL §2, DATA-GOVERNANCE §9). The adopter selects a supported GCP/Vertex region in
+    deploy config and may choose stricter in-country hosting by policy; that is an operator
+    control, not an upstream decision gate.
+
+<!-- prettier-ignore-end -->
 
 ## 🗺️ Open
 
-10. **Confidentiality gate — does confidential internal text go to Vertex at all?** The one
-    open AI question; it hits Doc AI parse, embedding, the Gemini judge, grounding, and the
-    serve agent. In the per-enterprise model (decision 9) this is the **bank's own GCP Vertex**
-    under the **bank's** enterprise terms/region (optionally VPC-SC + CMEK), so the bank owns
-    the call. If **yes** (data terms — not used for training, region-pinned), the design
-    stands. If **no**, self-host the AI stack — lead embedder **Qwen3-Embedding-8B**
-    (Apache-2.0, 32K ctx, MRL→1536), picked via a VN/Malay legal golden-set bake-off vs
-    gemini-embedding-001 / BGE-M3. _(The embedding mechanism itself is resolved — decision 1.)_
-    The component-by-component **swap map** for this branch is AI-GOVERNANCE §7.
-11. **Model split (all on Vertex — one auth/governance boundary):** **write path** = **Gemini
-    3.5 Flash** for judge/extraction (can move to Haiku / Sonnet — COST.md). **Serve path** =
-    **Claude Haiku 4.5** (default) / **Sonnet 4.6** (hardest) via the **Agent SDK**
-    (decision 5). Confirm per-task thresholds in Phase 3/4.
-12. **GKE node sizing:** one larger node vs two small; free zonal cluster tier.
-13. **Internal-source access (web crawl is the default — decision 2):** which AD **service
-    account** the crawler/SMB loader uses and how its creds are scoped/stored. **Key risk —
-    MFA / Conditional Access:** a headless AD login is often blocked by the bank's MFA /
-    Conditional-Access policy, so the crawl needs an **approved exception** (a scoped,
-    read-only service account, IP-allowlisted) — a security sign-off, not just config. Also:
-    crawl cadence + how the web UI's version-history/columns map to the §2 metadata envelope.
-14. **In-DB vs in-app embedding:** `google_ml.embedding()` in AlloyDB vs the Go embedder
-    calling Vertex — portability vs fewer moving parts (still a network hop either way; see
-    open item 10).
-15. **Scale-down tuning:** auto scale-down is **decided** (decision 9); what remains is
-    operational tuning — KEDA cron cadence, the idle-DB stop threshold, and pre-warm timing
-    before busy windows.
-16. **AlloyDB Omni license metering — decides DB strategy:** confirm whether it meters on
-    running-vCPU-hour (stopping the DB when idle saves it) vs a fixed subscription (a 24/7
-    floor). If fixed and under heavy scale-down, pgvector is cheaper; but the corrected rate +
-    ScaNN's filtered-search edge on the always-filtered read path keep AlloyDB Omni the choice
-    (decisions 4–5; figures in COST.md §6).
-17. **Vietnam data residency & region (a legal axis of decision 10, elevated).** Beyond the
-    _data-terms_ question (10 — is confidential text used for training?), a VN bank faces
-    **data-localization / personal-data law** — **Decree 53/2022** (localization) and **Decree
-    13/2023 (PDPD)** — and the practical question of **whether Claude-on-Vertex and the Gemini
-    write-stack are served from an acceptable region** (in-country / Singapore). This can force
-    the self-host fallback (decision 10's "no" branch) **regardless of data terms**, so resolve
-    it early: confirm (a) which Vertex models are available in an acceptable region, (b) whether
-    PDPD/Decree 53 permit cross-border processing of the confidential tiers, (c) the residency
-    of GCS raw files + AlloyDB. Drives the same parse/embed/judge/serve touchpoints as decision
-    10 (AI-GOVERNANCE §7, DATA-GOVERNANCE §3/§9).
+<!-- prettier-ignore-start -->
+
+11. **Model routing thresholds and escalation:** the model split is chosen, all under the bank's
+    Vertex boundary: **write path** = Gemini 3.5 Flash by default, with Haiku/Sonnet escalation
+    only if eval + cost justify it; **serve path** = Claude Haiku 4.5 default / Sonnet 4.6 hardest
+    via the Agent SDK (decisions 5/10). What remains open is the implementation-time calibration:
+    confidence, grounding, abstain, and escalation thresholds must be logged, versioned, tuned
+    against the golden set in M3/M4, and reviewed before lock.
+14. **Embedding call site:** choose and lock the call site during M0/M1 implementation:
+    `google_ml.embedding()` in AlloyDB vs the Go embedder calling Vertex. The bias is **in-app Go
+    embedder** because true offline Mode B needs a fake behind the interface and `google_ml` still
+    calls Vertex over the network; implementation should still review IAM, latency, portability,
+    and whether DB-side embedding is useful for operator-owned backfills.
 18. **Eval cold-start (golden-set bootstrap):** before any human attestation exists, seed a
-    small hand-labelled VN/Malay set so the eval harness produces a baseline at first release;
-    otherwise mapping precision/recall has nothing to score against (TESTING §5).
+    small hand-labelled VN/Malay `satisfies` set so the eval harness produces a baseline at
+    first release. The first mapping precision/recall number is a baseline, not a pass/fail
+    product gate; human attestations append to the set over time (TESTING §5, DATA-MODEL §8).
+19. **Webhook egress policy:** before the M5 webhook surface ships, specify the SSRF-safe egress
+    policy for `endpoint_url`: allowlist model, URL validation rules, private-address handling,
+    DNS re-resolution behavior, timeout/retry limits, and audit fields. DATA-MODEL §10 owns the
+    subscription schema; THREAT-MODEL §6 flags the egress restriction as the build-phase security
+    decision.
+
+<!-- prettier-ignore-end -->

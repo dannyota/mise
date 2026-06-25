@@ -3,10 +3,14 @@
 Cost estimate driven by **data volume**, scoped to **all banking regulation** (not
 just the digital/technology subset that today's digital/technology indexes carry).
 
-See also: [ARCHITECTURE.md](../design/ARCHITECTURE.md) ·
-[DATA-GOVERNANCE.md](../design/DATA-GOVERNANCE.md) ·
-[AI-GOVERNANCE.md](../design/AI-GOVERNANCE.md) ·
-[DATA-MODEL.md](../design/DATA-MODEL.md) · [PLAN.md](./PLAN.md) · [DECISIONS.md](./DECISIONS.md).
+See also:
+
+- [ARCHITECTURE.md](../design/ARCHITECTURE.md)
+- [DATA-GOVERNANCE.md](../design/DATA-GOVERNANCE.md)
+- [AI-GOVERNANCE.md](../design/AI-GOVERNANCE.md)
+- [DATA-MODEL.md](../design/DATA-MODEL.md)
+- [PLAN.md](./PLAN.md)
+- [DECISIONS.md](./DECISIONS.md)
 
 > Unit rates captured ~June 2026 from public Google Cloud pricing — **verify
 > against the official pricing pages before budgeting.** Figures are planning
@@ -23,7 +27,7 @@ See also: [ARCHITECTURE.md](../design/ARCHITECTURE.md) ·
 
 ---
 
-## 1. 🗄️ Data assumptions (full banking scope)
+## 1. Data assumptions (full banking scope)
 
 | Corpus                                     |       Docs | Avg pages/doc |        Pages | Chunks/doc |       Chunks |
 | ------------------------------------------ | ---------: | ------------: | -----------: | ---------: | -----------: |
@@ -41,7 +45,7 @@ chunks) — comfortably one DB node.
 
 ---
 
-## 2. 💰 Unit rates (≈ June 2026)
+## 2. Unit rates (≈ June 2026)
 
 | Service                                                            | Rate                                                               |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
@@ -58,7 +62,7 @@ chunks) — comfortably one DB node.
 
 ---
 
-## 3. 🤖 AI models — where they run & the one-time build
+## 3. AI models — where they run & the one-time build
 
 AI is **front-loaded into ingest**, not the live serving path. Each model mapped to
 its cost line:
@@ -109,7 +113,7 @@ Haiku 4.5 (~$370) or Sonnet 4.6 (~$1.1k) moves the second slice.
 
 ---
 
-## 4. 🔁 Recurring (monthly)
+## 4. Recurring (monthly)
 
 **Bottom line (Default = AlloyDB Omni 2 vCPU):** **~$300–360/mo** with auto scale-down
 (~50% real utilization; ≈$330 typical), or **~$390–490/mo** always-on. Plus the **~$1–3k one-time**
@@ -179,11 +183,9 @@ Compute auto-scales to real usage (~50%); usage-metered lines are already propor
   before known busy windows to hide cold starts.
 - **Ingestion workers** → already scale to zero.
 - **Database** → when idle the AlloyDB Omni pod can shrink/stop, saving its **compute**
-  (PVC persists; ~1–2 min cold start). The **license is the open question** (DECISIONS 16):
-  a _fixed subscription_ stays (→ ~$80 floor, ~$330 scaled);
-  _running-vCPU-hour_ metering would let a full stop save it too (toward the pgvector
-  fallback ~$150–200). License + cluster mgmt + storage are the only floor scaling
-  can't remove.
+  (PVC persists; ~1–2 min cold start). The reference model treats the license as a fixed floor
+  (DECISIONS 16): license + cluster management + storage are the costs scaling cannot remove.
+  Verify current vendor metering before budgeting, but the upstream store strategy is locked.
 
 ### Why the license is worth it (sizing)
 
@@ -198,7 +200,7 @@ it earns out. **Dev/non-prod is free.**
 
 ---
 
-## 5. 🧭 Key insights & cost levers
+## 5. Key insights & cost levers
 
 1. **Fixed-compute dominated (~85%), not AI usage (~15%).** The Vertex AI bill is
    small (~$150–500/mo); always-on DB + GKE compute is the driver. Scale the
@@ -233,7 +235,7 @@ it earns out. **Dev/non-prod is free.**
 
 ---
 
-## 6. 📊 Sensitivity
+## 6. Sensitivity
 
 | Change                                         |                     Δ cost |
 | ---------------------------------------------- | -------------------------: |

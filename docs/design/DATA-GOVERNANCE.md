@@ -4,14 +4,18 @@ How mise handles data: the **read** and **write** paths, the **access tiers** th
 gate them, the **evidence-only** guarantee, the **human-in-the-loop** feedback loop,
 and the **audit trail** behind every machine proposal and human decision.
 
-See also: [ARCHITECTURE.md](./ARCHITECTURE.md) (system design) ·
-[AI-GOVERNANCE.md](./AI-GOVERNANCE.md) (model use · grounding · HITL) ·
-[DATA-MODEL.md](./DATA-MODEL.md) (metadata + relation schema) ·
-[PLAN.md](../project/PLAN.md) · [DECISIONS.md](../project/DECISIONS.md) · [COST.md](../project/COST.md).
+See also:
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) (system design)
+- [AI-GOVERNANCE.md](./AI-GOVERNANCE.md) (model use · grounding · HITL)
+- [DATA-MODEL.md](./DATA-MODEL.md) (metadata + relation schema)
+- [PLAN.md](../project/PLAN.md)
+- [DECISIONS.md](../project/DECISIONS.md)
+- [COST.md](../project/COST.md)
 
 ---
 
-## 1. ⚖️ Governance posture (the three guarantees)
+## 1. Governance posture (the three guarantees)
 
 1. **Evidence-only.** mise never _asserts_ compliance. It serves verbatim evidence,
    machine-proposed relations, and human-verified findings. Any answer or edge that
@@ -25,7 +29,7 @@ See also: [ARCHITECTURE.md](./ARCHITECTURE.md) (system design) ·
 
 ---
 
-## 2. 🔒 Access tiers & classification
+## 2. Access tiers & classification
 
 | Tier                   | Corpora                     | Who can read                  | Enforcement                                              |
 | ---------------------- | --------------------------- | ----------------------------- | -------------------------------------------------------- |
@@ -43,7 +47,7 @@ See also: [ARCHITECTURE.md](./ARCHITECTURE.md) (system design) ·
 
 ---
 
-## 3. 🗄️ Write path (ingest) — where AI runs, where confidential text flows
+## 3. Write path (ingest) — where AI runs, where confidential text flows
 
 Indexing is infrequent and batch (workers scale to zero between runs). This is the
 **only** path where Vertex AI sees document text and where data is mutated.
@@ -80,9 +84,10 @@ flowchart TD
 | Ground | Check Grounding        | rationale + both texts          | as above                           |
 
 > **These touchpoints are the only place confidential internal text reaches a model** (a
-> data-flow fact). Whether that text may go to Vertex at all — data terms, region, vs
-> self-hosting the stack — is the **AI gate**: [AI-GOVERNANCE.md](./AI-GOVERNANCE.md) §7
-> (open — DECISIONS 10). The **read** path adds no new exposure.
+> data-flow fact). Decisions 10 and 17 allow the bank's own Vertex for the reference data class:
+> regulation + internal control documents, not customer/user datasets. The self-hosted stack is
+> an adopter-policy variant: [AI-GOVERNANCE.md](./AI-GOVERNANCE.md) §7. The **read** path adds no
+> new exposure.
 
 **Audit written at ingest (data provenance):** every chunk records `source_url ·
 source_system · content_type · ingest_run_id · observed_at · access_tier`. The
@@ -91,7 +96,7 @@ the **AI** record — [AI-GOVERNANCE.md](./AI-GOVERNANCE.md) §9.
 
 ---
 
-## 4. 🔒 Read path (serve) — evidence-only, fast, no mutation
+## 4. Read path (serve) — evidence-only, fast, no mutation
 
 The hot path is **Go + AlloyDB only**. It never writes, never calls an LLM, and the
 single Vertex hop (query embedding) is **cached**. Reasoning runs at the **reasoning
@@ -120,8 +125,9 @@ flowchart TD
   string_ (cached); document text never leaves the DB on read. **Exception:** the optional
   cross-lingual **translate** action ships evidence text to the **Google Cloud Translation
   API** (a managed translate service, not the reasoning LLM) on demand —
-  unproblematic for public corpora, **gated for confidential tiers** (AI-GOVERNANCE §7,
-  DECISIONS 10/17). It is the only read action that can export confidential text.
+  unproblematic for public corpora, allowed for confidential tiers under the bank-owned Vertex
+  posture (AI-GOVERNANCE §7; DECISIONS 10/17), and disable-able by adopter policy. It is the
+  only read action that can export confidential text.
 - **Tier filtering is DB-enforced** (RLS), so a join across corpora cannot leak rows
   the caller can't see — even through the graph.
 - **Validity-aware by default:** retrieval returns **in-force** evidence unless the
@@ -135,7 +141,7 @@ flowchart TD
 
 ---
 
-## 5. ⚖️ Human-in-the-loop — review, relink, re-trigger
+## 5. Human-in-the-loop — review, relink, re-trigger
 
 Machine-proposed edges are **candidates** (`promoted=false`) until a human acts. The
 Review Workbench is where confidence is checked and corrections feed back.
@@ -165,7 +171,7 @@ flowchart TD
 
 ---
 
-## 6. 📊 Audit trail (data & access events)
+## 6. Audit trail (data & access events)
 
 | Event                           | Recorded                                                                                |
 | ------------------------------- | --------------------------------------------------------------------------------------- |
@@ -179,7 +185,7 @@ flowchart TD
 
 ---
 
-## 7. 🔒 Authentication & secrets
+## 7. Authentication & secrets
 
 - **AuthN/Z:** OIDC / IAM at the endpoint and the serving API; the caller's tier is
   resolved per request and bound to the DB session role (drives RLS).
@@ -188,38 +194,37 @@ flowchart TD
   if Graph is used — plus DB creds) in Secret Manager; raw files in GCS with immutable,
   tier-scoped buckets.
 
-## 8. 🔌 Notification egress
+## 8. Notification egress
 
 Findings notify officers over **in-app · email · webhook** (UI-DESIGN §5). The egress rule:
 
 - **Webhooks carry a reference + tier badge, never confidential content** — the payload is
   a finding id + link; the receiver fetches detail under its own auth/RLS. A misconfigured
-  webhook can't leak policy/SOP text.
+  webhook can't leak policy/SOP text. Endpoint egress restrictions are locked separately in
+  DECISIONS 19 before webhook delivery is enabled beyond internal-only targets.
 - **Email** to cleared recipients may include a summary, not verbatim confidential clauses;
   high-severity is immediate, the rest digested.
 - Notification dispatch is audited (`finding · channel · recipient/endpoint · ts`).
 
-## 9. 🗄️ Retention & erasure
+## 9. Retention & erasure
 
-Retention is **per layer**, set by bank policy; erasure honours VN **Decree 13/2023 (PDPD)**
-without breaking the audit chain. mise minimizes personal data by design — internal docs
-anchor accountability to **`(department, role)`**, not a person (DATA-MODEL §2).
+Retention is **per layer**, set by bank policy. mise does **not** ingest customer/user datasets;
+the only identifiable fields are bank-internal corporate contact metadata needed for document
+accountability, anchored to **`(department, role)`** (DATA-MODEL §2).
 
 | Layer                                                         | Retention                                                                                                                     | Erasure / lifecycle                                                                                                |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Audit tables** (reads, attestations, findings, model turns) | append-only, immutable; retained per the bank's regulatory retention policy (banking audit horizons are long — set at deploy) | not user-erasable (compliance record); PII is minimized at write (no raw query text, role+dept not person)         |
+| **Audit tables** (reads, attestations, findings, model turns) | append-only, immutable; retained per the bank's regulatory retention policy (banking audit horizons are long — set at deploy) | not user-erasable (compliance record); no customer/user data; accountability anchored to role+dept                 |
 | **Raw files (GCS)**                                           | system of record; object-versioned, tier-scoped                                                                               | superseded versions age out by a bucket lifecycle rule; a withdrawn source doc is tombstoned, not silently dropped |
 | **DB rows + embeddings (AlloyDB)**                            | live working set; **rebuildable** from GCS by re-ingest/re-embed                                                              | deleting a source cascades to its sections/edges/findings; embeddings are derived, never the system of record      |
 | **Translation cache**                                         | display aid, keyed by source-hash                                                                                             | evictable any time; never authoritative (AI-GOVERNANCE §7)                                                         |
 
-- **Personal data in scope.** The only personal data mise stores is on internal-doc
-  authorship (`signer_name`, `author_name`, `owner_current_holder`, `holder_email`) and human
-  attestations (`promoted_by`). The durable anchor is the **role**, so a PDPD erasure/rectify
-  request resolves through the **`org_role` resolver** (DATA-MODEL §2): update or redact the
-  holder PII while the role→document chain and the append-only `org_role_history` (for as-of
-  audit) stay intact.
-- **Cross-border + residency.** Where data may physically live, and whether confidential
-  tiers may be processed cross-border, is the open residency question — **DECISIONS 17**
-  (Decree 53/2022 localization + Decree 13/2023), data-flow view in §3.
+- **Corporate contact metadata.** Internal-doc authorship (`signer_name`, `author_name`,
+  `owner_current_holder`, `holder_email`) and human attestations (`promoted_by`) are bank-internal
+  accountability fields, not customer PII. The durable anchor is the **role**, so a leaver/mover
+  update resolves through the **`org_role` resolver** (DATA-MODEL §2) while the role→document
+  chain and the append-only `org_role_history` (for as-of audit) stay intact.
+- **Region choice.** The adopter pins GCS, AlloyDB, Vertex, and backups to its selected GCP
+  region(s) in deploy config (DECISIONS 17); this is not a project decision.
 - **Backups inherit the tier.** DR backups (DEPLOYMENT §3) are tier-scoped and retained on
   the same policy; the irreplaceable graph/attestations are backed up first.

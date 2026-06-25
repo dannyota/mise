@@ -5,14 +5,17 @@ services from drifting, the **eval golden-set harness** (mapping quality), and t
 **load test** that proves the read-path SLO. This doc owns _how we test_; the per-language
 test rules live in the CODE_STYLE docs.
 
-See also: [TOOLCHAIN.md](./TOOLCHAIN.md) · [CI-CD.md](./CI-CD.md) (gates) ·
-[API-CONTRACT.md](../design/API-CONTRACT.md) (the contract under test) ·
-[OBSERVABILITY.md](./OBSERVABILITY.md) §4 (SLOs) ·
-[DATA-MODEL.md](../design/DATA-MODEL.md) §8 (golden set).
+See also:
+
+- [TOOLCHAIN.md](./TOOLCHAIN.md)
+- [CI-CD.md](./CI-CD.md) (gates)
+- [API-CONTRACT.md](../design/API-CONTRACT.md) (the contract under test)
+- [OBSERVABILITY.md](./OBSERVABILITY.md) §4 (SLOs)
+- [DATA-MODEL.md](../design/DATA-MODEL.md) §8 (golden set)
 
 ---
 
-## 1. 🧭 The pyramid
+## 1. The pyramid
 
 | Level           | Scope                                               | Tools                                  | Where                        |
 | --------------- | --------------------------------------------------- | -------------------------------------- | ---------------------------- |
@@ -25,7 +28,7 @@ See also: [TOOLCHAIN.md](./TOOLCHAIN.md) · [CI-CD.md](./CI-CD.md) (gates) ·
 
 ---
 
-## 2. 🧪 Go
+## 2. Go
 
 - **Table-driven** with `t.Run`; **`-race` in CI** (CODE_STYLE_GO).
 - **`testing/synctest`** (Go 1.25, TOOLCHAIN §3) for concurrency/timeout/backoff in the
@@ -36,7 +39,7 @@ See also: [TOOLCHAIN.md](./TOOLCHAIN.md) · [CI-CD.md](./CI-CD.md) (gates) ·
   even through a cross-corpus graph join (DATA-GOVERNANCE §2). Test against real AlloyDB
   Omni via testcontainers, not a mock.
 
-## 3. 🖥️ TS (reasoning) & Vue (web)
+## 3. TS (reasoning) & Vue (web)
 
 - **Vitest**; mock the **model + MCP at the seam** and assert the **cite/abstain** path and
   tool calls (CODE_STYLE_TS). Assert refusals and iteration-cap handling explicitly.
@@ -45,7 +48,7 @@ See also: [TOOLCHAIN.md](./TOOLCHAIN.md) · [CI-CD.md](./CI-CD.md) (gates) ·
 
 ---
 
-## 4. 🔌 Contract test (the anti-drift gate)
+## 4. Contract test (the anti-drift gate)
 
 `web` and `reasoning` both consume `serving`'s **MCP tools + REST**
 ([API-CONTRACT.md](../design/API-CONTRACT.md)).
@@ -60,7 +63,7 @@ A single source of truth (API-CONTRACT §5) generates types; the contract test a
 
 ---
 
-## 5. 🤖 Eval harness (mapping quality — first-class, not a notebook)
+## 5. Eval harness (mapping quality — first-class, not a notebook)
 
 The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gate:
 
@@ -91,7 +94,7 @@ The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gat
 
 ---
 
-## 6. 📊 Load test (prove the SLO)
+## 6. Load test (prove the SLO)
 
 - Drive the read path (cache-hit and cache-miss mix) to assert **p95 < 150 ms / < 500 ms**
   (OBSERVABILITY §4) at the default 2-vCPU AlloyDB sizing — this is also how we **validate the
@@ -101,9 +104,10 @@ The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gat
 
 ---
 
-## 7. ⚖️ Open choices
+## 7. Test Defaults
 
-- testcontainers vs a shared ephemeral AlloyDB Omni in CI.
-- Playwright E2E in PR (slow) vs nightly/pre-release only.
-- Whether the contract types are generated from Zod→JSON Schema→Go, or from Go→TS
-  (resolved in API-CONTRACT §5).
+- Use **testcontainers with AlloyDB Omni** for CI integration tests. A shared ephemeral DB is a
+  local/manual acceleration option, not the reference gate.
+- Run Playwright E2E **nightly and pre-release** by default; keep PR gates focused on unit,
+  integration, contract, and component tests unless a small smoke path proves stable enough.
+- Contract types are generated **from Go outward** into `packages/contract` (API-CONTRACT §5).

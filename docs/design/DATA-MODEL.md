@@ -5,14 +5,17 @@ text), **relations** (the compliance graph linking controls to the authorities t
 satisfy), and **metadata** (validity, dates, authorship, version, provenance). This
 file specifies all three and the **control-detection** logic that builds the graph.
 
-See also: [ARCHITECTURE.md](./ARCHITECTURE.md) ·
-[DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) (data flow + access) ·
-[AI-GOVERNANCE.md](./AI-GOVERNANCE.md) (model use · grounding) ·
-[PLAN.md](../project/PLAN.md) · [COST.md](../project/COST.md).
+See also:
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) (data flow + access)
+- [AI-GOVERNANCE.md](./AI-GOVERNANCE.md) (model use · grounding)
+- [PLAN.md](../project/PLAN.md)
+- [COST.md](../project/COST.md)
 
 ---
 
-## 1. 🗄️ The five corpora
+## 1. The five corpora
 
 | id             | content                           | source                | citation scheme     | access tier        |
 | -------------- | --------------------------------- | --------------------- | ------------------- | ------------------ |
@@ -74,7 +77,7 @@ makes cross-corpus relation detection possible.
 
 ---
 
-## 2. 🗄️ Document & section metadata (first-class)
+## 2. Document & section metadata (first-class)
 
 Every document and every section/chunk carries the full metadata envelope below.
 
@@ -140,12 +143,11 @@ what retrieval surfaces; `issuing_authority` + `citation_path` build the answer
 
 **Durable ownership (internal docs).** A document's accountable owner is stored as
 **`(owner_department, owner_role)`** — a stable organizational anchor — with
-`owner_current_holder` naming the person who holds that role _today_. People leave or
-move; when they do, you update **one** role→holder mapping (an `org_role` reference,
-resolved at read time) rather than re-stamping every document, so the
-ownership/accountability chain never breaks on a leaver. The same role+department
-anchoring applies to human attestations in the graph (`promoted_by`), so "who signed
-off on this mapping" also survives staff turnover.
+`owner_current_holder` / `holder_email` as bank-internal corporate contact metadata. People
+leave or move; when they do, you update **one** role→holder mapping (an `org_role` reference,
+resolved at read time) rather than re-stamping every document, so the ownership/accountability
+chain never breaks on a leaver. The same role+department anchoring applies to human attestations
+in the graph (`promoted_by`), so "who signed off on this mapping" also survives staff turnover.
 
 The resolver — one row per `(department, role)`, with history for as-of audit:
 
@@ -167,7 +169,7 @@ new `current_holder`. Documents and attestations are untouched; as-of-date queri
 
 ---
 
-## 3. 🗄️ Validity / in-force model
+## 3. Validity / in-force model
 
 ```mermaid
 flowchart LR
@@ -188,7 +190,7 @@ flowchart LR
 
 ---
 
-## 4. 🔗 The compliance graph
+## 4. The compliance graph
 
 Each corpus stays pure evidence-only; the `graph` schema is the only place they join.
 
@@ -224,7 +226,7 @@ to read derivation (top-down: Group Standard → Policy → SOP).
 
 ---
 
-## 5. 🤖 Control-detection relationships (how the graph is built)
+## 5. Control-detection relationships (how the graph is built)
 
 The edge **type** is determined by the corpus-pair; the **method** by how knowable the
 link is from the documents.
@@ -268,7 +270,7 @@ flowchart TD
 
 ---
 
-## 6. ⚠️ Findings — gap · conflict · staleness
+## 6. Findings — gap · conflict · staleness
 
 ```
 finding(id, kind, severity, status, node_refs[], evidence, detected_at,
@@ -291,7 +293,7 @@ detector. Findings are actionable: assignable, with status, linked to the eviden
 
 ---
 
-## 7. ⚖️ Finding resolution & dispositions
+## 7. Finding resolution & dispositions
 
 A finding (§6) is **detected** by mise; how it is **resolved** is a human decision that
 mise records, owns to a role, and **verifies by re-detection**. mise tracks resolution
@@ -326,7 +328,7 @@ is the durable `(department, role)` from §2, so accountability survives staff t
 
 ---
 
-## 8. 🧪 Human feedback & the golden set
+## 8. Human feedback & the golden set
 
 - A promote/reject/**relink** writes `human_attested` evidence and re-triggers
   detection + finding recomputation for the affected nodes (DATA-GOVERNANCE §5).
@@ -337,7 +339,7 @@ is the durable `(department, role)` from §2, so accountability survives staff t
 
 ---
 
-## 9. 🧩 Scale — adding a corpus
+## 9. Scale — adding a corpus
 
 A corpus is a descriptor; adding one needs only a descriptor + source plugin + scope
 seed (no core change):
@@ -364,7 +366,7 @@ The one hard rule: **same embedding model + dims for every corpus**.
 
 ---
 
-## 10. 🔌 Notifications & subscriptions
+## 10. Notifications & subscriptions
 
 Finding events (new conflict · staleness · overdue resolution) fan out to in-app · email ·
 webhook (UI-DESIGN §5, DATA-GOVERNANCE §8). Only delivery needs new schema — the events
@@ -392,7 +394,8 @@ notification_delivery(                 -- audit of dispatch (DATA-GOVERNANCE §8
 ```
 
 - **Webhook payloads carry `finding_ref` + tier badge, not verbatim confidential text** —
-  the receiver fetches detail under its own auth/RLS (DATA-GOVERNANCE §8).
+  the receiver fetches detail under its own auth/RLS (DATA-GOVERNANCE §8). Endpoint egress
+  allowlist/URL validation is DECISIONS 19.
 - **Derived, no table:** the **Change Timeline** is a query over `amendment_event` (§3) +
   staleness `finding`s (§6); the **Coverage report** is a query over the graph (§4) +
   findings. Generate on demand; persist only if a snapshot/export needs to be retained.

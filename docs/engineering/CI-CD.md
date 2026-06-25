@@ -5,13 +5,17 @@ Go worker · TS reasoning · Vue web), shared gates, bank-grade supply-chain con
 This doc owns _pipeline + release + supply chain_; versions live in
 [TOOLCHAIN.md](./TOOLCHAIN.md), tests in [TESTING.md](./TESTING.md).
 
-See also: [TOOLCHAIN.md](./TOOLCHAIN.md) · [TESTING.md](./TESTING.md) ·
-[FOLDER_STRUCTURE.md](./FOLDER_STRUCTURE.md) (deployables) ·
-[ARCHITECTURE.md](../design/ARCHITECTURE.md) §9 (deploy) · [OBSERVABILITY.md](./OBSERVABILITY.md).
+See also:
+
+- [TOOLCHAIN.md](./TOOLCHAIN.md)
+- [TESTING.md](./TESTING.md)
+- [FOLDER_STRUCTURE.md](./FOLDER_STRUCTURE.md) (deployables)
+- [ARCHITECTURE.md](../design/ARCHITECTURE.md) §9 (deploy)
+- [OBSERVABILITY.md](./OBSERVABILITY.md)
 
 ---
 
-## 1. 🧭 Principles
+## 1. Principles
 
 - **One deployable per service**, each its own container + CI job → independent build &
   scaling (FOLDER_STRUCTURE).
@@ -22,7 +26,7 @@ See also: [TOOLCHAIN.md](./TOOLCHAIN.md) · [TESTING.md](./TESTING.md) ·
 
 ---
 
-## 2. 🚀 PR pipeline (every push / PR)
+## 2. PR pipeline (every push / PR)
 
 Runs per affected service (path-filtered); ordering is fail-fast.
 
@@ -43,7 +47,7 @@ Plus repo-wide: **contract test** for the MCP/REST surface (TESTING §4) so `web
 
 ---
 
-## 3. 📦 Release pipeline (merge to main / tag)
+## 3. Release pipeline (merge to main / tag)
 
 > **Who runs this:** the **adopter** runs this pipeline in its **own** GCP project —
 > building, scanning, and signing with **its own keys**, pushing to **its own** Artifact
@@ -74,7 +78,7 @@ flowchart LR
 
 ---
 
-## 4. ⚠️ Security scanning & dependency hygiene
+## 4. Security scanning & dependency hygiene
 
 All scanners are **open-source, license-free, and CLI-first** — fast to set up, runnable
 identically on a laptop and in CI (no SaaS account, no server):
@@ -101,7 +105,7 @@ identically on a laptop and in CI (no SaaS account, no server):
 
 ---
 
-## 5. 🔒 Secrets & access
+## 5. Secrets & access
 
 - **No secrets in CI logs or env files.** CI authenticates to GCP via **Workload Identity
   Federation** (OIDC, keyless) — no long-lived service-account keys.
@@ -112,9 +116,12 @@ identically on a laptop and in CI (no SaaS account, no server):
 
 ---
 
-## 6. ⚖️ Open choices (decide at scaffold time)
+## 6. CI/CD Defaults
 
-- **CI host:** GitHub Actions (matches `.github/workflows/`) vs Cloud Build.
-- **Admission control:** Binary Authorization (GCP-native) vs Kyverno (portable).
-- **Monorepo build cache:** Nx/Turborepo for the pnpm side, or plain path-filtered jobs.
-- **Auto-merge policy** for Dependabot security patches.
+- **CI host:** GitHub Actions, matching the repo's `.github/workflows/` layout.
+- **Admission control:** GCP Binary Authorization for the reference GKE deployment; Kyverno is an
+  adopter-owned portability variant.
+- **Monorepo build cache:** plain path-filtered jobs first. Add Nx/Turborepo only if CI runtime
+  proves it is worth the extra moving parts.
+- **Dependabot security patches:** reviewed PRs; no automatic merge without green gates and human
+  review.

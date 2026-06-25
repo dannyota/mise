@@ -3,9 +3,12 @@
 Plan the repo layout **before** scaffolding code. mise is **one product, three runtimes**
 (Go · TypeScript · Vue), so the shape is a **monorepo**.
 
-See also: [ARCHITECTURE.md](../design/ARCHITECTURE.md) (the services) ·
-[CODE_STYLE_GO.md](./CODE_STYLE_GO.md) · [CODE_STYLE_TS.md](./CODE_STYLE_TS.md) ·
-[CODE_STYLE_VUE.md](./CODE_STYLE_VUE.md).
+See also:
+
+- [ARCHITECTURE.md](../design/ARCHITECTURE.md) (the services)
+- [CODE_STYLE_GO.md](./CODE_STYLE_GO.md)
+- [CODE_STYLE_TS.md](./CODE_STYLE_TS.md)
+- [CODE_STYLE_VUE.md](./CODE_STYLE_VUE.md)
 
 ---
 
@@ -84,9 +87,11 @@ Cross-cutting: [TOOLCHAIN.md](./TOOLCHAIN.md) (versions/linters) ·
 [CI-CD.md](./CI-CD.md) (build/release) · [TESTING.md](./TESTING.md) ·
 [OBSERVABILITY.md](./OBSERVABILITY.md) · [API-CONTRACT.md](../design/API-CONTRACT.md).
 
-## 🗺️ Open choices (decide at scaffold time)
+## 🗺️ Scaffold Defaults
 
-- `internal/` vs `pkg/` for Go private libs (banhmi/laksa use `pkg/` — keep for reuse).
-- Helm chart vs plain manifests in `deploy/`.
-- _(Resolved)_ `packages/` types are **generated** from the Go API/MCP schema —
+- Keep `pkg/` for Go libraries because the banhmi/laksa engine already uses that layout and mise
+  reuses it directly.
+- Put Helm-based GKE/KEDA assets under `deploy/`; raw manifests can be generated from the chart
+  for review or constrained adopters.
+- `packages/contract` types and MCP schemas are **generated** from the Go API/MCP schema —
   [API-CONTRACT.md](../design/API-CONTRACT.md) §5.

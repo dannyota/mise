@@ -15,24 +15,29 @@ grounding), and extended with a cross-corpus **compliance graph**, an
 **Deployed single-tenant, per enterprise:** one mise instance runs **in each bank's own GCP
 project** (bank-operated; open source — the bank self-hosts from public source). The whole
 stack sits inside the bank's perimeter, and Vertex is the bank's own GCP Vertex — so the bank
-owns the confidentiality/residency call. Delivery & operating model:
+owns the confidentiality and region configuration. Delivery & operating model:
 [DELIVERY-MODEL.md](../engineering/DELIVERY-MODEL.md); runtime:
 [DEPLOYMENT.md](../engineering/DEPLOYMENT.md); threat view:
 [THREAT-MODEL.md](../engineering/THREAT-MODEL.md).
 
-See also: [DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) (data flow · access · audit) ·
-[AI-GOVERNANCE.md](./AI-GOVERNANCE.md) (model use · grounding · HITL) ·
-[UI-DESIGN.md](./UI-DESIGN.md) (Web UI) ·
-[DATA-MODEL.md](./DATA-MODEL.md) (metadata · relations) ·
-[PLAN.md](../project/PLAN.md) (goals, build plan) ·
-[DECISIONS.md](../project/DECISIONS.md) (decision log) · [COST.md](../project/COST.md) (cost model).
-Engineering: [API-CONTRACT.md](./API-CONTRACT.md) (surfaces) ·
-[TOOLCHAIN.md](../engineering/TOOLCHAIN.md) · [CI-CD.md](../engineering/CI-CD.md) ·
-[OBSERVABILITY.md](../engineering/OBSERVABILITY.md) · [TESTING.md](../engineering/TESTING.md).
+See also:
+
+- [DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) (data flow · access · audit)
+- [AI-GOVERNANCE.md](./AI-GOVERNANCE.md) (model use · grounding · HITL)
+- [UI-DESIGN.md](./UI-DESIGN.md) (Web UI)
+- [DATA-MODEL.md](./DATA-MODEL.md) (metadata · relations)
+- [PLAN.md](../project/PLAN.md) (build-plan index)
+- [DECISIONS.md](../project/DECISIONS.md) (decision log)
+- [COST.md](../project/COST.md) (cost model)
+- [API-CONTRACT.md](./API-CONTRACT.md) (surfaces)
+- [TOOLCHAIN.md](../engineering/TOOLCHAIN.md)
+- [CI-CD.md](../engineering/CI-CD.md)
+- [OBSERVABILITY.md](../engineering/OBSERVABILITY.md)
+- [TESTING.md](../engineering/TESTING.md)
 
 ---
 
-## 0. 🧭 Operating principle — evidence-only engine, read-fast; reasoning at the endpoint
+## 0. Operating principle — evidence-only engine, read-fast; reasoning at the endpoint
 
 mise is an **enterprise upgrade** of that engine, keeping its core discipline:
 **fast, evidence-only reads**. The serving path is **Go + AlloyDB Omni only** —
@@ -56,7 +61,7 @@ reasoning LLM; a display aid, gated for confidential tiers (§3, AI-GOVERNANCE �
 
 ---
 
-## 1. 🗄️ The 5 corpora (extensible)
+## 1. The 5 corpora (extensible)
 
 | id             | content                           | source                | citation scheme     | access tier        |
 | -------------- | --------------------------------- | --------------------- | ------------------- | ------------------ |
@@ -98,7 +103,7 @@ to read derivation (top-down). All corpora share one embedding model + dims.
 
 ---
 
-## 2. 🧱 System architecture
+## 2. System architecture
 
 **Two planes meet at one database.** The **read/serve plane** is interactive and
 evidence-only; the **write/ingest plane** is batch. Write-AI is Gemini, serve-AI is
@@ -178,7 +183,7 @@ DECISIONS 4 · COST.md.
 
 ---
 
-## 3. 🤖 AI components
+## 3. AI components
 
 mise has exactly **two AI subsystems** — both on Vertex (ADC), both server-side, never
 in the browser:
@@ -218,13 +223,13 @@ re-embed everything).
 > Cloud Translation API** (a managed translate service) on read to render evidence in the
 > user's language. It never grounds, ranks, or composes — the verbatim source stays
 > authoritative. Translating
-> **confidential-tier** text is a _new_ read-side model exposure, so it is **gated by the
-> AI gate** (AI-GOVERNANCE §7, tied to DECISIONS 10/17); public-corpus text is
-> unaffected. Results are cached by source-hash.
+> **confidential-tier** text is a _new_ read-side model exposure, so it follows DECISIONS 10/17
+> and the bank-owned Vertex controls (AI-GOVERNANCE §7); public-corpus text is unaffected.
+> Results are cached by source-hash.
 
 ---
 
-## 4. 🔗 Compliance graph (the spine)
+## 4. Compliance graph (the spine)
 
 A `graph` schema in the shared AlloyDB instance is the **only** place the corpora
 join — each stays pure evidence-only. **Nodes** reference a corpus
@@ -239,7 +244,7 @@ document metadata.
 
 ---
 
-## 5. ⚖️ The 4 detectors (Temporal workflows)
+## 5. The 4 detectors (Temporal workflows)
 
 > Write-path data flow + the human review/relink/re-trigger loop:
 > [DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md). Per-edge detection method + how
@@ -267,7 +272,7 @@ Group-standard vs VN/MY-law pair is the crown jewel.
 
 ---
 
-## 6. 🤖 Reasoning endpoint (AI on read) — Audit Q&A
+## 6. Reasoning endpoint (AI on read) — Audit Q&A
 
 The **reasoning endpoint** is the _only_ place AI runs on the read path — a **separate
 server-side TypeScript service** (Node 24 LTS + Hono) on the **Claude Agent SDK**, running
@@ -313,7 +318,7 @@ abstain policy, model approval, permission-gating, and per-turn audit — is in
 
 ---
 
-## 7. 🖥️ Web UI
+## 7. Web UI
 
 A **Vue 3.5 SPA** (Vite). Screens, stack, and design
 principles live in **[UI-DESIGN.md](./UI-DESIGN.md)**. Architecturally: it hits the Go
@@ -322,7 +327,7 @@ model directly** ([AI-GOVERNANCE.md](./AI-GOVERNANCE.md) §5).
 
 ---
 
-## 8. 🧩 Scale — corpus registry & multimodal
+## 8. Scale — corpus registry & multimodal
 
 A corpus is a descriptor; adding one needs only a descriptor + source plugin +
 scope seed — no core change:
@@ -340,13 +345,14 @@ corpus := { id, kind: law|standard|policy|sop|report|diagram,
 - **Reports** (audit/risk): a corpus whose nodes _map into_ the graph (finding →
   obligation/policy it concerns) — turns the graph into a living audit map.
 - **Diagrams/images**: Layout Parser verbalizes figures + tables; Gemini vision
-  captions; embed the caption text, keep the image ref. Use `gemini-embedding-2`
-  if native image vectors are wanted.
+  captions; embed the caption text (locked 1536-d space), keep the image ref. Native
+  image vectors (e.g. `gemini-embedding-2`) are barred to preserve the single-space
+  invariant (DECISIONS 1).
 - Same embedding model + dims for every corpus (the one hard rule).
 
 ---
 
-## 9. 🛠️ Tech stack
+## 9. Tech stack
 
 The runtimes; **deployment mechanics live in [DEPLOYMENT.md](../engineering/DEPLOYMENT.md)**, the local
 stack in **[LOCAL-DEV.md](../engineering/LOCAL-DEV.md)**, versions in [TOOLCHAIN.md](../engineering/TOOLCHAIN.md).
@@ -374,7 +380,7 @@ stack in **[LOCAL-DEV.md](../engineering/LOCAL-DEV.md)**, versions in [TOOLCHAIN
 
 ---
 
-## 10. 🚀 Deployment & local development
+## 10. Deployment & local development
 
 - **Production (GKE):** **single-tenant — one instance per enterprise, in the bank's own GCP
   project, bank-operated** (open source; the bank builds + self-hosts); one cluster, no HA, auto

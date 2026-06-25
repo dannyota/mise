@@ -8,13 +8,17 @@ operating model — tenancy, upstream↔adopter split, onboarding, upgrades — 
 counterpart is [LOCAL-DEV.md](./LOCAL-DEV.md), the stack summary is
 [ARCHITECTURE.md](../design/ARCHITECTURE.md) §9, cost is [COST.md](../project/COST.md).
 
-See also: [ARCHITECTURE.md](../design/ARCHITECTURE.md) (system design) · [LOCAL-DEV.md](./LOCAL-DEV.md)
-(the separated local stack) · [CI-CD.md](./CI-CD.md) (how images get here) ·
-[OBSERVABILITY.md](./OBSERVABILITY.md) (SLOs) · [COST.md](../project/COST.md) (the bill).
+See also:
+
+- [ARCHITECTURE.md](../design/ARCHITECTURE.md) (system design)
+- [LOCAL-DEV.md](./LOCAL-DEV.md) (the separated local stack)
+- [CI-CD.md](./CI-CD.md) (how images get here)
+- [OBSERVABILITY.md](./OBSERVABILITY.md) (SLOs)
+- [COST.md](../project/COST.md) (the bill)
 
 ---
 
-## 1. 🧱 Topology — one cluster, no HA
+## 1. Topology — one cluster, no HA
 
 > **Single-tenant: one instance per enterprise, in the bank's own GCP project, bank-operated.**
 > The delivery & operating model — tenancy, upstream↔adopter responsibilities, onboarding,
@@ -40,7 +44,7 @@ Images are built by **Podman/Buildah**, signed, and admitted only if the signatu
 
 ---
 
-## 2. 🧩 Auto scale-down
+## 2. Auto scale-down
 
 Compute auto-scales to real usage (~50%); the licence/cluster-mgmt/storage floor can't
 scale (COST.md §4):
@@ -50,15 +54,15 @@ scale (COST.md §4):
   removed. **Pre-warm** before known busy windows to hide cold starts.
 - **Ingestion workers** → already scale to zero.
 - **Database** → the AlloyDB Omni pod can shrink/stop when idle (PVC persists, ~1–2 min cold
-  start). The **licence is a fixed floor** scaling can't remove (metering open — DECISIONS
-  16).
+  start). The **licence is a fixed floor** scaling can't remove in the reference cost model
+  (DECISIONS 16; verify current vendor terms before budgeting).
 
 > Cold starts (KEDA scale-to-zero, AlloyDB idle-stop) trade availability for cost — they are
 > an explicit SLO budget line (OBSERVABILITY §4).
 
 ---
 
-## 3. ⚠️ Reliability, backup & DR
+## 3. Reliability, backup & DR
 
 **No HA** is a cost choice — but **durability is not optional**:
 
@@ -74,7 +78,7 @@ scale (COST.md §4):
 
 ---
 
-## 4. 🔌 Ingest connectors & operational limits
+## 4. Ingest connectors & operational limits
 
 Internal corpora use a **pluggable `ingest.Source`** (DATA-MODEL §1). **Where no
 Graph/Azure-AD app is provisioned** (often the case — it carries setup cost + a security
@@ -104,12 +108,12 @@ Plus, common to all connectors:
 
 ---
 
-## 5. 🔒 Auth, secrets & residency
+## 5. Auth, secrets & region
 
 - **AuthN/Z:** OIDC/IAM at the ingress; per-corpus access tier resolved per request → bound
   to the DB session role (RLS, DATA-GOVERNANCE §2/§7). Internal MCPs + UI are
   access-controlled (NOT public).
 - **Secrets** (Azure AD app / AD account / SMB creds, DB creds) in **Secret Manager**,
   mounted at deploy — never baked into images (CI-CD §5).
-- **Data residency** (DECISIONS 17): region-pin GCS + AlloyDB and confirm acceptable
-  Vertex regions before processing confidential tiers (AI-GOVERNANCE §7).
+- **Region pinning** (DECISIONS 17): configure GCS, AlloyDB, Vertex, and backups in the bank's
+  selected GCP region(s). This is deploy config, not a project gate.

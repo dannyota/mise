@@ -6,13 +6,17 @@ the data/AI **audit** trail (a compliance record, not telemetry) stays in
 [DATA-GOVERNANCE.md](../design/DATA-GOVERNANCE.md) §6 +
 [AI-GOVERNANCE.md](../design/AI-GOVERNANCE.md) §9.
 
-See also: [ARCHITECTURE.md](../design/ARCHITECTURE.md) (services) ·
-[CODE_STYLE_GO.md](./CODE_STYLE_GO.md) (slog) · [CODE_STYLE_TS.md](./CODE_STYLE_TS.md) (pino) ·
-[CI-CD.md](./CI-CD.md) · [DATA-GOVERNANCE.md](../design/DATA-GOVERNANCE.md) §6.
+See also:
+
+- [ARCHITECTURE.md](../design/ARCHITECTURE.md) (services)
+- [CODE_STYLE_GO.md](./CODE_STYLE_GO.md) (slog)
+- [CODE_STYLE_TS.md](./CODE_STYLE_TS.md) (pino)
+- [CI-CD.md](./CI-CD.md)
+- [DATA-GOVERNANCE.md](../design/DATA-GOVERNANCE.md) §6
 
 ---
 
-## 1. 📊 Audit vs telemetry (don't conflate)
+## 1. Audit vs telemetry (don't conflate)
 
 |          | **Audit** (compliance record)             | **Telemetry** (operational)        |
 | -------- | ----------------------------------------- | ---------------------------------- |
@@ -25,7 +29,7 @@ trace can point at the audit row — but they are separate systems.
 
 ---
 
-## 2. 🔗 Tracing — one request, three hops
+## 2. Tracing — one request, three hops
 
 The hard requirement: a Q&A request crosses **Web → reasoning (SSE) → serving (MCP) →
 AlloyDB**, and a trace must stitch all of it.
@@ -41,7 +45,7 @@ AlloyDB**, and a trace must stitch all of it.
 
 ---
 
-## 3. 📊 Metrics
+## 3. Metrics
 
 RED for services, USE for the box; plus mise-specific signals.
 
@@ -58,7 +62,7 @@ metrics.
 
 ---
 
-## 4. 🚀 SLOs (and the budget they protect)
+## 4. SLOs (and the budget they protect)
 
 The architecture asserts **evidence-only reads in milliseconds** — make it a measured
 target, not a claim:
@@ -76,7 +80,7 @@ trade availability for cost (DECISIONS 9/15) and must be visible on the dashboar
 
 ---
 
-## 5. 🗄️ Logging
+## 5. Logging
 
 - **Structured JSON**, no PII / no raw query text (queries can carry sensitive terms —
   store a hash, matching DATA-GOVERNANCE §6). Go = `log/slog`; TS = `pino`.
@@ -85,7 +89,7 @@ trade availability for cost (DECISIONS 9/15) and must be visible on the dashboar
 
 ---
 
-## 6. ⚠️ Alerting
+## 6. Alerting
 
 - **SLO burn-rate** alerts on the read latency + Q&A first-token SLOs (§4).
 - **Ingest health:** Temporal workflow failures, grounding-pass-rate drop (a model/quality
@@ -97,8 +101,9 @@ trade availability for cost (DECISIONS 9/15) and must be visible on the dashboar
 
 ---
 
-## 7. ⚖️ Open choices
+## 7. Observability Defaults
 
-- Backend: **Cloud Operations** (Trace/Monitoring/Logging, least ops) vs self-hosted
-  **Grafana + Tempo + Prometheus + Loki** (portable, more to run on the one cluster).
-- Whether to sample traces (cost) and at what rate on the read path.
+- Use **Cloud Operations** (Trace/Monitoring/Logging) in the reference GCP deployment. A
+  self-hosted Grafana + Tempo + Prometheus + Loki stack is an adopter portability variant.
+- Trace sampling is deploy config: always keep errors and slow traces; sample successful read-path
+  traces at a low rate to control cost.

@@ -65,7 +65,10 @@ Grouped by folder (full navigator: [docs/README.md](docs/README.md)).
 **Project** — `docs/project/`
 | Doc | Purpose |
 |-----|---------|
-| [PLAN](docs/project/PLAN.md) | Goals + the phased build plan, traced to the design |
+| [PLAN](docs/project/PLAN.md) | Thin build-plan index |
+| [plan/](docs/project/plan/README.md) | Build-plan workspace — goals, phases, delta, cross-cutting rules, milestone plans |
+| [ROADMAP](docs/project/ROADMAP.md) | Milestones M0–M6, critical path, exit gates, review-load |
+| [RISKS](docs/project/RISKS.md) | Delivery/execution risk register (vs the security THREAT-MODEL) |
 | [DECISIONS](docs/project/DECISIONS.md) | The decision log — locked + open |
 | [COST](docs/project/COST.md) | The cost model — unit rates, one-time build, recurring |
 

@@ -5,13 +5,18 @@ adopts** (Go 1.26 · Node 24 LTS · the JS/TS stack). This doc owns _versions + 
 the per-language idioms live in the CODE_STYLE docs, the pipeline in
 [CI-CD.md](./CI-CD.md).
 
-See also: [CODE_STYLE_GO.md](./CODE_STYLE_GO.md) · [CODE_STYLE_TS.md](./CODE_STYLE_TS.md) ·
-[CODE_STYLE_VUE.md](./CODE_STYLE_VUE.md) · [FOLDER_STRUCTURE.md](./FOLDER_STRUCTURE.md) ·
-[CI-CD.md](./CI-CD.md) (build/release) · [TESTING.md](./TESTING.md).
+See also:
+
+- [CODE_STYLE_GO.md](./CODE_STYLE_GO.md)
+- [CODE_STYLE_TS.md](./CODE_STYLE_TS.md)
+- [CODE_STYLE_VUE.md](./CODE_STYLE_VUE.md)
+- [FOLDER_STRUCTURE.md](./FOLDER_STRUCTURE.md)
+- [CI-CD.md](./CI-CD.md) (build/release)
+- [TESTING.md](./TESTING.md)
 
 ---
 
-## 1. 🛠️ Pinned versions
+## 1. Pinned versions
 
 One version per tool, pinned in-repo (`go.mod` toolchain · `package.json#engines` +
 `packageManager` · `.tool-versions`/`mise.toml`). CI fails on drift.
@@ -37,7 +42,7 @@ One version per tool, pinned in-repo (`go.mod` toolchain · `package.json#engine
 
 ---
 
-## 2. 🛠️ Go — toolchain & dev tools
+## 2. Go — toolchain & dev tools
 
 - **`go 1.26` + `toolchain go1.26.x`** in `go.mod` — every machine/CI builds with the
   same compiler (auto-downloaded). Bump deliberately (a reviewed change).
@@ -57,7 +62,7 @@ tool (
 
 ---
 
-## 3. ✅ Go 1.26 — features mise adopts
+## 3. Go 1.26 — features mise adopts
 
 These are not "nice to know" — each maps to something mise does. (Versions noted; 1.24/1.25
 features are baseline given the 1.26 pin.)
@@ -75,7 +80,7 @@ features are baseline given the 1.26 pin.)
 
 ---
 
-## 4. 🛠️ Lint & format — golangci-lint v2
+## 4. Lint & format — golangci-lint v2
 
 - **One linter runner**, config `version: "2"` at repo root (`.golangci.yml`). v2 splits a
   dedicated **`formatters:`** block (run via `golangci-lint fmt`) from `linters:`.
@@ -109,7 +114,7 @@ per CODE_STYLE_GO.
 
 ---
 
-## 5. 🛠️ JS/TS — workspace standards
+## 5. JS/TS — workspace standards
 
 - **Base = Google style.** TS follows the **Google TypeScript Style Guide** via **`gts`**
   (ESLint + Prettier + Google `tsconfig`; `gts lint` / `gts fix`). **Google has no Vue style
@@ -127,7 +132,7 @@ per CODE_STYLE_GO.
   Rolldown-compatible before the 7→8 bump.
 - **Dead-code gate:** `knip` in CI (unused files/exports/deps).
 
-## 5a. 📚 Markdown (docs are linted like code)
+## 5a. Markdown (docs are linted like code)
 
 - **Format** with **Prettier** ([`.prettierrc.json`](../../.prettierrc.json), `proseWrap:
 preserve`); **lint** with **markdownlint-cli2**
@@ -136,7 +141,7 @@ preserve`); **lint** with **markdownlint-cli2**
 
 ---
 
-## 6. ✅ Pre-commit (one hook, all three languages)
+## 6. Pre-commit (one hook, all three languages)
 
 **lefthook** runs the right formatter/linter on staged files only, so Go · TS · Vue stay
 uniform without a per-language ritual:
@@ -156,11 +161,12 @@ The same checks run in CI (CI-CD §2) — the hook is a fast local mirror, never
 
 ---
 
-## 7. ⚖️ Open choices (decide at scaffold time)
+## 7. Scaffold Defaults
 
-- **`encoding/json/v2`**: opt-in now (build tag) vs wait for stable — depends on the 1.26
-  experiment status at scaffold time.
-- **Version manager**: [`jdx/mise`](https://mise.jdx.dev) (note the name clash with this
-  project) vs `asdf` vs a **Podman** dev-container for the polyglot pin.
-- Dependency-bump bot: **Dependabot** (default) vs Mend-hosted Renovate — license rationale
-  (why not self-hosted Renovate) in LICENSES §2; CI-CD §4.
+- **JSON:** use stable `encoding/json`; do not opt into `encoding/json/v2` experiments unless the
+  configured Go release makes them stable.
+- **Version pinning:** the **Podman dev-container** is the reference polyglot pin. Developers may
+  use local version managers, but the container is the reproducible baseline.
+- **Dependency bumps:** use **Dependabot** by default. Mend-hosted Renovate remains a later
+  operational option if the project needs richer grouping; dependency updates are reviewed changes
+  (TOOLCHAIN §1, CI-CD §4).

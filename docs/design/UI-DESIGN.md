@@ -4,14 +4,16 @@ The mise Web UI — a **Vue 3.5 SPA** (Vite). This
 file owns the screens, stack, and design principles; detailed visual design (layouts,
 components, interactions, wireframes) is iterated here.
 
-See also: [ARCHITECTURE.md](./ARCHITECTURE.md) (system design) ·
-[AI-GOVERNANCE.md](./AI-GOVERNANCE.md) (the agent the Q&A chat talks to) ·
-[DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) (access tiers the screens respect) ·
-[DATA-MODEL.md](./DATA-MODEL.md).
+See also:
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) (system design)
+- [AI-GOVERNANCE.md](./AI-GOVERNANCE.md) (the agent the Q&A chat talks to)
+- [DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) (access tiers the screens respect)
+- [DATA-MODEL.md](./DATA-MODEL.md)
 
 ---
 
-## 1. 🛠️ Stack
+## 1. Stack
 
 **Vite + Vue 3.5 + TypeScript** · **Vue Flow + elkjs** (Graph Explorer — layered
 auto-layout of the SOP→Policy→Group→law DAG) · **TanStack Vue Table** (Review Workbench
@@ -25,7 +27,7 @@ serving API over REST. (See [AI-GOVERNANCE.md](./AI-GOVERNANCE.md) §5.)
 
 ---
 
-## 2. 🖥️ Screens
+## 2. Screens
 
 | Screen               | Purpose                                                                                                                                                                                                                                                                                         |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -42,7 +44,7 @@ serving API over REST. (See [AI-GOVERNANCE.md](./AI-GOVERNANCE.md) §5.)
 
 ---
 
-## 3. ⚖️ Finding resolution (closing the loop)
+## 3. Finding resolution (closing the loop)
 
 mise **detects** findings (gap · conflict · staleness) and **tracks how each is
 resolved** — it does **not** remediate. A human chooses a **disposition**; mise records
@@ -67,7 +69,7 @@ never asserts the bank is compliant — only that a _finding_ no longer fires.
 
 ---
 
-## 4. 🧭 Design principles
+## 4. Design principles
 
 - **Evidence-first:** every claim links verbatim source + citation; nothing is asserted
   without a traceable span.
@@ -88,14 +90,14 @@ never asserts the bank is compliant — only that a _finding_ no longer fires.
 
 ---
 
-## 5. 🔔 Notifications, reporting & change tracking
+## 5. Notifications, reporting & change tracking
 
 - **Notifications — three channels.** A finding event (new conflict · staleness from an
   amendment · overdue resolution) fans out to: an **in-app** inbox (read/unread, deep-link),
   **email** (immediate for high-severity, else digest), and a **webhook** (a generic
   HTTP+HMAC callback the bank wires into whatever internal system it uses). **Webhook
   payloads carry a reference + tier, not confidential content** — the receiver fetches the
-  finding under auth (DATA-GOVERNANCE §8).
+  finding under auth; endpoint egress policy is DECISIONS 19 (DATA-GOVERNANCE §8).
 - **Reporting/export.** First outputs: a **Coverage report** (pick a regulation → the
   SOP→Policy→Group→law chain with gaps flagged) and the **Findings register** as **Excel**
   (kind · severity · owner role+dept · status · due). Generated server-side from evidence —
@@ -109,7 +111,7 @@ never asserts the bank is compliant — only that a _finding_ no longer fires.
 
 ---
 
-## 6. 🗺️ To design (next)
+## 6. To design (next)
 
 Wireframes, component inventory (shadcn-vue), the Graph Explorer interaction model
 (node/edge detail panel, chain highlighting), the Review Workbench layout (side-by-side

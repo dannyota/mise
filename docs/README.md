@@ -31,7 +31,11 @@ Design-doc set for mise. Grouped by concern; each doc has **one responsibility**
 
 ## 🗺️ project/ — direction
 
-- [PLAN](./project/PLAN.md) — goals + phased build plan (traced to design)
+- [PLAN](./project/PLAN.md) — thin build-plan index
+- [plan/](./project/plan/README.md) — build-plan workspace: goals, phases, delta, cross-cutting
+  rules, milestone plans
+- [ROADMAP](./project/ROADMAP.md) — milestones M0–M6, critical path, exit gates, review-load
+- [RISKS](./project/RISKS.md) — delivery/execution risk register
 - [DECISIONS](./project/DECISIONS.md) — the decision log (locked + open)
 - [COST](./project/COST.md) — cost model
 

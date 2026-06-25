@@ -27,11 +27,13 @@ the root `CLAUDE.md` is authoritative. If content belongs elsewhere, **point to 
 
 ## 🎨 Format
 
-- **Emoji signpost the main sections** — exactly one per **H2**, none on **H1 titles** (sole
-  exception: the root `README.md` title carries the project's one signature emoji, 🍱), none on
-  H3+, none mid-sentence. Where a section is cross-referenced by number, the emoji follows the
-  number: `## 3. 🤖 AI components` (the `§N` reference is unaffected).
-- **Reserved palette** — reuse for recurring meaning; pick one fitting glyph otherwise:
+- **A H2 carries a number _or_ an emoji — never both.** Numbered sections (the norm — they are
+  cross-referenced by `§N`) use the **number alone**, no emoji: `## 3. AI components`. A doc whose
+  sections are **not** numbered uses **one leading emoji** per H2 as the signpost: `## 🧭 Voice`.
+  Never both, never on **H1 titles** (sole exception: the root `README.md` title's one signature
+  emoji, 🍱), none on H3+, none mid-sentence.
+- **Reserved palette** (for the emoji-signpost case — un-numbered H2s, and inline meaning) —
+  reuse for recurring meaning; pick one fitting glyph otherwise:
 
   🧭 overview / principle · 🤖 AI / model / agent · 🗄️ data / schema / store ·
   🔗 graph / relations · ⚖️ governance / decision · 🔒 access / security gate ·
@@ -49,7 +51,19 @@ the root `CLAUDE.md` is authoritative. If content belongs elsewhere, **point to 
 
 - **H1:** `# Mise — <Name>`, no emoji. One H1 per file; sentence-case headings.
 - **Purpose line:** 1–2 sentences — what the doc owns (and what it doesn't).
-- **See also:** one line linking siblings, each with a parenthetical scope.
+- **See also:** use a short block, not an inline paragraph. Put `See also:` on its own line,
+  then one bullet per related doc or route; add the scope or section after the link.
+
+  ```md
+  See also:
+
+  - [TOOLCHAIN.md](./TOOLCHAIN.md)
+  - [TESTING.md](./TESTING.md)
+  - [FOLDER_STRUCTURE.md](./FOLDER_STRUCTURE.md) (deployables)
+  - [ARCHITECTURE.md](../design/ARCHITECTURE.md) §9 (deploy)
+  - [OBSERVABILITY.md](./OBSERVABILITY.md)
+  ```
+
 - `---` between sections; numbered `## N. 🔵 Title` where sections are referenced by `§N`.
 - **Keep it short:** ≤ ~250 lines of **prose** (mermaid + schema/code fences don't count). When
   prose sprawls past one concern, split and leave pointers (ARCHITECTURE → DEPLOYMENT / LOCAL-DEV);
@@ -81,7 +95,7 @@ the root `CLAUDE.md` is authoritative. If content belongs elsewhere, **point to 
 
 - Link siblings `[NAME.md](./NAME.md)`; deep refs `(NAME §N)`. Renaming a doc touches **every**
   `[…](./OLD.md)` link and prose `OLD §N` across the set — **grep first**, and keep each **See
-  also** line and the `README.md` doc index in sync.
+  also** block and the `README.md` doc index in sync.
 - Files are `UPPER-KEBAB.md`. Avoid names that collide with the product domain — mise's domain _is_
   governance, so the data/security doc is `DATA-GOVERNANCE.md`, not `GOVERNANCE.md`.
 - **Design-stage:** the docs are the deliverable. When code lands, design changes ship **with** the

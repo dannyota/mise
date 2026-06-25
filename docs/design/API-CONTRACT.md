@@ -5,13 +5,17 @@ reasoning endpoint and other agents), and **SSE** (the reasoning endpoint → we
 stream). This doc owns the _contract_; the components behind it are
 [ARCHITECTURE.md](./ARCHITECTURE.md), the schema is [DATA-MODEL.md](./DATA-MODEL.md).
 
-See also: [ARCHITECTURE.md](./ARCHITECTURE.md) §2/§6 · [DATA-MODEL.md](./DATA-MODEL.md) ·
-[DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) (tiers/RLS) · [TESTING.md](../engineering/TESTING.md) §4
-(contract test) · [FOLDER_STRUCTURE.md](../engineering/FOLDER_STRUCTURE.md).
+See also:
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) §2/§6
+- [DATA-MODEL.md](./DATA-MODEL.md)
+- [DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) (tiers/RLS)
+- [TESTING.md](../engineering/TESTING.md) §4 (contract test)
+- [FOLDER_STRUCTURE.md](../engineering/FOLDER_STRUCTURE.md)
 
 ---
 
-## 1. 🧭 Shape & rules
+## 1. Shape & rules
 
 - **`serving` (Go) is evidence-only and read-mostly.** REST + MCP return ranked evidence,
   graph, findings; the only writes are **human review actions** (promote/reject/relink,
@@ -26,7 +30,7 @@ See also: [ARCHITECTURE.md](./ARCHITECTURE.md) §2/§6 · [DATA-MODEL.md](./DATA
 
 ---
 
-## 2. 🤖 MCP tools (for the reasoning endpoint + agents)
+## 2. MCP tools (for the reasoning endpoint + agents)
 
 Three **read-only** tools, namespaced `mcp__mise__*` (the allow-list in AI-GOVERNANCE §5).
 All are tier-scoped; all return verbatim text + citation + provenance.
@@ -45,7 +49,7 @@ All are tier-scoped; all return verbatim text + citation + provenance.
 
 ---
 
-## 3. 🔌 REST (for the web app)
+## 3. REST (for the web app)
 
 Versioned under `/api/v1`. One row per screen (UI-DESIGN §2). `R`=read, `W`=human action.
 
@@ -61,7 +65,7 @@ Versioned under `/api/v1`. One row per screen (UI-DESIGN §2). `R`=read, `W`=hum
 | `GET /findings/{id}` · `POST /findings/{id}/resolution` `W`                    | Resolution        | disposition (map/document/accept/escalate) + owner (role+dept)                                                                                                     |
 | `GET /timeline?from=&to=&corpus=`                                              | Change Timeline   | amendments in range → impacted policies/SOPs (derived, DATA-MODEL §10)                                                                                             |
 | `GET /notifications` · `POST /notifications/{id}/read` `W`                     | Notifications     | per-user inbox + read state                                                                                                                                        |
-| `GET /webhooks` · `POST /webhooks` · `DELETE /webhooks/{id}` `W`               | Notifications     | manage subscriptions (HMAC secret, tier-capped)                                                                                                                    |
+| `GET /webhooks` · `POST /webhooks` · `DELETE /webhooks/{id}` `W`               | Notifications     | manage subscriptions (HMAC secret, tier-capped; endpoint egress policy = DECISIONS 19)                                                                             |
 | `POST /reports/coverage` · `GET /reports/findings.xlsx`                        | Reports           | Coverage report (control chain + gaps) · Findings register export                                                                                                  |
 | `POST /translate`                                                              | Cross-lingual     | on-demand evidence translation via **Google Cloud Translation API** (managed service, not the reasoning LLM) — **gated for confidential tiers** (AI-GOVERNANCE §7) |
 | `POST /corpora` · `POST /corpora/{id}/ingest` · `GET /corpora/{id}/status` `W` | Corpus Admin      | register/trigger; Temporal workflow status                                                                                                                         |
@@ -70,7 +74,7 @@ The **Q&A chat is not REST** — it streams from the reasoning endpoint (§4).
 
 ---
 
-## 4. 🖥️ SSE (Q&A chat)
+## 4. SSE (Q&A chat)
 
 - `POST /chat` on the **reasoning endpoint** (not `serving`) opens an **SSE** stream.
 - Event types: `token` (answer delta) · `citation` (span → evidence ref) · `chain`
@@ -81,7 +85,7 @@ The **Q&A chat is not REST** — it streams from the reasoning endpoint (§4).
 
 ---
 
-## 5. 🗄️ Source of truth & generation (resolves FOLDER_STRUCTURE open choice)
+## 5. Source of truth & generation
 
 **Decision: `serving` (Go) owns the contract; types are generated outward — never
 hand-mirrored.**
@@ -104,7 +108,7 @@ flowchart LR
 
 ---
 
-## 6. 📚 Conventions
+## 6. Conventions
 
 - **Errors:** RFC 9457 `application/problem+json` (`type · title · status · detail ·
 instance`); typed, never bare strings.
@@ -121,10 +125,10 @@ instance`); typed, never bare strings.
 
 ---
 
-## 7. ⚖️ Open choices
+## 7. Contract Packaging
 
-- gRPC/connect-go internally with REST/JSON at the edge, vs REST-only (FOLDER_STRUCTURE,
-  ARCHITECTURE §9 lists chi or connect-go).
-- OpenAPI **generated from Go** vs **spec-first** (spec → Go stubs).
-- Whether `packages/contract` also publishes the **MCP tool descriptions** so external
-  agents discover them.
+- The reference edge contract is **REST/JSON + MCP JSON Schema + SSE**. If connect-go is used
+  internally, it must stay behind the same generated REST/MCP contract.
+- OpenAPI is **generated from Go**; no spec-first stubs.
+- `packages/contract` publishes the generated REST types plus the **MCP tool schemas and
+  descriptions** so `web`, `reasoning`, and external agents discover the same surface.

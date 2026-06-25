@@ -5,13 +5,17 @@ How mise governs the **AI models and the user-facing AI agent** — distinct fro
 This file governs the _models_: what they may do, how their output is grounded and
 gated, who approves them, and how every AI action is traced.
 
-See also: [ARCHITECTURE.md](./ARCHITECTURE.md) · [DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) ·
-[DATA-MODEL.md](./DATA-MODEL.md) · [PLAN.md](../project/PLAN.md) ·
-[DECISIONS.md](../project/DECISIONS.md).
+See also:
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md)
+- [DATA-MODEL.md](./DATA-MODEL.md)
+- [PLAN.md](../project/PLAN.md)
+- [DECISIONS.md](../project/DECISIONS.md)
 
 ---
 
-## 1. 🧭 The invariant — AI proposes, evidence grounds, humans attest
+## 1. The invariant — AI proposes, evidence grounds, humans attest
 
 mise **never lets a model assert compliance.** Every AI output is:
 
@@ -25,7 +29,7 @@ proposals; humans decide.
 
 ---
 
-## 2. 🤖 Two AI surfaces
+## 2. Two AI surfaces
 
 | Surface                     | Models                                                       | Runs                       | Role                                                    |
 | --------------------------- | ------------------------------------------------------------ | -------------------------- | ------------------------------------------------------- |
@@ -63,7 +67,7 @@ abstain). The human review _workflow + data recompute_ is owned by
 
 ---
 
-## 3. ⚖️ Model risk & approval (bank model-risk lens)
+## 3. Model risk & approval (bank model-risk lens)
 
 - **Model register.** Every model in use (id, version, provider = Vertex, purpose,
   owner) is recorded — aligns with BNM / SBV model-risk expectations (SR 11-7-style).
@@ -77,7 +81,7 @@ abstain). The human review _workflow + data recompute_ is owned by
 
 ---
 
-## 4. 🤖 Write-path AI governance (the detectors)
+## 4. Write-path AI governance (the detectors)
 
 - **Propose → verify → promote.** The Gemini judge proposes an edge with confidence +
   quoted spans; **Check Grounding** verifies the rationale is entailed by _both_
@@ -93,7 +97,7 @@ grounding_score · created_by(=system)`; promotion records
 
 ---
 
-## 5. 🤖 Serve-path AI governance (the user-facing agent)
+## 5. Serve-path AI governance (the user-facing agent)
 
 The Claude Agent SDK reasoning endpoint runs inside a **guardrail boundary** — it may
 _read evidence_ and nothing else:
@@ -133,7 +137,7 @@ Controls, in detail:
 
 ---
 
-## 6. ⚖️ Human-in-the-loop
+## 6. Human-in-the-loop
 
 The Review Workbench is where AI proposals become attested truth: a reviewer sees
 **confidence + grounding + both verbatim texts**, then **promote / reject / relink**. A
@@ -142,16 +146,16 @@ relink re-triggers detection. Human-attested edges become the eval golden set.
 
 ---
 
-## 7. 🔒 Confidential text & the models (the AI gate)
+## 7. Confidential text & the models (the AI gate)
 
 Both AI surfaces send internal text to Vertex-hosted models — the write judge sees
 policy/standard clauses; the serve agent sees retrieved evidence. Governance:
 
-- **Open gate (DECISIONS 10 & 17):** may confidential internal text leave to Vertex
-  at all (decision 10 — data terms), and **from / to which region** (decision 17 — VN
-  Decree 53/2022 localization + Decree 13/2023 PDPD)? If yes (not used for training,
-  region acceptable), this is the design. If no, self-host the stack (embedder + judge),
-  and the serve agent moves to a self-hosted model too.
+- **Locked default (DECISIONS 10/17):** confidential internal text may reach Vertex in the
+  reference deployment because Vertex is the **bank's own** GCP Vertex, under the bank's
+  contract, IAM, region choice, VPC-SC/CMEK posture, and security review. The reference corpora
+  are regulation + internal control documents, not customer/user datasets; upstream has no
+  runtime access and holds no data (DELIVERY-MODEL).
 - **The serve agent adds no new exposure:** it only sees evidence already parsed and
   embedded at write time — no exposure category beyond the write path.
 - **On-demand translation _is_ a new read-side exposure.** The cross-lingual "translate"
@@ -159,23 +163,21 @@ policy/standard clauses; the serve agent sees retrieved evidence. Governance:
   managed translate service, not the reasoning LLM) **on read**. For
   **public** corpora (vn-reg/my-reg) this is unproblematic; for **confidential tiers**
   (group-std/local-policy/local-sop) it is the **only** read-path touch that ships confidential
-  text to a model, so it is **gated like the write path** (DECISIONS 10/17): allowed only
-  under the same data/region terms, else disabled for confidential tiers or routed to a
-  self-hosted translator. Translations are display aids (never the cited text) and cached
-  by source-hash; the call is audited like any model turn (§9).
+  text to a model, so it follows the same bank-owned Vertex controls; an adopter may disable it
+  or route it to a self-hosted translator by policy. Translations are display aids (never the
+  cited text) and cached by source-hash; the call is audited like any model turn (§9).
 
 ### The "no" branch — self-hosted AI variant (fallback design)
 
-If the gate closes for confidential tiers (DECISIONS 10 "no", or 17 forces it on
-residency), the Vertex models are replaced by **self-hosted, in-cluster** equivalents
-behind the **same Go interface seam** (LOCAL-DEV §4). The data flow, the grounding/
-attestation gates (§1/§4), and the audit (§9) are **unchanged** — only the model endpoints
-move inside the perimeter, so the confidential-tier **Vertex egress (B4) disappears**
-(THREAT-MODEL §3):
+If an adopter policy is stricter than the reference default, the Vertex models are replaced by
+**self-hosted, in-cluster** equivalents behind the **same Go interface seam** (LOCAL-DEV §4). The
+data flow, the grounding/attestation gates (§1/§4), and the audit (§9) are **unchanged** — only
+the model endpoints move inside the perimeter, so the confidential-tier **Vertex egress (B4)
+disappears** (THREAT-MODEL §3):
 
 | Vertex touchpoint (default)        | Self-hosted replacement                                           | Seam                         |
 | ---------------------------------- | ----------------------------------------------------------------- | ---------------------------- |
-| `gemini-embedding-001`             | open embedder (lead **Qwen3-Embedding-8B**, MRL→1536) — DEC 10    | `pkg/rag/embed` interface    |
+| `gemini-embedding-001`             | open embedder (lead **Qwen3-Embedding-8B**, MRL→1536)             | `pkg/rag/embed` interface    |
 | Doc AI Layout Parser               | in-cluster OSS layout/OCR parser                                  | parser interface             |
 | Gemini 3.5 Flash judge + Grounding | self-hosted instruct model + entailment check                     | judge / ground interface     |
 | Claude serve agent (Agent SDK)     | self-hosted instruct model behind the **same** read-only MCP loop | reasoning-endpoint model cfg |
@@ -184,15 +186,16 @@ move inside the perimeter, so the confidential-tier **Vertex egress (B4) disappe
   vector space is unchanged — a re-embed, not a re-architecture.
 - The trade is usage-metered Vertex → **fixed in-cluster GPU compute**; sized at build
   phase if the branch fires (not in COST's default profile).
-- **Owns only the swap map.** The trigger (data terms / residency) and the embedder
-  bake-off are DECISIONS 10/17; the data-flow view is DATA-GOVERNANCE §3.
+- **Owns only the swap map.** The trigger is adopter policy, not upstream design; the
+  embedder bake-off happens only if this branch is selected. The data-flow view is
+  DATA-GOVERNANCE §3.
 
 See [DATA-GOVERNANCE.md](./DATA-GOVERNANCE.md) §3 for the data-flow view of these
 touchpoints.
 
 ---
 
-## 8. ⚠️ Safety & prompt injection
+## 8. Safety & prompt injection
 
 - **Evidence is data, not instructions** — the agent treats retrieved text as content
   to cite, not commands to follow.
@@ -202,7 +205,7 @@ touchpoints.
 
 ---
 
-## 9. 📊 Audit & reproducibility (the model record)
+## 9. Audit & reproducibility (the model record)
 
 Every AI action is reconstructable to the exact model, prompt, and evidence it used.
 **This file owns the AI-side audit; data/access + human-decision audit is

@@ -6,12 +6,15 @@ is **permissive** (MIT / Apache-2.0 / BSD / ISC / PostgreSQL). The only copyleft
 use Dependabot instead. Paid items (AlloyDB Omni, Vertex, GKE, M365) are managed services,
 not OSS — costs in [COST.md](../project/COST.md).
 
-See also: [CI-CD.md](./CI-CD.md) (the license gate that enforces this) ·
-[TOOLCHAIN.md](./TOOLCHAIN.md) · [COST.md](../project/COST.md).
+See also:
+
+- [CI-CD.md](./CI-CD.md) (the license gate that enforces this)
+- [TOOLCHAIN.md](./TOOLCHAIN.md)
+- [COST.md](../project/COST.md)
 
 ---
 
-## 1. 🧭 The rule
+## 1. The rule
 
 - **Shipped code + linked deps:** permissive only (MIT · Apache-2.0 · BSD · ISC · PostgreSQL).
 - **Copyleft is OK only at arm's length:** a GPL/LGPL/EPL **CLI tool** we _run_ (lint, scan)
@@ -24,7 +27,7 @@ See also: [CI-CD.md](./CI-CD.md) (the license gate that enforces this) ·
 
 ---
 
-## 2. ⚖️ Copyleft — the items to track
+## 2. Copyleft — the items to track
 
 | Tool                       | License      | How we use it                              | Verdict                                                                                                                                                                                             |
 | -------------------------- | ------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -38,7 +41,7 @@ See also: [CI-CD.md](./CI-CD.md) (the license gate that enforces this) ·
 
 ---
 
-## 3. 📚 Inventory (permissive + proprietary)
+## 3. Inventory (permissive + proprietary)
 
 **Permissive — no concern** (MIT unless noted):
 
@@ -65,7 +68,7 @@ See also: [CI-CD.md](./CI-CD.md) (the license gate that enforces this) ·
 
 ---
 
-## 4. ✅ Enforcement — the CI license gate
+## 4. Enforcement — the CI license gate
 
 Automate it so it can't drift (CI-CD §4):
 

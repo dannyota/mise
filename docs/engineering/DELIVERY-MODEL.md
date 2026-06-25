@@ -15,14 +15,17 @@ licensing is [LICENSE](../../LICENSE) / [README](../../README.md).
 > (signed releases, support, or a hosted offering) is possible under the existing
 > **dual-license** — without re-architecting anything below.
 
-See also: [DEPLOYMENT.md](./DEPLOYMENT.md) (GKE runtime) ·
-[CI-CD.md](./CI-CD.md) (build · sign · SBOM) · [LICENSES.md](./LICENSES.md) (dependency
-licenses) · [ARCHITECTURE.md](../design/ARCHITECTURE.md) ·
-[DECISIONS.md](../project/DECISIONS.md) 9.
+See also:
+
+- [DEPLOYMENT.md](./DEPLOYMENT.md) (GKE runtime)
+- [CI-CD.md](./CI-CD.md) (build · sign · SBOM)
+- [LICENSES.md](./LICENSES.md) (dependency licenses)
+- [ARCHITECTURE.md](../design/ARCHITECTURE.md)
+- [DECISIONS.md](../project/DECISIONS.md) 9
 
 ---
 
-## 1. 📦 Tenancy — single-tenant, one instance per enterprise
+## 1. Tenancy — single-tenant, one instance per enterprise
 
 mise is **not** a multi-tenant SaaS. Each bank runs its **own dedicated instance**, deployed
 **into the bank's own GCP project**, inside the bank's security perimeter. Consequences:
@@ -32,12 +35,12 @@ mise is **not** a multi-tenant SaaS. Each bank runs its **own dedicated instance
 - **Access tiers are intra-org** (group vs local within the one bank), enforced by RLS — never
   a cross-tenant boundary (DATA-GOVERNANCE §2).
 - **The bank owns the cloud account**, so it owns the **Vertex contract, IAM, region, data
-  terms, and keys (CMEK)** — which is why the confidentiality/residency decision is the bank's
-  to make (DECISIONS 10/17).
+  terms, and keys (CMEK)** — decisions 10/17 lock the reference "yes" to bank-owned Vertex for
+  internal control text; region is deploy config.
 - The trade-off is **per-enterprise build + deploy** effort (no fleet-wide push) and a
   **build/dependency supply-chain** trust boundary (THREAT-MODEL §3, B7).
 
-## 2. 🧭 Who does what — upstream (the project) vs adopter (the operator)
+## 2. Who does what — upstream (the project) vs adopter (the operator)
 
 | Concern              | Upstream (project / author)                                                                                      | Adopter (the bank)                                                          |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -53,7 +56,7 @@ Upstream distributes **source only** — the adopter produces **every running bi
 no **standing upstream access** to a running instance or its data: the relationship is
 **source + dependencies (a supply chain)**, not a managed service.
 
-## 3. 🚀 Per-enterprise onboarding (build + install)
+## 3. Per-enterprise onboarding (build + install)
 
 1. **Obtain + verify the source** (public repo) and review the AGPL terms (LICENSE).
 2. **Build + scan + sign** images via the project's CI recipes (CI-CD §3/§4); push to the
@@ -66,7 +69,7 @@ no **standing upstream access** to a running instance or its data: the relations
 6. **Seed + ingest** the corpora; confirm the eval baseline (TESTING §5, DECISIONS 18).
 7. **Bring-up checks:** RLS tier isolation, OIDC, signed-image admission, backups.
 
-## 4. 🚀 Releases & upgrades
+## 4. Releases & upgrades
 
 - **Source-tagged releases.** Upstream tags **source** versions (no prebuilt binaries); the
   adopter **builds, generates the SBOM/provenance, signs, and deploys** on its own schedule
@@ -77,17 +80,17 @@ no **standing upstream access** to a running instance or its data: the relations
   scanners (CI-CD §4). **Rollback** = redeploy the previous signed image + restore if needed
   (DEPLOYMENT §3); the irreplaceable graph/attestations are backed up first.
 
-## 5. 🗄️ Data ownership & boundaries
+## 5. Data ownership & boundaries
 
 - **The bank is the sole data controller.** All corpora, the graph, attestations, and the
   audit trail live in the bank's project; upstream neither stores nor accesses them.
-- **The only data egress** is to the **bank's own GCP Vertex** (gated — AI-GOVERNANCE §7,
-  DECISIONS 10/17) and to **internal webhook receivers** (reference + tier only —
+- **The only data egress** is to the **bank's own GCP Vertex** (allowed by DECISIONS 10/17;
+  AI-GOVERNANCE §7) and to **internal webhook receivers** (reference + tier only —
   DATA-GOVERNANCE §8). Both stay within the bank's control.
-- **Residency** is the bank's GCP region choice (DECISIONS 17); retention/erasure is
+- **Region** is the bank's GCP region choice (DECISIONS 17); retention/erasure is
   DATA-GOVERNANCE §9.
 
-## 6. ⚖️ Licensing & the startup option
+## 6. Licensing & the startup option
 
 - **AGPL-3.0 today.** Upstream publishes **source only** (no prebuilt binaries) — anyone may
   self-host and modify under AGPL (network use ⇒ source availability); the dependency tree is

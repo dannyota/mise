@@ -4,13 +4,17 @@ How to run the **whole stack on a laptop**, deliberately **separated from the GK
 deployment** ([DEPLOYMENT.md](./DEPLOYMENT.md)): same code, local infra, **Podman** for
 containers, and a `VERTEX=real|fake` toggle for the managed AI. This doc owns _local dev_.
 
-See also: [DEPLOYMENT.md](./DEPLOYMENT.md) (the production counterpart) ·
-[ARCHITECTURE.md](../design/ARCHITECTURE.md) §9 (stack) ·
-[TOOLCHAIN.md](./TOOLCHAIN.md) (versions) · [TESTING.md](./TESTING.md) · [CI-CD.md](./CI-CD.md).
+See also:
+
+- [DEPLOYMENT.md](./DEPLOYMENT.md) (the production counterpart)
+- [ARCHITECTURE.md](../design/ARCHITECTURE.md) §9 (stack)
+- [TOOLCHAIN.md](./TOOLCHAIN.md) (versions)
+- [TESTING.md](./TESTING.md)
+- [CI-CD.md](./CI-CD.md)
 
 ---
 
-## 1. 🧭 Principle — local ≠ deploy, on purpose
+## 1. Principle — local ≠ deploy, on purpose
 
 The full stack runs locally **before** any deployment. Stateful infra runs in **Podman**
 containers on the dev machine; the managed Vertex AI APIs are either called from localhost
@@ -20,7 +24,7 @@ deployment-only ([DEPLOYMENT.md](./DEPLOYMENT.md)). The seam that makes both wor
 
 ---
 
-## 2. 🧱 The local stack (Podman)
+## 2. The local stack (Podman)
 
 | Component                                                   | Local                                                                                               |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -37,7 +41,7 @@ Buildah (CI-CD §3), so "works on my laptop" matches the image that ships.
 
 ---
 
-## 3. 🔌 Internal source connectors, locally
+## 3. Internal source connectors, locally
 
 Default to the **folder + manifest** loader — drop sample docs in a directory with a
 side-car manifest (validity · owner · tier); no network, no creds. Exercise the real
@@ -52,7 +56,7 @@ never needs them.
 
 ---
 
-## 4. 🤖 Two modes & the Vertex seam
+## 4. Two modes & the Vertex seam
 
 **Mode A — real Vertex from laptop (default, high fidelity):** local infra + ADC auth to
 real Vertex APIs. Needs a dev GCP project; tiny cost at dev volume; gives real
@@ -67,6 +71,6 @@ already does this for the embedder, `pkg/rag/embed`). Add the same seam for pars
 and grounding. Local config wires the fake/fallback; deploy wires Vertex; a `VERTEX=real|fake`
 toggle selects per environment.
 
-> Note: AlloyDB's in-DB `google_ml.embedding()` still calls Vertex over the network, so
-> true-offline embedding uses the in-app fake — keep the embedder behind the interface
-> rather than hard-wiring `google_ml.embedding` (DECISIONS 14).
+> Note: AlloyDB's in-DB `google_ml.embedding()` still calls Vertex over the network. DECISIONS 14
+> stays open until implementation reviews the call site; true-offline CI still uses the in-app
+> fake behind the embedder interface.
