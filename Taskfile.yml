@@ -1,0 +1,32 @@
+version: '3'
+
+tasks:
+  go:lint:
+    cmds:
+      - go tool golangci-lint run
+  go:fmt:
+    cmds:
+      - go tool golangci-lint fmt ./...
+  go:test:
+    cmds:
+      - go test -race -count=1 ./...
+  go:build:
+    cmds:
+      - go build ./...
+  ts:lint:
+    cmds:
+      - pnpm lint
+  ts:test:
+    cmds:
+      - pnpm test
+  ts:typecheck:
+    cmds:
+      - pnpm typecheck
+  docs:lint:
+    cmds:
+      - pnpm dlx markdownlint-cli2 "docs/**/*.md" "*.md"
+      - pnpm dlx prettier --check "**/*.md" "*.md"
+  all:lint:
+    deps: [go:lint, ts:lint, docs:lint]
+  all:test:
+    deps: [go:test, ts:test]

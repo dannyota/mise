@@ -1,0 +1,19 @@
+pre-commit:
+  parallel: true
+  commands:
+    go-fmt:
+      glob: '*.go'
+      run: go tool golangci-lint fmt {staged_files} && go tool golangci-lint run
+    ts-lint:
+      glob: '*.{ts,vue}'
+      run: pnpm exec eslint --fix {staged_files}
+    prettier:
+      glob: '*.{ts,vue,json,md}'
+      run: pnpm exec prettier --write {staged_files}
+    markdown:
+      glob: '*.md'
+      run: pnpm dlx markdownlint-cli2 {staged_files}
+    leaks:
+      run: scripts/check-leaks.sh
+    lengths:
+      run: scripts/check-lengths.sh
