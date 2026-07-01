@@ -1,0 +1,28 @@
+# mise serving image — evidence + graph API + MCP server (cmd/serving).
+#
+# Build (from repo root):
+#   podman build -t mise-serving -f deploy/serving/Containerfile .
+
+FROM docker.io/library/golang:1.26 AS build
+
+ENV CGO_ENABLED=0 \
+    GOFLAGS=-trimpath
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -ldflags="-s -w" -o /serving ./cmd/serving
+
+# distroless static: ca-certificates + a nonroot (uid 65532) user, no shell or
+# package manager. Works because the binary is CGO-free and fully static.
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=build /serving /serving
+
+EXPOSE 8080
+USER nonroot:nonroot
+ENTRYPOINT ["/serving"]

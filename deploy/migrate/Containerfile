@@ -1,0 +1,29 @@
+# mise migrate image — bootstraps and migrates the AlloyDB schema (cmd/migrate).
+# Runs as a pre-deploy Job / compose one-shot; not a long-lived service.
+#
+# Build (from repo root):
+#   podman build -t mise-migrate -f deploy/migrate/Containerfile .
+
+FROM docker.io/library/golang:1.26 AS build
+
+ENV CGO_ENABLED=0 \
+    GOFLAGS=-trimpath
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -ldflags="-s -w" -o /migrate ./cmd/migrate
+
+# distroless static: ca-certificates + a nonroot (uid 65532) user, no shell or
+# package manager. Works because the binary is CGO-free and fully static.
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=build /migrate /migrate
+COPY migrations/ /migrations/
+
+USER nonroot:nonroot
+ENTRYPOINT ["/migrate", "-dir", "/migrations"]

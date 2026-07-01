@@ -1,0 +1,21 @@
+name: Web
+on:
+  push:
+    paths: ['apps/web/**', 'packages/contract/**']
+  pull_request:
+    paths: ['apps/web/**', 'packages/contract/**']
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --check "apps/web/**"
+      - run: pnpm --filter @mise/web lint
+      - run: pnpm --filter @mise/web build

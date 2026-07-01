@@ -2,6 +2,7 @@ import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import pluginVue from 'eslint-plugin-vue';
 import prettierConfig from 'eslint-config-prettier';
+import globals from 'globals';
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -29,6 +30,18 @@ export default tseslint.config(
         'error',
         { max: 400, skipBlankLines: true, skipComments: true },
       ],
+    },
+  },
+  {
+    files: ['apps/web/**'],
+    languageOptions: {
+      globals: globals.browser,
+    },
+  },
+  {
+    files: ['apps/reasoning/**'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
   {

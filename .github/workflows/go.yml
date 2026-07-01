@@ -1,0 +1,27 @@
+name: Go
+on:
+  push:
+    paths: ['cmd/**', 'pkg/**', 'go.mod', 'go.sum', 'migrations/**']
+  pull_request:
+    paths: ['cmd/**', 'pkg/**', 'go.mod', 'go.sum', 'migrations/**']
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    env:
+      VERTEX: fake
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go tool golangci-lint fmt --diff
+      - run: go tool golangci-lint run
+      - name: Modernization drift (go fix)
+        run: |
+          go fix ./...
+          git diff --exit-code
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+      - run: go build ./...

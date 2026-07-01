@@ -1,0 +1,83 @@
+services:
+  alloydb:
+    image: google/alloydbomni:latest
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: mise
+      POSTGRES_PASSWORD: mise-dev
+      POSTGRES_DB: mise
+    volumes:
+      - alloydb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'mise']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  temporal:
+    image: temporalio/auto-setup:latest
+    ports:
+      - '7233:7233'
+    environment:
+      DB: postgres12_pgx
+      POSTGRES_SEEDS: alloydb
+      POSTGRES_USER: mise
+      POSTGRES_PWD: mise-dev
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development.yaml
+    depends_on:
+      alloydb:
+        condition: service_healthy
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    ports:
+      - '8088:8080'
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      - temporal
+
+  migrate:
+    build:
+      context: .
+      dockerfile: deploy/migrate/Containerfile
+    environment:
+      DATABASE_URL: 'postgres://mise:mise-dev@alloydb:5432/mise?sslmode=disable'
+    depends_on:
+      alloydb:
+        condition: service_healthy
+
+  serving:
+    build:
+      context: .
+      dockerfile: deploy/serving/Containerfile
+    ports:
+      - '8080:8080'
+    environment:
+      SERVING_PORT: '8080'
+      ALLOYDB_HOST: alloydb
+      ALLOYDB_PORT: '5432'
+      ALLOYDB_USER: mise
+      ALLOYDB_PASSWORD: mise-dev
+      ALLOYDB_DATABASE: mise
+      VERTEX: fake
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: .
+      dockerfile: deploy/worker/Containerfile
+    environment:
+      TEMPORAL_HOST: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TASK_QUEUE: mise-ingest
+      VERTEX: fake
+    depends_on:
+      - temporal
+      - migrate
+
+volumes:
+  alloydb-data:
