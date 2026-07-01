@@ -43,20 +43,20 @@ CREATE POLICY public_read ON vn_reg.document FOR SELECT TO mise_public, mise_gro
 CREATE POLICY public_read ON vn_reg.section FOR SELECT TO mise_public, mise_group, mise_local
   USING (access_tier = 'public');
 CREATE POLICY public_read ON vn_reg.amendment_event FOR SELECT TO mise_public, mise_group, mise_local
-  USING (true);
+  USING (EXISTS (SELECT 1 FROM vn_reg.document d WHERE d.id = target_doc_id AND d.access_tier = 'public'));
 CREATE POLICY public_read ON my_reg.document FOR SELECT TO mise_public, mise_group, mise_local
   USING (access_tier = 'public');
 CREATE POLICY public_read ON my_reg.section FOR SELECT TO mise_public, mise_group, mise_local
   USING (access_tier = 'public');
 CREATE POLICY public_read ON my_reg.amendment_event FOR SELECT TO mise_public, mise_group, mise_local
-  USING (true);
+  USING (EXISTS (SELECT 1 FROM my_reg.document d WHERE d.id = target_doc_id AND d.access_tier = 'public'));
 
 CREATE POLICY group_read ON group_std.document FOR SELECT TO mise_group, mise_local
   USING (access_tier IN ('public', 'group-confidential'));
 CREATE POLICY group_read ON group_std.section FOR SELECT TO mise_group, mise_local
   USING (access_tier IN ('public', 'group-confidential'));
 CREATE POLICY group_read ON group_std.amendment_event FOR SELECT TO mise_group, mise_local
-  USING (true);
+  USING (EXISTS (SELECT 1 FROM group_std.document d WHERE d.id = target_doc_id AND d.access_tier IN ('public', 'group-confidential')));
 
 CREATE POLICY local_read ON local_policy.document FOR SELECT TO mise_local
   USING (true);
