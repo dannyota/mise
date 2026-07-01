@@ -76,8 +76,10 @@ services:
       TEMPORAL_TASK_QUEUE: mise-ingest
       VERTEX: fake
     depends_on:
-      - temporal
-      - migrate
+      temporal:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   alloydb-data:

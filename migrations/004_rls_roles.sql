@@ -33,31 +33,42 @@ BEGIN
     EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT SELECT ON TABLES TO mise_public, mise_group, mise_local', s);
     EXECUTE format('ALTER TABLE %I.document ENABLE ROW LEVEL SECURITY', s);
     EXECUTE format('ALTER TABLE %I.section ENABLE ROW LEVEL SECURITY', s);
+    EXECUTE format('ALTER TABLE %I.amendment_event ENABLE ROW LEVEL SECURITY', s);
   END LOOP;
 END $$;
 -- +goose StatementEnd
 
-CREATE POLICY public_read ON vn_reg.document FOR SELECT TO mise_public
+CREATE POLICY public_read ON vn_reg.document FOR SELECT TO mise_public, mise_group, mise_local
   USING (access_tier = 'public');
-CREATE POLICY public_read ON vn_reg.section FOR SELECT TO mise_public
+CREATE POLICY public_read ON vn_reg.section FOR SELECT TO mise_public, mise_group, mise_local
   USING (access_tier = 'public');
-CREATE POLICY public_read ON my_reg.document FOR SELECT TO mise_public
+CREATE POLICY public_read ON vn_reg.amendment_event FOR SELECT TO mise_public, mise_group, mise_local
+  USING (true);
+CREATE POLICY public_read ON my_reg.document FOR SELECT TO mise_public, mise_group, mise_local
   USING (access_tier = 'public');
-CREATE POLICY public_read ON my_reg.section FOR SELECT TO mise_public
+CREATE POLICY public_read ON my_reg.section FOR SELECT TO mise_public, mise_group, mise_local
   USING (access_tier = 'public');
+CREATE POLICY public_read ON my_reg.amendment_event FOR SELECT TO mise_public, mise_group, mise_local
+  USING (true);
 
-CREATE POLICY group_read ON group_std.document FOR SELECT TO mise_group
+CREATE POLICY group_read ON group_std.document FOR SELECT TO mise_group, mise_local
   USING (access_tier IN ('public', 'group-confidential'));
-CREATE POLICY group_read ON group_std.section FOR SELECT TO mise_group
+CREATE POLICY group_read ON group_std.section FOR SELECT TO mise_group, mise_local
   USING (access_tier IN ('public', 'group-confidential'));
+CREATE POLICY group_read ON group_std.amendment_event FOR SELECT TO mise_group, mise_local
+  USING (true);
 
 CREATE POLICY local_read ON local_policy.document FOR SELECT TO mise_local
   USING (true);
 CREATE POLICY local_read ON local_policy.section FOR SELECT TO mise_local
   USING (true);
+CREATE POLICY local_read ON local_policy.amendment_event FOR SELECT TO mise_local
+  USING (true);
 CREATE POLICY local_read ON local_sop.document FOR SELECT TO mise_local
   USING (true);
 CREATE POLICY local_read ON local_sop.section FOR SELECT TO mise_local
+  USING (true);
+CREATE POLICY local_read ON local_sop.amendment_event FOR SELECT TO mise_local
   USING (true);
 
 -- +goose Down
@@ -70,7 +81,7 @@ DECLARE
 BEGIN
   FOR s IN SELECT unnest(ARRAY['vn_reg','my_reg','group_std','local_policy','local_sop'])
   LOOP
-    FOR t IN SELECT unnest(ARRAY['document','section'])
+    FOR t IN SELECT unnest(ARRAY['document','section','amendment_event'])
     LOOP
       EXECUTE format('ALTER TABLE IF EXISTS %I.%I DISABLE ROW LEVEL SECURITY', s, t);
     END LOOP;
@@ -80,14 +91,19 @@ END $$;
 
 DROP POLICY IF EXISTS public_read ON vn_reg.document;
 DROP POLICY IF EXISTS public_read ON vn_reg.section;
+DROP POLICY IF EXISTS public_read ON vn_reg.amendment_event;
 DROP POLICY IF EXISTS public_read ON my_reg.document;
 DROP POLICY IF EXISTS public_read ON my_reg.section;
+DROP POLICY IF EXISTS public_read ON my_reg.amendment_event;
 DROP POLICY IF EXISTS group_read ON group_std.document;
 DROP POLICY IF EXISTS group_read ON group_std.section;
+DROP POLICY IF EXISTS group_read ON group_std.amendment_event;
 DROP POLICY IF EXISTS local_read ON local_policy.document;
 DROP POLICY IF EXISTS local_read ON local_policy.section;
+DROP POLICY IF EXISTS local_read ON local_policy.amendment_event;
 DROP POLICY IF EXISTS local_read ON local_sop.document;
 DROP POLICY IF EXISTS local_read ON local_sop.section;
+DROP POLICY IF EXISTS local_read ON local_sop.amendment_event;
 
 -- DROP ROLE fails while a role still holds privileges (schema USAGE, table
 -- SELECT, default-privilege ACL entries from the grants above). DROP OWNED BY
