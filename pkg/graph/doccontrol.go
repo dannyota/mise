@@ -39,7 +39,7 @@ type RawControlRef struct {
 //   - its Relation normalizes to "implements" or "derives" (case/whitespace
 //     insensitive; "derives from" normalizes to "derives"); anything else is
 //     rejected.
-//   - it names a target: a non-empty TargetNumber or TargetTitle.
+//   - it names a target: a non-empty (post-trim) TargetNumber or TargetTitle.
 //
 // A ref that fails either check is dropped, never guessed. An absent header
 // (h.ControlRefs nil or empty) or one with zero qualifying refs returns an
@@ -53,13 +53,15 @@ func ParseControlRefs(h DocControlHeader) []RawControlRef {
 		if !ok {
 			continue
 		}
-		if ref.TargetNumber == "" && ref.TargetTitle == "" {
+		targetNumber := strings.TrimSpace(ref.TargetNumber)
+		targetTitle := strings.TrimSpace(ref.TargetTitle)
+		if targetNumber == "" && targetTitle == "" {
 			continue
 		}
 		out = append(out, RawControlRef{
 			Relation:     relation,
-			TargetNumber: ref.TargetNumber,
-			TargetTitle:  ref.TargetTitle,
+			TargetNumber: targetNumber,
+			TargetTitle:  targetTitle,
 			QuotedSpan:   ref.QuotedSpan,
 		})
 	}

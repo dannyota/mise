@@ -75,6 +75,15 @@ var parseControlRefsTests = []parseControlRefsTestCase{
 		want: []graph.RawControlRef{},
 	},
 	{
+		name: "ref with whitespace-only target number and no title is dropped not guessed",
+		header: graph.DocControlHeader{
+			ControlRefs: []graph.RawControlRef{
+				{Relation: "implements", TargetNumber: "   ", QuotedSpan: "implements    "},
+			},
+		},
+		want: []graph.RawControlRef{},
+	},
+	{
 		name: "unrecognized relation verb is rejected not guessed",
 		header: graph.DocControlHeader{
 			ControlRefs: []graph.RawControlRef{
