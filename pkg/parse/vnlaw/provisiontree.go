@@ -49,6 +49,11 @@ type vbplProvisionContent struct {
 // (ErrEmptyProvisionTree): both mean the source never actually delivered a
 // provision tree, so callers should fall back to Parse over the document's
 // plain text instead.
+//
+// A tree whose nodes decode but carry no text content returns (tree, nil) —
+// NOT an error. Callers must additionally check len(law.Flatten(roots)) == 0
+// and fall back to Parse in that case, or the document's content is silently
+// dropped (banhmi signalled this same condition as ok=false).
 func ParseTree(payload string) ([]*law.Node, error) {
 	nodes, ok := decodeVBPLProvisionTree(payload)
 	if !ok {
