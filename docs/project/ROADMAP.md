@@ -31,7 +31,8 @@ Each phase reaches one milestone; the milestone _is_ the phase's demonstrable ou
 | Milestone | Plan                                          | Delivers                                                                                    | First demoable value                                  |
 | --------- | --------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **M0**    | [M0-skeleton](./plan/M0-skeleton/README.md)   | the stack stands up locally — module, corpus registry, AlloyDB + Temporal, Vertex fake seam | `podman compose up` is green                          |
-| **M1**    | [M1-ingest](./plan/M1-ingest/README.md)       | 5 corpora ingested, embedded @1536-d, searchable per-corpus, tier-tagged                    | per-corpus evidence search (MCP)                      |
+| **M1a**   | [M1-ingest](./plan/M1-ingest/README.md) WS1+4 | law corpora ingested, embedded @1536-d, searchable per-corpus (public, ungated)             | per-corpus evidence search (MCP) on VN+MY law         |
+| **M1b**   | [M1-ingest](./plan/M1-ingest/README.md) WS2+3 | internal corpora ingested via SharePoint, metadata envelope + tier tagging complete         | all 5 corpora tier-isolated and retrievable           |
 | **M2**    | [M2-graph](./plan/M2-graph/README.md)         | the `graph` schema + explicit internal edges + graph API                                    | the SOP→Policy→Group chain query                      |
 | **M3**    | [M3-detectors](./plan/M3-detectors/README.md) | the 4 detectors + findings + the review queue                                               | a grounded `satisfies` candidate + a conflict finding |
 | **M4**    | [M4-audit-qa](./plan/M4-audit-qa/README.md)   | cited, grounded answers over REST + MCP + SSE                                               | ask a question → cited answer / abstain               |
@@ -47,22 +48,32 @@ There is no parallel track to exploit; the lever is keeping each phase's scope t
 
 ```mermaid
 flowchart LR
-    M0["M0 — stack up"] --> M1["M1 — ingest 5"]
-    M1 --> M2["M2 — graph spine"]
+    M0["M0 — stack up"] --> M1a["M1a — law ingest (public)"]
+    M1a --> M1b["M1b — internal connectors"]
+    M1a --> M2["M2 — graph spine"]
+    M1b --> M2
     M2 --> M3["M3 — detectors"]
     M3 --> M4["M4 — Audit Q&A"]
     M4 --> M5["M5 — Web UI"]
     M5 --> M6["M6 — scale"]
     classDef gated fill:#6d28d9,stroke:#a78bfa,color:#fff,stroke-width:2px
-    class M0,M1,M3,M4,M5 gated
+    classDef public fill:#059669,stroke:#34d399,color:#fff,stroke-width:2px
+    class M0,M1b,M3,M4,M5 gated
+    class M1a public
 ```
 
+- **Green = runs entirely on public data** — M1a (law ingest: WS1 + WS4) delivers per-corpus
+  evidence search over `vn-reg` + `my-reg` without any internal doc access.
 - **Violet = has non-code exit gates** (§3) — M0/M3/M4/M5 have open implementation-review
-  decisions; M1 has real-adopter connector integration input.
+  decisions; M1b has real-adopter connector integration input.
+- **M1a/M1b split:** M1a (public law corpora) is ungated and exits independently; M1b (internal
+  connectors: WS2 + WS3) runs when SharePoint access materializes. M2 can start graph schema
+  migration after M1a; full graph extraction (Method A) needs M1b. See
+  [M1 plan](./plan/M1-ingest/README.md) §1.
 - **Fan-in, not a parallel path:** M4 reads M1+M2+M3 artifacts and M5 reads M2+M3+M4 — drawn
   linearly because one builder runs them in order, but each later phase depends on _all_ prior.
-- **Earliest value lands at M1** (evidence search) and again at **M4** (Q&A); M5 makes it a
-  product. If priorities force a cut, M1→M4 is the spine; M5/M6 are surface + scale.
+- **Earliest value lands at M1a** (evidence search) and again at **M4** (Q&A); M5 makes it a
+  product. If priorities force a cut, M1a→M4 is the spine; M5/M6 are surface + scale.
 
 ---
 
@@ -72,8 +83,8 @@ Open implementation-review decisions plus adopter inputs that create milestone e
 
 | Resolve by | Decision                                           | Gates                                                                                |
 | ---------- | -------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **M0/M1**  | **14** embedding call site                         | in-app Go embedder vs AlloyDB `google_ml.embedding()` implementation review          |
-| **M1**     | **13** adopter-provided source access config       | real-intranet validation; build/CI run on fixtures or a non-bank test site meanwhile |
+| **M0/M1a** | **14** embedding call site                         | in-app Go embedder vs AlloyDB `google_ml.embedding()` implementation review          |
+| **M1b**    | **13** adopter-provided source access config       | real-intranet validation; build/CI run on fixtures or a non-bank test site meanwhile |
 | **M3**     | **18** eval golden-set bootstrap                   | the mapping precision/recall eval emits its first baseline                           |
 | **M3/M4**  | **11** judge + serve threshold / escalation tuning | judge threshold calibration (M3) + serve-model abstain/escalation calibration (M4)   |
 | **M5**     | **19** webhook egress policy                       | SSRF-safe endpoint allowlist / URL validation before webhook delivery ships          |
@@ -96,7 +107,8 @@ concentrates — the real pacing signal (RISKS R4).
 | Milestone | Tasks | Review-load skew                                        | Notes                                                    |
 | --------- | ----: | ------------------------------------------------------- | -------------------------------------------------------- |
 | M0        |    19 | mostly **Light** (Heavy: the schema/RLS migration)      | 4 workstreams; scaffolding + seams                       |
-| M1        |    24 | mixed, **Heavy** on RLS + the crawler                   | tier isolation + real-source integration land here       |
+| M1a       |    12 | mostly **Light/Medium**                                 | law crawlers + embed/index/serve/eval — public, ungated  |
+| M1b       |    12 | mixed, **Heavy** on RLS + the crawler                   | tier isolation + real-source integration land here       |
 | M2        |    15 | **Heavy** (graph schema, tier, RLS)                     | small but dense — every edge task touches tier isolation |
 | M3        |    18 | **mostly Heavy** — grounding, AI-gov, audit             | the crown-jewel milestone; highest review density        |
 | M4        |    23 | **mostly Heavy** — tier propagation, abstain, injection | governance-critical; the new TS service                  |

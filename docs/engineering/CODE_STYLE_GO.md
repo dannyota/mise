@@ -22,14 +22,22 @@ live in [TOOLCHAIN.md](./TOOLCHAIN.md).
 - `cmd/<binary>/main.go` is **thin** — parse config, wire dependencies, start. Logic lives
   in `pkg/`.
 - Small **interfaces, defined by the consumer**; accept interfaces, return concrete structs.
+- **Functional options** for configurable constructors: `NewClient(opts ...Option)` where
+  `type Option func(*Client)` — proven in s1ctl for SDK clients; use for `ingest.Source`,
+  embedder, MCP clients, store constructors.
 - `context.Context` is the **first parameter** of anything doing I/O; honour cancellation.
 - **Every Vertex touchpoint sits behind a Go interface** (embed · parse · judge · ground)
   so it can be faked offline (LOCAL-DEV §4) — never hard-wire the SDK call.
+- **Auth as `http.RoundTripper`:** wrap auth (OIDC token injection, ADC) as a transport
+  decorator — composable, testable, keeps auth out of business logic.
 
 ## ⚠️ Errors
 
 - Wrap with `fmt.Errorf("doing X: %w", err)`; classify with `errors.Is` / `errors.As`;
   define sentinel errors for known conditions.
+- **Typed errors for external boundaries:** define `*APIError` (Vertex), `*StoreError`
+  (AlloyDB), `*IngestError` (source connectors) with structured fields (status, code,
+  message) — test with `errors.As`, not string matching.
 - **No `panic` in library code.** Return errors; log them **once**, at the boundary
   (don't log-and-return).
 

@@ -116,7 +116,20 @@ identically on a laptop and in CI (no SaaS account, no server):
 
 ---
 
-## 6. CI/CD Defaults
+## 6. Upstream source releases (goreleaser)
+
+> mise is AGPL source — the adopter builds and self-hosts (DELIVERY-MODEL). Upstream ships
+> **source + CLI binaries** (no container images — those are adopter-built, §3).
+
+**goreleaser** (v2, `.goreleaser.yaml`) cross-compiles the Go CLI binaries on `v*` tags:
+`CGO_ENABLED=0`, `linux`/`darwin`/`windows` × `amd64`/`arm64`, version/commit/date injected
+via ldflags. Archives: `tar.gz` (unix), `zip` (Windows). Signing with **cosign** (keyless,
+OIDC). Changelog auto-generated from GitHub, excludes `docs`/`test`/`chore` commits. Proven
+config from s1ctl.
+
+---
+
+## 7. CI/CD Defaults
 
 - **CI host:** GitHub Actions, matching the repo's `.github/workflows/` layout.
 - **Admission control:** GCP Binary Authorization for the reference GKE deployment; Kyverno is an

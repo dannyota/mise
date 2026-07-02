@@ -60,6 +60,13 @@ See also:
   - **Retrieval eval meets the inherited banhmi floors:** recall@k ≥ 0.90, MRR@k ≥ 0.85,
     current-law precision = 1.0, abstention ≥ 0.95, citation ≥ 0.95 on the VN/Malay golden set
     (TESTING §5). _(Cross-corpus mapping is **not** scored here — that metric is M3.)_
+- **M1a — law-only partial gate:** WS1 (law ingest) + WS4 (embed/index/serve/eval) can exit
+  independently on public law corpora alone — delivering per-corpus evidence search over
+  `vn-reg` + `my-reg` via MCP before internal doc access materializes. M1a exit criteria: law
+  corpora re-ingest end-to-end, embedded @1536-d, per-corpus MCP `search`/`document` pass the
+  contract test, retrieval eval meets banhmi floors on the VN/Malay golden set. RLS
+  cross-tier-deny tests use **fixture data** simulating confidential tiers (real tier-tagged
+  internal rows land when WS2/WS3 complete). M1a unblocks M2-WS1 (graph schema migration).
 - **Out of scope:** the full ingest workflow runs only the within-corpus extract; cross-corpus
   graph edges + the `satisfies` mapping → M2/M3; detectors (conflict/gap/staleness) → M3; the
   reasoning endpoint → M4; Web UI → M5; SMB + Graph connectors and registry GA → later (M6).

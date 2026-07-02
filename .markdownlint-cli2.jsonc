@@ -13,5 +13,7 @@
     "MD058": false, // table blank-line spacing is Prettier's job (the README doc-index tables)
     "MD060": false  // table column style is Prettier's job, not markdownlint's
   },
-  "globs": ["docs/**/*.md", "*.md"]
+  "globs": ["docs/**/*.md", "*.md"],
+  // PLAN.md is gitignored working state (implementation plans), not a shipped doc.
+  "ignores": ["PLAN.md", ".superpowers/**"]
 }

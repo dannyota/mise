@@ -27,12 +27,12 @@ One version per tool, pinned in-repo (`go.mod` toolchain · `package.json#engine
 | **golangci-lint**     | **v2.x**                                      | `go.mod` `tool` directive (§2) · `.golangci.yml` |
 | **sqlc**              | latest 1.x                                    | `go.mod` `tool` directive                        |
 | **Node**              | **24 LTS** (`>=24.0`)                         | `package.json#engines`, `.tool-versions`         |
-| **pnpm**              | **10.x**                                      | `package.json#packageManager` (corepack)         |
-| **TypeScript**        | **5.9.x**                                     | root devDep, single version across the workspace |
+| **pnpm**              | **11.x**                                      | `package.json#packageManager` (corepack)         |
+| **TypeScript**        | **6.0.x**                                     | root devDep, single version across the workspace |
 | **Vite**              | **8.x** (Rolldown bundler)                    | `apps/web` devDep                                |
 | **Vue**               | **3.5.x**                                     | `apps/web`                                       |
 | **Tailwind**          | **4.x**                                       | `apps/web`                                       |
-| **Vitest**            | **3.x**                                       | both apps                                        |
+| **Vitest**            | **4.x**                                       | both apps                                        |
 | **typescript-eslint** | **v8.x** (flat config)                        | root                                             |
 | **Prettier**          | 3.x                                           | root                                             |
 | **lefthook**          | latest                                        | root (pre-commit, §5)                            |
@@ -89,9 +89,17 @@ features are baseline given the 1.26 pin.)
   grouping).
 - Baseline set beyond `standard` (errcheck · govet · ineffassign · staticcheck · unused):
   **errorlint · gosec · bodyclose · noctx · contextcheck · rowserrcheck · sqlclosecheck ·
-  nilerr · prealloc · revive**. The bank-relevant ones are `gosec` (security) and the
-  `sql*`/`bodyclose` resource-leak linters (the read path holds DB rows + HTTP bodies).
-- Generated code (`*.sql.go` from sqlc) is excluded; `_test.go` relaxes `gosec`/`noctx`.
+  nilerr · prealloc · revive · gocritic · misspell · unconvert · unparam · whitespace**.
+  The bank-relevant ones are `gosec` (security) and the `sql*`/`bodyclose` resource-leak
+  linters (the read path holds DB rows + HTTP bodies). `gocritic` catches subtle bugs;
+  `misspell`/`unconvert`/`unparam`/`whitespace` are low-noise hygiene (proven in s1ctl).
+- **gosec excludes:** G107 (URL from variable — noisy for HTTP clients), G304 (file path
+  from variable — handled by `os.Root` sandboxing), G306 (file perms — not relevant for
+  containers). Exclude explicitly in `.golangci.yml`.
+- **revive tuning:** disable `exported` (noisy godoc enforcement on internal types);
+  keep `var-naming` + `file-length-limit`.
+- Generated code (`*.sql.go` from sqlc) is excluded; `_test.go` relaxes
+  `gosec`/`noctx`/`errcheck`/`unparam`.
 
 ### Modernization — detect + fix Go 1.26 idioms
 
@@ -155,7 +163,24 @@ pre-commit:
     ts: { glob: '*.{ts,vue}', run: 'pnpm exec eslint --fix {staged_files}' }
     fmt: { glob: '*.{ts,vue,json,md}', run: 'pnpm exec prettier --write {staged_files}' }
     md: { glob: '*.md', run: 'pnpm exec markdownlint-cli2 {staged_files}' }
+    leak: { run: 'scripts/check-leaks.sh' }
+    lengths: { run: 'scripts/check-lengths.sh' }
 ```
+
+### Leak guard (pre-commit)
+
+`scripts/check-leaks.sh` scans staged diffs for secrets and tenant-specific terms — blocking
+commit on match. Patterns: PEM private-key block headers, service-account JSON,
+API token prefixes (GCP/AWS/GitHub), and a project-local denylist
+(`.githooks/denylist.local`, gitignored) for bank-specific terms. Excludes known
+placeholders (`your-*`, `000000`, etc.). Proven in s1ctl — critical for mise because the
+ingest path handles bank internal documents.
+
+### File-length guard (pre-commit)
+
+`scripts/check-lengths.sh` enforces Go ≤500 lines, TS ≤300, Vue ≤400, docs ≤250 prose
+(CODE_STYLE_GO/TS/VUE, DOC_STYLE). A grandfather list exempts files that existed before the
+rule — new files must comply.
 
 The same checks run in CI (CI-CD §2) — the hook is a fast local mirror, never the only gate.
 
