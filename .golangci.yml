@@ -34,6 +34,8 @@ linters:
     # --- size / shape: keep files & functions small (CODE_STYLE_GO) -------------
     - funlen                  # function length limit
     - lll                     # line length limit
+    # --- architecture: enforce package import boundaries -----------------------
+    - depguard                # deny model/network imports into pkg/graph (Method A determinism)
   settings:
     funlen:
       lines: 80               # max function body lines
@@ -48,6 +50,27 @@ linters:
         - name: cognitive-complexity
           arguments: [30]
         - name: var-naming          # Go naming (MixedCaps, initialisms)
+    depguard:
+      rules:
+        # pkg/graph is Method A: deterministic edge extraction, no model/judge/
+        # network call, ever (M2-9; ARCH §4 · DECISIONS 6). Scoped to pkg/graph
+        # only — every other package (e.g. pkg/store) legitimately uses pgx/net.
+        graph-pure:
+          files:
+            - '**/pkg/graph/**'
+          deny:
+            - pkg: danny.vn/mise/pkg/vertex
+              desc: 'pkg/graph is deterministic Method A extraction — no model calls (M2-9)'
+            - pkg: danny.vn/mise/pkg/rag/embed
+              desc: 'pkg/graph must not embed — no model calls on the graph path (M2-9)'
+            - pkg: net/http
+              desc: 'pkg/graph is pure/deterministic extraction — no network (M2-9)'
+            - pkg: net
+              desc: 'pkg/graph is pure/deterministic extraction — no network (M2-9)'
+            - pkg: cloud.google.com/go
+              desc: 'pkg/graph is pure/deterministic extraction — no Google Cloud SDK (M2-9)'
+            - pkg: github.com/jackc/pgx
+              desc: 'pkg/graph is pure/deterministic extraction — no direct DB/network client (M2-9)'
   exclusions:
     rules:
       # sqlc-generated query code — not ours to lint

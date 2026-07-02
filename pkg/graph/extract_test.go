@@ -148,6 +148,9 @@ func TestExtractEdgesNoControlRefsYieldsNoEdges(t *testing.T) {
 	if len(got) != 0 {
 		t.Errorf("ExtractEdges() = %+v, want no edges for a header with no control refs", got)
 	}
+	if got == nil {
+		t.Error("ExtractEdges() returned nil, want an empty, non-nil slice (see ExtractEdges's doc comment)")
+	}
 	if resolveCalled {
 		t.Error("resolve was called for a header with no control refs; there was nothing to resolve")
 	}
