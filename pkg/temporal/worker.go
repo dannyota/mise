@@ -36,11 +36,24 @@ func Connect(ctx context.Context, cfg Config) (client.Client, error) {
 	return c, nil
 }
 
-// NewWorker creates and configures a worker with the ingest activities registered.
+// NewWorker creates and configures a worker with the baseline registrations
+// (NoopWorkflow/NoopActivity). Callers with pipeline dependencies should use
+// NewWorkerWith to register their workflows and activities on top.
 func NewWorker(c client.Client, taskQueue string) worker.Worker {
+	return NewWorkerWith(c, taskQueue, nil)
+}
+
+// NewWorkerWith is NewWorker plus a registration hook: reg (when non-nil) is
+// called with the configured worker so callers can register additional
+// workflows and activities — e.g. the ingest pipeline — without this package
+// importing them.
+func NewWorkerWith(c client.Client, taskQueue string, reg func(worker.Worker)) worker.Worker {
 	w := worker.New(c, taskQueue, worker.Options{})
 	w.RegisterWorkflow(NoopWorkflow)
 	w.RegisterActivity(NoopActivity)
+	if reg != nil {
+		reg(w)
+	}
 	return w
 }
 

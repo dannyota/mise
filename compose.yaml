@@ -74,7 +74,15 @@ services:
       TEMPORAL_HOST: temporal:7233
       TEMPORAL_NAMESPACE: default
       TEMPORAL_TASK_QUEUE: mise-ingest
+      ALLOYDB_HOST: alloydb
+      ALLOYDB_PORT: '5432'
+      ALLOYDB_USER: mise
+      ALLOYDB_PASSWORD: mise-dev
+      ALLOYDB_DATABASE: mise
       VERTEX: fake
+      BLOB_DIR: /data/raw
+    volumes:
+      - raw-data:/data/raw
     depends_on:
       temporal:
         condition: service_started
@@ -83,3 +91,4 @@ services:
 
 volumes:
   alloydb-data:
+  raw-data:

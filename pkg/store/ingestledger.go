@@ -69,6 +69,26 @@ func (l *Ledger) Unchanged(ctx context.Context, corpusID corpus.ID, sourceID, ex
 	return stored == hash, nil
 }
 
+// Entry returns the content hash and lifecycle state recorded for
+// corpusID/sourceID/externalID, and whether such a row exists. The ingest
+// pipeline uses it to make retried ProcessDoc activities idempotent: a row
+// already in state "indexed" with an unchanged hash needs no re-processing.
+func (l *Ledger) Entry(
+	ctx context.Context, corpusID corpus.ID, sourceID, externalID string,
+) (hash, state string, found bool, err error) {
+	const q = `SELECT content_hash, state FROM ingest.doc_ledger
+WHERE corpus_id = $1 AND source_id = $2 AND external_id = $3`
+
+	err = l.pool.QueryRow(ctx, q, string(corpusID), sourceID, externalID).Scan(&hash, &state)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return "", "", false, nil
+	case err != nil:
+		return "", "", false, fmt.Errorf("reading doc ledger entry %s/%s/%s: %w", corpusID, sourceID, externalID, err)
+	}
+	return hash, state, true, nil
+}
+
 // SetState updates a ledger row's lifecycle state and last error. Pass "" for
 // errMsg to clear last_error (e.g. on a transition that succeeded).
 func (l *Ledger) SetState(ctx context.Context, corpusID corpus.ID, sourceID, externalID, state, errMsg string) error {
@@ -158,6 +178,25 @@ func StartRun(ctx context.Context, pool *pgxpool.Pool, corpusID corpus.ID) (uuid
 		return uuid.UUID{}, fmt.Errorf("starting ingest run for %s: %w", corpusID, err)
 	}
 	return id, nil
+}
+
+// CurrentRun returns the id of corpusID's most recently started ingest.run row
+// still in status 'running', and whether one exists. ProcessDoc activities use
+// it to stamp document provenance (ingest_run_id) without threading the run id
+// through their fixed activity signature.
+func CurrentRun(ctx context.Context, pool *pgxpool.Pool, corpusID corpus.ID) (uuid.UUID, bool, error) {
+	const q = `SELECT id FROM ingest.run
+WHERE corpus_id = $1 AND status = 'running' ORDER BY started_at DESC LIMIT 1`
+
+	var id uuid.UUID
+	err := pool.QueryRow(ctx, q, string(corpusID)).Scan(&id)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return uuid.UUID{}, false, nil
+	case err != nil:
+		return uuid.UUID{}, false, fmt.Errorf("reading current ingest run for %s: %w", corpusID, err)
+	}
+	return id, true, nil
 }
 
 // FinishRun marks an ingest.run row finished with the given status and stats

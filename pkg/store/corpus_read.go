@@ -77,6 +77,23 @@ func (c *Corpus) GetDocument(ctx context.Context, role string, docID uuid.UUID) 
 	return DocumentDetail{Doc: doc, Sections: sections, Events: events}, nil
 }
 
+// GetValidity returns docID's current validity_status. It is an owner-role
+// read (no SET ROLE) for the ingest write path, which must see the target of
+// an amendment event regardless of tier — use GetDocument for RLS-scoped
+// reads. A missing row reports ErrDocumentNotFound.
+func (c *Corpus) GetValidity(ctx context.Context, docID uuid.UUID) (string, error) {
+	q := `SELECT validity_status FROM ` + c.qualify("document") + ` WHERE id = $1`
+	var status string
+	err := c.pool.QueryRow(ctx, q, docID).Scan(&status)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return "", fmt.Errorf("getting validity for document %s: %w (%w)", docID, ErrDocumentNotFound, err)
+	case err != nil:
+		return "", fmt.Errorf("getting validity for document %s: %w", docID, err)
+	}
+	return status, nil
+}
+
 const documentSelectCols = `id, corpus_id, title, doc_number, citation_scheme, citation_path, language,
 	validity_status, issuing_authority, signer_name, version, source_url, source_system,
 	content_type, access_tier, issued_date, effective_date, expiry_date, ingest_run_id, observed_at`

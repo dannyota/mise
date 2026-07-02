@@ -2,9 +2,12 @@ package config_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 
+	"danny.vn/mise/pkg/blob"
 	"danny.vn/mise/pkg/config"
+	"danny.vn/mise/pkg/corpus"
 	"danny.vn/mise/pkg/store"
 )
 
@@ -77,6 +80,75 @@ func TestNewEmbedderRealRequiresProject(t *testing.T) {
 	t.Setenv("GCP_PROJECT", "")
 	if _, err := config.NewEmbedder(context.Background()); err == nil {
 		t.Fatal("NewEmbedder() error = nil, want error when GCP_PROJECT is unset")
+	}
+}
+
+func TestNewBlobDefaultsToFS(t *testing.T) {
+	t.Setenv("GCS_BUCKET", "")
+	t.Setenv("BLOB_DIR", t.TempDir())
+	b, err := config.NewBlob(context.Background())
+	if err != nil {
+		t.Fatalf("NewBlob() error = %v, want nil", err)
+	}
+	if _, ok := b.(*blob.FS); !ok {
+		t.Errorf("NewBlob() = %T, want *blob.FS when GCS_BUCKET is unset", b)
+	}
+}
+
+func TestNewParserFake(t *testing.T) {
+	t.Setenv("VERTEX", "fake")
+	p, err := config.NewParser(context.Background())
+	if err != nil {
+		t.Fatalf("NewParser() error = %v, want nil", err)
+	}
+	if p == nil {
+		t.Fatal("NewParser() = nil, want the fake parser")
+	}
+}
+
+func TestNewParserDefaultsToFakeWhenUnset(t *testing.T) {
+	t.Setenv("VERTEX", "")
+	if _, err := config.NewParser(context.Background()); err != nil {
+		t.Fatalf("NewParser() error = %v, want the fake default", err)
+	}
+}
+
+func TestNewParserRejectsUnknownValue(t *testing.T) {
+	t.Setenv("VERTEX", "bogus")
+	if _, err := config.NewParser(context.Background()); err == nil {
+		t.Fatal("NewParser() error = nil, want error for unknown VERTEX value")
+	}
+}
+
+func TestNewParserRealRequiresProcessorConfig(t *testing.T) {
+	t.Setenv("VERTEX", "real")
+	t.Setenv("GCP_PROJECT", "p")
+	t.Setenv("DOCAI_PROCESSOR_ID", "")
+	if _, err := config.NewParser(context.Background()); err == nil {
+		t.Fatal("NewParser() error = nil, want error when DOCAI_PROCESSOR_ID is unset")
+	}
+}
+
+func TestNewSourcesWiresBothLawCorpora(t *testing.T) {
+	sources, err := config.NewSources(context.Background())
+	if err != nil {
+		t.Fatalf("NewSources() error = %v, want nil", err)
+	}
+	want := map[corpus.ID][]string{
+		corpus.VNReg: {"vbpl", "vanban", "congbao", "sbv_hanoi"},
+		corpus.MYReg: {"agclom", "bnm", "sc"},
+	}
+	if len(sources) != len(want) {
+		t.Fatalf("NewSources() wired %d corpora, want %d", len(sources), len(want))
+	}
+	for id, wantIDs := range want {
+		got := make([]string, 0, len(sources[id]))
+		for _, s := range sources[id] {
+			got = append(got, s.ID())
+		}
+		if !slices.Equal(got, wantIDs) {
+			t.Errorf("NewSources()[%s] = %v, want %v", id, got, wantIDs)
+		}
 	}
 }
 
