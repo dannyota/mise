@@ -1,0 +1,155 @@
+[
+  {
+    "id": "atttt-50-2024",
+    "question": "Tổ chức tín dụng phải bảo đảm những yêu cầu an toàn, bảo mật nào khi cung cấp dịch vụ ngân hàng trực tuyến?",
+    "expected": [{ "doc_number": "50/2024/tt-nhnn", "segments": ["dieu-3"] }]
+  },
+  {
+    "id": "ats-09-2020-dieu",
+    "question": "Quy định về bảo đảm an toàn hệ thống thông tin trong hoạt động ngân hàng yêu cầu phân loại hệ thống thông tin theo cấp độ như thế nào?",
+    "expected": [{ "doc_number": "09/2020/tt-nhnn", "segments": ["dieu-5"] }]
+  },
+  {
+    "id": "ekyc-17-2024",
+    "question": "Khách hàng cá nhân được mở tài khoản thanh toán bằng phương thức điện tử (eKYC) trong những trường hợp nào?",
+    "expected": [
+      { "doc_number": "17/2024/tt-nhnn", "segments": ["dieu-16"] },
+      { "doc_number": "25/2025/tt-nhnn", "segments": ["dieu-7", "khoan-2"] }
+    ]
+  },
+  {
+    "id": "open-api-64-2024",
+    "question": "Tiêu chuẩn kết nối Open API trong ngành ngân hàng được quy định ra sao?",
+    "expected": [{ "doc_number": "64/2024/tt-nhnn", "segments": ["dieu-7"] }]
+  },
+  {
+    "id": "trung-gian-tt-40-2024",
+    "question": "Điều kiện để tổ chức được cung ứng dịch vụ trung gian thanh toán là gì?",
+    "expected": [
+      { "doc_number": "52/2024/nđ-cp", "segments": ["dieu-22", "khoan-2"] }
+    ]
+  },
+  {
+    "id": "pdpl-91-2025",
+    "question": "Luật Bảo vệ dữ liệu cá nhân quy định những nguyên tắc nào về xử lý dữ liệu cá nhân?",
+    "expected": [{ "doc_number": "91/2025/qh15", "segments": ["dieu-3"] }]
+  },
+  {
+    "id": "onbank-pin-length-50-2024",
+    "question": "Mã PIN dùng để xác nhận giao dịch trong dịch vụ Online Banking phải có độ dài tối thiểu bao nhiêu ký tự?",
+    "expected": [
+      { "doc_number": "50/2024/tt-nhnn", "segments": ["dieu-11", "khoan-2"] }
+    ]
+  },
+  {
+    "id": "onbank-password-length-50-2024",
+    "question": "Mã khóa bí mật (Password) để xác nhận giao dịch Online Banking phải có độ dài tối thiểu bao nhiêu ký tự?",
+    "expected": [
+      {
+        "doc_number": "50/2024/tt-nhnn",
+        "segments": ["dieu-11", "khoan-1", "diem-a"]
+      }
+    ]
+  },
+  {
+    "id": "infosys-level3-09-2020",
+    "question": "Hệ thống thông tin cấp độ 3 trong hoạt động ngân hàng được xác định theo những tiêu chí nào?",
+    "expected": [
+      { "doc_number": "09/2020/tt-nhnn", "segments": ["dieu-5", "khoan-4"] }
+    ]
+  },
+  {
+    "id": "sinh-trac-hoc-2345",
+    "question": "Hạn mức giao dịch thanh toán trực tuyến nào bắt buộc phải xác thực bằng dấu hiệu nhận dạng sinh trắc học?",
+    "expected": [
+      { "doc_number": "50/2024/tt-nhnn", "segments": ["dieu-11", "khoan-5"] },
+      { "doc_number": "50/2024/tt-nhnn", "segments": ["dieu-10"] }
+    ]
+  },
+  {
+    "id": "cybersec-prohibited-116-2025",
+    "question": "Những hành vi nào bị nghiêm cấm về an ninh mạng theo luật hiện hành?",
+    "expected": [{ "doc_number": "116/2025/qh15", "segments": ["dieu-7"] }]
+  },
+  {
+    "id": "cybersec-measures-116-2025",
+    "question": "Các biện pháp bảo vệ an ninh mạng gồm những gì?",
+    "expected": [{ "doc_number": "116/2025/qh15", "segments": ["dieu-5"] }]
+  },
+  {
+    "id": "esign-cert-validity-23-2025",
+    "question": "Thời hạn có hiệu lực của chứng thư chữ ký số được quy định như thế nào?",
+    "expected": [{ "doc_number": "23/2025/nđ-cp", "segments": ["dieu-7"] }]
+  },
+  {
+    "id": "esign-cert-content-23-2025",
+    "question": "Chứng thư chữ ký số phải bao gồm những nội dung gì?",
+    "expected": [{ "doc_number": "23/2025/nđ-cp", "segments": ["dieu-6"] }]
+  },
+  {
+    "id": "trung-gian-tt-scope-40-2024",
+    "question": "Phạm vi sử dụng dịch vụ trung gian thanh toán được quy định ra sao?",
+    "expected": [{ "doc_number": "40/2024/tt-nhnn", "segments": ["dieu-6"] }]
+  },
+  {
+    "id": "chu-ky-so-chuyen-dung-130-2018",
+    "question": "Việc sử dụng chữ ký số và chứng thư số của cơ quan, tổ chức được quy định thế nào?",
+    "expected": [{ "doc_number": "130/2018/nđ-cp", "segments": ["dieu-7"] }]
+  },
+  {
+    "id": "edge-cite-09-2020-dieu33",
+    "question": "Thông tư 09/2020 của Ngân hàng Nhà nước có quy định gì về việc ngân hàng dùng dịch vụ công nghệ thông tin của bên thứ ba không?",
+    "expected": [{ "doc_number": "09/2020/tt-nhnn", "segments": ["dieu-33"] }]
+  },
+  {
+    "id": "edge-soky-only-50-2024",
+    "question": "Thông tư 50/2024/TT-NHNN quy định về vấn đề gì vậy?",
+    "expected": [{ "doc_number": "50/2024/tt-nhnn" }]
+  },
+  {
+    "id": "edge-no-diacritics-infosec",
+    "question": "ngan hang phai dam bao an toan he thong thong tin nhu the nao?",
+    "expected": [{ "doc_number": "09/2020/tt-nhnn" }]
+  },
+  {
+    "id": "edge-cloud-09-2020",
+    "question": "Ngân hàng muốn chuyển hệ thống lên điện toán đám mây (cloud) thì phải tuân thủ những quy định nào?",
+    "expected": [{ "doc_number": "09/2020/tt-nhnn", "segments": ["dieu-33"] }]
+  },
+  {
+    "id": "edge-digital-assets-71-2025",
+    "question": "Tài sản số là gì và gồm những loại nào theo luật mới?",
+    "expected": [{ "doc_number": "71/2025/qh15", "segments": ["dieu-46"] }]
+  },
+  {
+    "id": "edge-fintech-sandbox-94-2025",
+    "question": "Công ty fintech muốn thử nghiệm sản phẩm mới cùng Ngân hàng Nhà nước thì những giải pháp nào được phép tham gia?",
+    "expected": [{ "doc_number": "94/2025/nđ-cp", "segments": ["dieu-1"] }]
+  },
+  {
+    "id": "edge-it-outsourcing-09-2020",
+    "question": "Ngân hàng thuê công ty bên ngoài làm hệ thống công nghệ thông tin thì cần lưu ý gì?",
+    "expected": [{ "doc_number": "09/2020/tt-nhnn", "segments": ["dieu-33"] }]
+  },
+  {
+    "id": "edge-infosec-history-recall",
+    "question": "Trước khi có Thông tư 09/2020 thì quy định về an toàn công nghệ thông tin trong ngân hàng nằm ở những thông tư nào?",
+    "expected": [
+      { "doc_number": "09/2020/tt-nhnn" },
+      { "doc_number": "18/2018/tt-nhnn" },
+      { "doc_number": "31/2015/tt-nhnn" }
+    ]
+  },
+  {
+    "id": "out-of-scope-coffee",
+    "question": "Cách pha một ly cà phê sữa đá ngon nhất là gì?",
+    "expected": [],
+    "expect_abstain": true
+  },
+  {
+    "id": "out-of-scope-rice",
+    "question": "Quy trình canh tác lúa nước cho năng suất cao ở đồng bằng sông Cửu Long?",
+    "expected": [],
+    "expect_abstain": true
+  }
+]

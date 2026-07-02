@@ -1,0 +1,89 @@
+[
+  {
+    "id": "fsa-secrecy-133",
+    "question": "What are the secrecy obligations of a financial institution's directors, officers, or agents regarding a customer's account information under the Financial Services Act 2013?",
+    "expected": [{ "doc_number": "Act 758", "segments": ["section-133"] }]
+  },
+  {
+    "id": "ifsa-secrecy-155",
+    "question": "Under the Islamic Financial Services Act 2013, what secrecy obligations apply to an Islamic financial institution's directors or officers regarding a customer's account information?",
+    "expected": [{ "doc_number": "Act 759", "segments": ["section-155"] }]
+  },
+  {
+    "id": "fsa-payment-system-standards-33",
+    "question": "Under the Financial Services Act 2013, what standards may Bank Negara Malaysia specify for the safety, integrity, efficiency, or reliability of designated payment systems and designated payment instruments?",
+    "expected": [{ "doc_number": "Act 758", "segments": ["section-33"] }]
+  },
+  {
+    "id": "pdpa-security-principle-9",
+    "question": "What does the Security Principle under the Personal Data Protection Act 2010 require a data user to do to protect personal data from loss, misuse, or unauthorised access?",
+    "expected": [{ "doc_number": "Act 709", "segments": ["section-9"] }]
+  },
+  {
+    "id": "labuan-fssa-licensing-87",
+    "question": "Is a licence required to carry on Labuan banking business under the Labuan Financial Services and Securities Act 2010?",
+    "expected": [{ "doc_number": "Act 704", "segments": ["section-87"] }]
+  },
+  {
+    "id": "cybersecurity-act-cii-notification-23",
+    "question": "Under the Cyber Security Act 2024, what is a national critical information infrastructure entity's duty when it becomes aware that a cyber security incident has or might have occurred?",
+    "expected": [{ "doc_number": "Act 854", "segments": ["section-23"] }]
+  },
+  {
+    "id": "digital-signature-act-recognition",
+    "question": "Which Malaysian law provides for the legal recognition and licensing framework of digital signatures and certification authorities?",
+    "expected": [{ "doc_number": "Act 562" }]
+  },
+  {
+    "id": "msba-licensing",
+    "question": "What law governs the licensing of money services businesses such as remittance and currency exchange in Malaysia?",
+    "expected": [{ "doc_number": "Act 731" }]
+  },
+  {
+    "id": "rmit-cloud-outsourcing",
+    "question": "What must a financial institution do before adopting cloud services from a cloud service provider, under BNM's Risk Management in Technology (RMiT) policy document?",
+    "expected": [{ "doc_number": "BNM/pd-rmit-nov25" }]
+  },
+  {
+    "id": "ekyc-onboarding-requirements",
+    "question": "What minimum requirements and standards must a financial institution observe when implementing electronic Know-Your-Customer (e-KYC) for onboarding individuals and legal persons?",
+    "expected": [{ "doc_number": "BNM/pd_ekyc-apr2024" }]
+  },
+  {
+    "id": "tecreq-psr-cloud",
+    "question": "What technology requirements apply to payment service regulatees that engage cloud service providers?",
+    "expected": [{ "doc_number": "BNM/pd-tecreq-psr-mar2026" }]
+  },
+  {
+    "id": "amlcft-fi-policy",
+    "question": "Which BNM policy document sets out anti-money laundering, counter-financing of terrorism, and targeted financial sanctions requirements for financial institutions?",
+    "expected": [{ "doc_number": "BNM/pd-AMLCFTCPF-TFS-FI-Feb2024_+2" }]
+  },
+  {
+    "id": "open-finance-emoney-issuer-definition",
+    "question": "Under BNM's Open Finance framework, who qualifies as an e-money issuer eligible to participate as a financial service provider?",
+    "expected": [{ "doc_number": "BNM/ED_Open_Finance_2025" }]
+  },
+  {
+    "id": "bcm-cyber-incident-notification-window",
+    "question": "Within what time frame must a financial institution notify Bank Negara Malaysia after confirming a cyber incident, under the Business Continuity Management policy document?",
+    "expected": [{ "doc_number": "BNM/PD-BCM" }]
+  },
+  {
+    "id": "orr-cyber-loss-reporting",
+    "question": "What must a regulated entity report to Bank Negara Malaysia about cyber-related operational risk loss events?",
+    "expected": [{ "doc_number": "BNM/pd-ORR-jan2026" }]
+  },
+  {
+    "id": "out-of-scope-recipe",
+    "question": "What is the best recipe for nasi lemak?",
+    "expected": [],
+    "expect_abstain": true
+  },
+  {
+    "id": "out-of-scope-gdpr",
+    "question": "What does Article 17 of the EU General Data Protection Regulation say about the right to erasure?",
+    "expected": [],
+    "expect_abstain": true
+  }
+]
