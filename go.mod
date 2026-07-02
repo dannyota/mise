@@ -19,6 +19,8 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/moby/moby/api v1.55.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
+	github.com/pgvector/pgvector-go v0.4.0
+	github.com/pgvector/pgvector-go/pgx v0.4.0
 	github.com/pressly/goose/v3 v3.27.2
 	github.com/testcontainers/testcontainers-go v0.43.0
 	go.temporal.io/sdk v1.45.0
@@ -306,6 +308,7 @@ require (
 	github.com/uudashr/iface v1.4.2 // indirect
 	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07 // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xen0n/gosmopolitan v1.3.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yagipy/maintidx v1.0.0 // indirect
