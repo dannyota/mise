@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -13,8 +14,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 
+	"danny.vn/mise/pkg/config"
+	"danny.vn/mise/pkg/corpus"
 	"danny.vn/mise/pkg/mcp"
+	"danny.vn/mise/pkg/rag/embed"
+	"danny.vn/mise/pkg/store"
 )
 
 // readHeaderTimeout bounds the time spent reading request headers (gosec G112).
@@ -37,7 +44,17 @@ func main() {
 
 	r.Get("/healthz", healthzHandler)
 
-	mcpServer := mcp.New(mcp.WithLogger(log))
+	pool, mcpOpts, err := wireEvidence(ctx, log)
+	if err != nil {
+		log.Error("wiring evidence store", "error", err)
+		os.Exit(1)
+	}
+	if pool != nil {
+		defer pool.Close()
+		r.Get("/readyz", readyzHandler(pool))
+	}
+
+	mcpServer := mcp.New(mcpOpts...)
 	r.Mount("/mcp", mcpServer.Handler())
 
 	srv := &http.Server{
@@ -71,6 +88,102 @@ func healthzHandler(w http.ResponseWriter, _ *http.Request) {
 	if _, err := w.Write([]byte("ok")); err != nil {
 		slog.Error("healthz: write response", "error", err)
 	}
+}
+
+// readyzHandler reports whether pool can serve reads, pinging it on every
+// call — unlike healthzHandler, readiness genuinely depends on AlloyDB.
+func readyzHandler(pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := pool.Ping(r.Context()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			if _, werr := w.Write([]byte("not ready")); werr != nil {
+				slog.Error("readyz: write response", "error", werr)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if _, werr := w.Write([]byte("ok")); werr != nil {
+			slog.Error("readyz: write response", "error", werr)
+		}
+	}
+}
+
+// wireEvidence builds the AlloyDB pool, embedder, and per-corpus store map
+// and returns the mcp.Option slice to construct the MCP server with, plus
+// the pool (nil when unused) so main can close it and mount /readyz. Without
+// ALLOYDB_HOST set, serving stays healthz-only — the zero-dependency path
+// mcp.New always supports — and pool is nil.
+func wireEvidence(ctx context.Context, log *slog.Logger) (*pgxpool.Pool, []mcp.Option, error) {
+	opts := make([]mcp.Option, 0, 2) // WithLogger, plus WithEvidence once wiring succeeds
+	opts = append(opts, mcp.WithLogger(log))
+	if os.Getenv("ALLOYDB_HOST") == "" {
+		return nil, opts, nil
+	}
+
+	pool, err := store.Connect(ctx, config.DB())
+	if err != nil {
+		return nil, nil, fmt.Errorf("connecting to alloydb: %w", err)
+	}
+
+	emb, err := config.NewEmbedder(ctx)
+	if err != nil {
+		pool.Close()
+		return nil, nil, fmt.Errorf("creating embedder: %w", err)
+	}
+
+	corpora, err := newCorporaMap(pool)
+	if err != nil {
+		pool.Close()
+		return nil, nil, fmt.Errorf("building corpus stores: %w", err)
+	}
+
+	searcher := storeSearcher{pool: pool, emb: emb}
+	docGetter := storeDocGetter{corpora: corpora}
+	opts = append(opts, mcp.WithEvidence(searcher, docGetter, config.Role()))
+	return pool, opts, nil
+}
+
+// newCorporaMap builds one store.Corpus per registered corpus, keyed by
+// corpus ID string — storeDocGetter's per-call corpus_id lookup.
+func newCorporaMap(pool *pgxpool.Pool) (map[string]*store.Corpus, error) {
+	all := corpus.All()
+	out := make(map[string]*store.Corpus, len(all))
+	for _, desc := range all {
+		c, err := store.NewCorpus(pool, desc)
+		if err != nil {
+			return nil, fmt.Errorf("building corpus store for %s: %w", desc.ID, err)
+		}
+		out[string(desc.ID)] = c
+	}
+	return out, nil
+}
+
+// storeSearcher adapts store.Search to mcp.Searcher.
+type storeSearcher struct {
+	pool *pgxpool.Pool
+	emb  embed.Embedder
+}
+
+// Search implements mcp.Searcher.
+func (s storeSearcher) Search(ctx context.Context, query string, opts store.SearchOpts) ([]store.Hit, error) {
+	return store.Search(ctx, s.pool, s.emb, query, opts)
+}
+
+// storeDocGetter adapts per-corpus store.Corpus.GetDocument to
+// mcp.DocGetter, resolving corpusID against the pre-built corpora map.
+type storeDocGetter struct {
+	corpora map[string]*store.Corpus
+}
+
+// GetDocument implements mcp.DocGetter.
+func (g storeDocGetter) GetDocument(
+	ctx context.Context, role, corpusID string, docID uuid.UUID,
+) (store.DocumentDetail, error) {
+	c, ok := g.corpora[corpusID]
+	if !ok {
+		return store.DocumentDetail{}, fmt.Errorf("serving: %q is not a registered corpus", corpusID)
+	}
+	return c.GetDocument(ctx, role, docID)
 }
 
 // envOr returns the environment variable named key, or fallback if unset or empty.

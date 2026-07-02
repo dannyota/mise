@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mise.dannyota.dev/schemas/document_output.schema.json",
+  "title": "mise MCP document tool output",
+  "description": "Output of mise's MCP `document` tool (API-CONTRACT.md §2) — the full metadata envelope, verbatim sections, and amendment timeline. Mirrors pkg/mcp.DocumentOutput.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["document", "sections", "amendments"],
+  "properties": {
+    "document": { "$ref": "#/$defs/document_envelope" },
+    "sections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/doc_section" }
+    },
+    "amendments": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/amendment" }
+    }
+  },
+  "$defs": {
+    "document_envelope": {
+      "type": "object",
+      "description": "Mirrors store.Document (pkg/store/models.go), snake_case. Mirrors pkg/mcp.DocumentEnvelope.",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "corpus_id",
+        "title",
+        "doc_number",
+        "citation_scheme",
+        "citation_path",
+        "language",
+        "validity_status",
+        "issuing_authority",
+        "signer_name",
+        "version",
+        "source_url",
+        "source_system",
+        "content_type",
+        "access_tier",
+        "ingest_run_id",
+        "observed_at"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "corpus_id": { "type": "string" },
+        "title": { "type": "string" },
+        "doc_number": { "type": "string" },
+        "citation_scheme": { "type": "string" },
+        "citation_path": { "type": "string" },
+        "language": { "type": "string" },
+        "validity_status": { "type": "string" },
+        "issuing_authority": { "type": "string" },
+        "signer_name": { "type": "string" },
+        "version": { "type": "string" },
+        "source_url": { "type": "string" },
+        "source_system": { "type": "string" },
+        "content_type": { "type": "string" },
+        "access_tier": { "type": "string" },
+        "issued_date": { "type": "string" },
+        "effective_date": { "type": "string" },
+        "expiry_date": { "type": "string" },
+        "ingest_run_id": { "type": "string" },
+        "observed_at": { "type": "string" }
+      }
+    },
+    "doc_section": {
+      "type": "object",
+      "description": "A reduced section projection — citation, heading, verbatim text, validity. Mirrors pkg/mcp.DocSection.",
+      "additionalProperties": false,
+      "required": ["citation_path", "heading_path", "text", "validity_status"],
+      "properties": {
+        "citation_path": { "type": "string" },
+        "heading_path": { "type": "string" },
+        "text": { "type": "string" },
+        "validity_status": { "type": "string" }
+      }
+    },
+    "amendment": {
+      "type": "object",
+      "description": "One dated act on the document's validity. Mirrors pkg/mcp.AmendmentOut.",
+      "additionalProperties": false,
+      "required": ["clause", "event_date"],
+      "properties": {
+        "amending_doc_id": { "type": "string" },
+        "clause": { "type": "string" },
+        "event_date": { "type": "string" }
+      }
+    }
+  }
+}
