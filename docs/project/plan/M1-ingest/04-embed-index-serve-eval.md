@@ -18,8 +18,8 @@ See also:
 
 ## 1. Tasks
 
-Each row = one reviewable PR. The embedding call-site review (DEC 14) can change where the call
-happens, but not the contract: one 1536-d `gemini-embedding-001` space for every corpus.
+Each row = one reviewable PR. The embedding call site is locked (DEC 14, in-app Go embedder) — the
+contract every row here inherits is one 1536-d `gemini-embedding-001` space for every corpus.
 
 | ID    | Task                                                                                                                                      | Deliverable / done-when                                                                                                 | Design ref                       | Depends on  | Size | Review | Risk |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ----------- | ---- | ------ | ---- |
@@ -32,9 +32,9 @@ happens, but not the contract: one 1536-d `gemini-embedding-001` space for every
 
 ## 2. Notes
 
-- **DEC 14 is implementation-time review, not an architecture blocker.** The embedder interface
-  keeps the call site swappable between in-app Go and DB-side `google_ml.embedding()` while the
-  user-visible contract stays fixed.
+- **DEC 14 is locked: in-app Go embedder**, not DB-side `google_ml.embedding()`. The embedder
+  interface still isolates the call site, but the user-visible contract (the shared 1536-d space)
+  was never in question either way.
 - **M1-23 is the first serving contract.** Later reasoning and web consumers depend on this
   evidence surface returning verbatim text plus citation/provenance under the caller's RLS role.
 - **Retrieval eval is inherited from the existing engine.** M1 gates current-law precision and

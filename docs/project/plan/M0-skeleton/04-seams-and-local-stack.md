@@ -37,9 +37,9 @@ offline wiring (M0-19).
   parse, judge, ground (and later the serve model) — sits behind a Go interface so a stricter
   adopter policy can swap to self-hosted AI without a rewrite (AI-GOVERNANCE §7;
   [RISKS](../../RISKS.md) R1). M0 establishes the pattern; later milestones reuse it.
-- **DEC 14 stays open behind M0-14's interface.** The bias is the in-app Go embedder because the
-  offline fake gates CI, but implementation should review DB-side `google_ml.embedding()` for IAM,
-  latency, and backfill use before locking the call site (LOCAL-DEV §4).
+- **DEC 14 is locked behind M0-14's interface: in-app Go embedder**, not AlloyDB's DB-side
+  `google_ml.embedding()` — the offline fake this call site enables is what gates CI
+  (LOCAL-DEV §4).
 - Mode B (offline, fake vectors) validates **plumbing only** — cross-corpus mapping is not
   semantically meaningful with fake vectors; real-quality work uses Mode A (real Vertex from the
   dev project). CI runs Mode B; feature/quality work runs Mode A.

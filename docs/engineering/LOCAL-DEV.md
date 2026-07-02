@@ -71,9 +71,8 @@ already does this for the embedder, `pkg/rag/embed`). Add the same seam for pars
 and grounding. Local config wires the fake/fallback; deploy wires Vertex; a `VERTEX=real|fake`
 toggle selects per environment.
 
-> Note: AlloyDB's in-DB `google_ml.embedding()` still calls Vertex over the network — mise calls
-> the embedder from Go instead (DECISIONS 14, locked), which is what gives Mode B its true-offline
-> fake seam.
+> Note: the embedder call site is in-app Go, not AlloyDB's in-DB `google_ml.embedding()` —
+> DECISIONS 14 (locked).
 
 ---
 

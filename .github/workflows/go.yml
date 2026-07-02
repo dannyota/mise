@@ -1,9 +1,17 @@
 name: Go
 on:
   push:
-    paths: ['cmd/**', 'pkg/**', 'go.mod', 'go.sum', 'migrations/**']
+    paths:
+      [
+        'cmd/**', 'pkg/**', 'internal/**', 'api/schemas/**', 'deploy/eval/**',
+        'go.mod', 'go.sum', 'migrations/**', '.github/workflows/go.yml',
+      ]
   pull_request:
-    paths: ['cmd/**', 'pkg/**', 'go.mod', 'go.sum', 'migrations/**']
+    paths:
+      [
+        'cmd/**', 'pkg/**', 'internal/**', 'api/schemas/**', 'deploy/eval/**',
+        'go.mod', 'go.sum', 'migrations/**', '.github/workflows/go.yml',
+      ]
 
 jobs:
   go:
@@ -29,6 +37,7 @@ jobs:
   integration:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       VERTEX: fake
       # ubuntu-latest ships Docker; testcontainers-go uses it directly (no

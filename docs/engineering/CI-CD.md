@@ -45,9 +45,15 @@ Plus repo-wide: **contract test** for the MCP/REST surface (TESTING §4) so `web
 `reasoning` can't drift from `serving`; and **docs lint** — `markdownlint-cli2` +
 `prettier --check` over `docs/**` and `*.md` (DOC_STYLE: mermaid-only, length budget).
 
+**Integration (Go only, `master`-push, not every PR):** `go test -race -tags integration ./...`
+against testcontainers `pgvector/pgvector:pg17` (TESTING §7), `timeout-minutes: 30`. Split out of
+the PR-gate `go` job so the fast lint/unit/build loop never waits on a container pull + DB
+migration; a PR that only touches Go still gets the fast job on every push, with the integration
+job catching a regression once it lands on `master`.
+
 ---
 
-## 3. Release pipeline (merge to main / tag)
+## 3. Release pipeline (merge to master / tag)
 
 > **Who runs this:** the **adopter** runs this pipeline in its **own** GCP project —
 > building, scanning, and signing with **its own keys**, pushing to **its own** Artifact
@@ -86,7 +92,7 @@ identically on a laptop and in CI (no SaaS account, no server):
 | Layer           | Tool (OSS)                                                                                      | Catches                                                   | Where                                          |
 | --------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------- |
 | **SAST** (code) | **gosec** (in golangci, Go) · **Semgrep** OSS (Go/TS/Vue, rule-based)                           | injection, unsafe crypto, secrets-in-code, taint patterns | PR (changed files) + nightly full              |
-| **SCA** (deps)  | **govulncheck** (Go, call-graph-aware) · **osv-scanner** (Go + pnpm, Google OSV) · `pnpm audit` | known CVEs in dependencies                                | PR + nightly on `main`                         |
+| **SCA** (deps)  | **govulncheck** (Go, call-graph-aware) · **osv-scanner** (Go + pnpm, Google OSV) · `pnpm audit` | known CVEs in dependencies                                | PR + nightly on `master`                       |
 | **Licenses**    | **go-licenses** (Go) · `pnpm licenses` / `license-checker` (JS) · Trivy/syft (images)           | disallowed licenses in shipped deps                       | PR + release ([LICENSES.md](./LICENSES.md) §4) |
 | **Secrets**     | **gitleaks**                                                                                    | committed creds/tokens                                    | pre-commit + PR                                |
 | **Container**   | **Trivy**                                                                                       | image CVEs + IaC misconfig + secrets                      | release (§3)                                   |
@@ -96,7 +102,7 @@ identically on a laptop and in CI (no SaaS account, no server):
 - **Semgrep OSS** (not the paid platform) runs from a pinned ruleset in-repo — no account.
 - **License gate** enforces the allowlist (permissive only in shipped deps) — see
   [LICENSES.md](./LICENSES.md).
-- **Nightly re-scan on `main`** catches CVEs disclosed _after_ merge.
+- **Nightly re-scan on `master`** catches CVEs disclosed _after_ merge.
 - **Dependency bumps — default to Dependabot** (GitHub-native, free, **no AGPL**): grouped
   PRs, **digest-pinned base images**, security patches auto-merge on green, majors manual.
   \*Avoid self-hosted Renovate — its license rules it out ([LICENSES.md](./LICENSES.md) §2); use

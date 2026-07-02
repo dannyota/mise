@@ -95,7 +95,7 @@ The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gat
 
 - **Cold-start:** before any human attestation exists, seed a small hand-labelled set so
   the harness produces a baseline (this is the bootstrap gap flagged for discussion).
-- Runs nightly on `main` against a fixed corpus snapshot so results are comparable.
+- Runs nightly on `master` against a fixed corpus snapshot so results are comparable.
 
 ---
 
@@ -111,7 +111,11 @@ The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gat
 
 ## 7. Test Defaults
 
-- Use **testcontainers with AlloyDB Omni** for CI integration tests. A shared ephemeral DB is a
+- **Testcontainers, split by environment:** the CI integration job (CI-CD §2) runs
+  `pgvector/pgvector:pg17` — smaller, no ScaNN, so its vector index falls back to HNSW
+  (`internal/testdb`) — to keep the gate fast and Docker-only. **AlloyDB Omni** remains the
+  local/nightly reference image for the RLS/ScaNN-sensitive suites (row-visibility policies,
+  filtered ANN search) that need the real engine, not the fallback. A shared ephemeral DB is a
   local/manual acceleration option, not the reference gate.
 - Run Playwright E2E **nightly and pre-release** by default; keep PR gates focused on unit,
   integration, contract, and component tests unless a small smoke path proves stable enough.

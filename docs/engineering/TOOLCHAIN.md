@@ -93,9 +93,12 @@ features are baseline given the 1.26 pin.)
   The bank-relevant ones are `gosec` (security) and the `sql*`/`bodyclose` resource-leak
   linters (the read path holds DB rows + HTTP bodies). `gocritic` catches subtle bugs;
   `misspell`/`unconvert`/`unparam`/`whitespace` are low-noise hygiene (proven in s1ctl).
-- **gosec excludes:** G107 (URL from variable — noisy for HTTP clients), G304 (file path
-  from variable — handled by `os.Root` sandboxing), G306 (file perms — not relevant for
-  containers). Exclude explicitly in `.golangci.yml`.
+- **gosec runs with no excludes today** (`.golangci.yml` — zero findings to date). Add an
+  exclude only with a written rationale comment when a real false positive lands, not
+  preemptively; a path-validated read still needs an inline `//nolint:gosec` + reason at the
+  call site (e.g. `blob.FS`, which checks key shape before ever joining a path — see its code).
+  `os.Root` (1.24, TOOLCHAIN §3) remains the idiom for future file-handling code that needs
+  directory-level sandboxing, not a blanket G304 exclude.
 - **revive tuning:** disable `exported` (noisy godoc enforcement on internal types);
   keep `var-naming` + `file-length-limit`.
 - Generated code (`*.sql.go` from sqlc) is excluded; `_test.go` relaxes

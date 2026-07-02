@@ -58,9 +58,9 @@ See also:
 
 - **Upstream:** none — the first milestone; it unblocks every later one.
 - **Decision gates:** **DEC 4** (AlloyDB Omni from day 1, drives the container choice);
-  **DEC 14** (OPEN — in-app Go embedder vs AlloyDB `google_ml.embedding()` call site, kept behind
-  the interface); **DEC 1** (embedding @1536-d, fixes the dim contract every later milestone
-  inherits).
+  **DEC 14** (LOCKED — in-app Go embedder, not AlloyDB `google_ml.embedding()`; kept behind the
+  interface for portability); **DEC 1** (embedding @1536-d, fixes the dim contract every later
+  milestone inherits).
 - **External prerequisites:** a **dev GCP project** with Vertex + ADC for the optional Mode A
   fidelity path (not needed for the Mode B path that gates CI); local **Podman** with
   `podman compose` and the `google/alloydbomni` image pullable.
@@ -106,9 +106,9 @@ Low/Med/High.
 - **Engine generalization leak** (M0-5/6) — the single-jurisdiction assumption wired deeper than
   the descriptor sprawls the refactor; isolate to the descriptor + config seam early
   ([RISKS](../../RISKS.md) R10).
-- **DEC 14 open** (M0-14) — the embedder interface keeps the call-site review low-rework:
-  implementation can lock in-app Go embedding or AlloyDB `google_ml.embedding()` after checking
-  IAM, latency, portability, and offline testability.
+- **DEC 14 locked** (M0-14) — in-app Go embedder, not AlloyDB `google_ml.embedding()`; the
+  interface still isolates the call site, so a future IAM/latency/portability need can revisit
+  it without a wider refactor.
 - **AlloyDB Omni local fidelity** (M0-8/9) — the Omni container must load ScaNN + pgvector and the
   RLS/schema-per-corpus model, else "local == deploy" weakens (LOCAL-DEV §1).
 - **Temporal-on-AlloyDB persistence** (M0-12) — Temporal's schema co-existing with corpus schemas
