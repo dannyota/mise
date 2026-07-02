@@ -60,6 +60,12 @@ func parseFlags() opts {
 	flag.Float64Var(&o.minInForce, "min-inforce", 1.0,
 		"fail if aggregate current-law precision is below this (0 = no gate)")
 	flag.Float64Var(&o.minAbstain, "min-abstain", 0.95, "fail if abstention accuracy is below this (0 = no gate)")
+	// min-citation gates CitationPrecision, whose semantics are new to mise
+	// (precision over every top-k hit, not a port of banhmi's dead
+	// answer-citation field — see CitationPrecision's doc comment).
+	// TESTING.md §5 currently credits the 0.95 floor to "banhmi citation
+	// gate," but that basis doesn't apply here; treat 0.95 as provisional
+	// until the first real corpus run calibrates it (doc fix: Task 16).
 	flag.Float64Var(&o.minCitation, "min-citation", 0.95, "fail if citation correctness is below this (0 = no gate)")
 	flag.Parse()
 	return o

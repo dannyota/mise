@@ -5,9 +5,9 @@
     "expected": [{ "doc_number": "Act 758", "segments": ["section-133"] }]
   },
   {
-    "id": "ifsa-secrecy-155",
+    "id": "ifsa-secrecy-145",
     "question": "Under the Islamic Financial Services Act 2013, what secrecy obligations apply to an Islamic financial institution's directors or officers regarding a customer's account information?",
-    "expected": [{ "doc_number": "Act 759", "segments": ["section-155"] }]
+    "expected": [{ "doc_number": "Act 759", "segments": ["section-145"] }]
   },
   {
     "id": "fsa-payment-system-standards-33",
