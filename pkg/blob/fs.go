@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 // FS is a Store backed by a local directory tree (local dev; LOCAL-DEV.md).
@@ -23,9 +24,27 @@ func NewFS(root string) Store {
 	return &FS{root: root}
 }
 
+// keyPattern matches Key's own output shape: raw/<2 hex>/<64 hex sha256>[.ext].
+// Every FS method routes its key through resolve, which checks this before
+// ever joining onto f.root — a key that doesn't match (a ".." path-traversal
+// segment, the wrong shard width, a non-hex sha, trailing garbage after the
+// extension) is rejected before it can reach os.Stat/os.Open/os.Rename.
+var keyPattern = regexp.MustCompile(`^raw/[0-9a-f]{2}/[0-9a-f]{64}(\.[A-Za-z0-9]+)?$`)
+
+// resolve validates key against keyPattern and returns its path under f.root.
+func (f *FS) resolve(key string) (string, error) {
+	if !keyPattern.MatchString(key) {
+		return "", fmt.Errorf("blob: invalid key %q", key)
+	}
+	return filepath.Join(f.root, filepath.FromSlash(key)), nil
+}
+
 // Put implements Store.
 func (f *FS) Put(_ context.Context, key string, r io.Reader) (bool, error) {
-	dest := filepath.Join(f.root, filepath.FromSlash(key))
+	dest, err := f.resolve(key)
+	if err != nil {
+		return false, err
+	}
 	switch _, err := os.Stat(dest); {
 	case err == nil:
 		return false, nil // already exists — immutable, put-once
@@ -76,7 +95,15 @@ func writeTemp(dir, dest string, r io.Reader) (bool, error) {
 
 // Get implements Store.
 func (f *FS) Get(_ context.Context, key string) (io.ReadCloser, error) {
-	file, err := os.Open(filepath.Join(f.root, filepath.FromSlash(key)))
+	dest, err := f.resolve(key)
+	if err != nil {
+		return nil, err
+	}
+	// dest was built by resolve, which already rejected any key not matching
+	// keyPattern (no ".." segments, fixed shard/sha shape) — not unvalidated
+	// caller input.
+	//nolint:gosec
+	file, err := os.Open(dest)
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %w", key, err)
 	}
@@ -85,7 +112,11 @@ func (f *FS) Get(_ context.Context, key string) (io.ReadCloser, error) {
 
 // Exists implements Store.
 func (f *FS) Exists(_ context.Context, key string) (bool, error) {
-	_, err := os.Stat(filepath.Join(f.root, filepath.FromSlash(key)))
+	dest, err := f.resolve(key)
+	if err != nil {
+		return false, err
+	}
+	_, err = os.Stat(dest)
 	switch {
 	case err == nil:
 		return true, nil

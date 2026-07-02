@@ -31,7 +31,15 @@ type Store interface {
 // bytes' lowercase-hex SHA-256 (as returned by ingest.Source.Download),
 // sharded two hex chars deep so any one directory can't grow unbounded, plus
 // the file's extension (with leading dot, e.g. ".pdf"; may be empty). The input
-// sha256Hex must be a full 64-char SHA-256 hex string.
+// sha256Hex must be a full 64-char SHA-256 hex string — every caller in this
+// repo passes one from a real sha256.Sum256. Key does not re-validate that (it
+// returns a bare string, not an error); a too-short input degrades to using
+// the whole string as its own shard prefix instead of panicking on the [:2]
+// slice, so misuse produces a wrong-looking key rather than a crash.
 func Key(sha256Hex, ext string) string {
-	return "raw/" + sha256Hex[:2] + "/" + sha256Hex + ext
+	prefix := sha256Hex
+	if len(sha256Hex) >= 2 {
+		prefix = sha256Hex[:2]
+	}
+	return "raw/" + prefix + "/" + sha256Hex + ext
 }

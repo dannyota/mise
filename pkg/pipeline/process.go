@@ -100,7 +100,9 @@ func (a *Activities) processStages(
 	}
 
 	heartbeat(ctx, "extract "+ref.ExternalID)
+	stopExtract := heartbeatLoop(ctx, "extracting "+ref.ExternalID)
 	text, err := a.deps.Extract.Text(ctx, content.data, content.contentType)
+	stopExtract()
 	if errors.Is(err, ingest.ErrUnsupportedContentType) {
 		return a.failDoc(ctx, desc.ID, ref, err)
 	}
@@ -178,7 +180,10 @@ func (a *Activities) fetchMainContent(
 		return mainContent{}, errNoMainContent
 	}
 	var buf bytes.Buffer
-	if _, _, err := src.Download(ctx, file, &buf); err != nil {
+	stopDownload := heartbeatLoop(ctx, "downloading "+file.Name)
+	_, _, err := src.Download(ctx, file, &buf)
+	stopDownload()
+	if err != nil {
 		return mainContent{}, fmt.Errorf("downloading %s: %w", file.Name, err)
 	}
 	sum := sha256.Sum256(buf.Bytes())
@@ -336,14 +341,50 @@ func (a *Activities) index(
 	if err := c.ReplaceSections(ctx, docID, norm.Sections); err != nil {
 		return uuid.UUID{}, err
 	}
+	if err := reapplyIncomingEvents(ctx, c, docID, now); err != nil {
+		return uuid.UUID{}, err
+	}
 	if err := applyRelations(ctx, c, docID, norm.RelationEvents, now); err != nil {
 		return uuid.UUID{}, err
 	}
 	return docID, nil
 }
 
+// reapplyIncomingEvents re-derives docID's validity_status from every
+// amendment event already recorded against it as a TARGET — necessary
+// because UpsertDocument's update path just overwrote validity_status with
+// norm.Doc's source-derived value (Normalize's MapValidity), which knows
+// nothing about amendment events some OTHER, already-indexed document
+// recorded against docID in an earlier run (applyRelations, below). Without
+// this, a changed TARGET document re-indexed by the pipeline would silently
+// regress from "amended"/"superseded"/"repealed" back to whatever the
+// source itself currently reports (typically "in_force").
+//
+// Replaying every stored event in event_date order — not just the latest —
+// reproduces Transition's order-sensitive last-non-repeal-wins/
+// repeal-is-absorbing semantics exactly as if each had been applied live;
+// TransitionAt's own future-date gate makes this safe to call unconditionally
+// (a not-yet-due event is a no-op), and TransitionValidity's no-op-when-
+// unchanged write makes it cheap to call on every index, not just a genuine
+// regression.
+func reapplyIncomingEvents(ctx context.Context, c *store.Corpus, docID uuid.UUID, now time.Time) error {
+	events, err := c.EventsForTarget(ctx, docID)
+	if err != nil {
+		return fmt.Errorf("loading incoming amendment events for %s: %w", docID, err)
+	}
+	for _, ev := range events {
+		if _, err := c.TransitionValidity(ctx, docID, func(current string) string {
+			return ingest.TransitionAt(current, ev.Kind, ev.EventDate, now)
+		}); err != nil {
+			return fmt.Errorf("re-applying amendment event onto %s: %w", docID, err)
+		}
+	}
+	return nil
+}
+
 // embedSections fills each section's Embedding, batching bodies through the
-// Embedder embedBatchSize at a time and heartbeating between batches.
+// Embedder embedBatchSize at a time, heartbeating both during a single slow
+// batch call (heartbeatLoop) and once after each batch completes.
 func (a *Activities) embedSections(ctx context.Context, secs []store.Section) error {
 	for start := 0; start < len(secs); start += embedBatchSize {
 		end := min(start+embedBatchSize, len(secs))
@@ -351,7 +392,9 @@ func (a *Activities) embedSections(ctx context.Context, secs []store.Section) er
 		for _, s := range secs[start:end] {
 			texts = append(texts, s.Body)
 		}
+		stopEmbed := heartbeatLoop(ctx, fmt.Sprintf("embedding %d/%d", end, len(secs)))
 		vecs, err := a.deps.Embedder.Embed(ctx, texts)
+		stopEmbed()
 		if err != nil {
 			return fmt.Errorf("embedding sections %d-%d: %w", start, end, err)
 		}
@@ -394,6 +437,7 @@ func applyRelations(
 		rows = append(rows, store.AmendmentEvent{
 			TargetDocID:   targetID,
 			AmendingDocID: new(docID),
+			Kind:          ev.Kind,
 			Clause:        ev.Clause,
 			EventDate:     ev.Date,
 		})

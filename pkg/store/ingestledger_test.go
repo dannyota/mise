@@ -23,7 +23,7 @@ func TestLedgerUpsertAndUnchanged(t *testing.T) {
 	sourceID := "vbpl"
 	externalID := uuid.NewString() // unique per run: the pool/container is shared across tests
 
-	if err := ledger.Upsert(ctx, corpusID, sourceID, externalID, "hash-1", "discovered"); err != nil {
+	if err := ledger.Upsert(ctx, corpusID, sourceID, externalID, "hash-1", "indexed"); err != nil {
 		t.Fatalf("Upsert() error = %v", err)
 	}
 
@@ -32,7 +32,7 @@ func TestLedgerUpsertAndUnchanged(t *testing.T) {
 		t.Fatalf("Unchanged() error = %v", err)
 	}
 	if !unchanged {
-		t.Error("Unchanged() = false, want true for the same hash")
+		t.Error("Unchanged() = false, want true for the same hash on an indexed row")
 	}
 
 	changed, err := ledger.Unchanged(ctx, corpusID, sourceID, externalID, "hash-2")
@@ -44,7 +44,7 @@ func TestLedgerUpsertAndUnchanged(t *testing.T) {
 	}
 
 	// Re-upserting with the new hash refreshes the stored value.
-	if err := ledger.Upsert(ctx, corpusID, sourceID, externalID, "hash-2", "fetched"); err != nil {
+	if err := ledger.Upsert(ctx, corpusID, sourceID, externalID, "hash-2", "indexed"); err != nil {
 		t.Fatalf("second Upsert() error = %v", err)
 	}
 	unchanged, err = ledger.Unchanged(ctx, corpusID, sourceID, externalID, "hash-2")
@@ -52,7 +52,46 @@ func TestLedgerUpsertAndUnchanged(t *testing.T) {
 		t.Fatalf("Unchanged() error = %v", err)
 	}
 	if !unchanged {
-		t.Error("Unchanged() = false after re-upsert, want true for the refreshed hash")
+		t.Error("Unchanged() = false after re-upsert, want true for the refreshed hash on an indexed row")
+	}
+}
+
+// TestLedgerUnchangedConsidersState pins the C1 fix: Unchanged is true only
+// when the hash matches AND the row's lifecycle state is terminal
+// ("indexed"/"out_of_scope") — a same-hash row stranded in "discovered"
+// (Discover errored after a partial batch of upserts) or "failed" (the
+// failure's cause may no longer apply) must be re-enqueued on the next
+// Discover run, never silently and permanently skipped.
+func TestLedgerUnchangedConsidersState(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+	ledger := store.NewLedger(pool)
+	corpusID := corpus.VNReg
+	sourceID := "vbpl"
+
+	tests := []struct {
+		state string
+		want  bool
+	}{
+		{"discovered", false},
+		{"failed", false},
+		{"indexed", true},
+		{"out_of_scope", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.state, func(t *testing.T) {
+			externalID := uuid.NewString()
+			if err := ledger.Upsert(ctx, corpusID, sourceID, externalID, "hash-1", tt.state); err != nil {
+				t.Fatalf("Upsert() error = %v", err)
+			}
+			got, err := ledger.Unchanged(ctx, corpusID, sourceID, externalID, "hash-1")
+			if err != nil {
+				t.Fatalf("Unchanged() error = %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("Unchanged() with state %q and a matching hash = %v, want %v", tt.state, got, tt.want)
+			}
+		})
 	}
 }
 

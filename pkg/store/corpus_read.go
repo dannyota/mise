@@ -171,7 +171,7 @@ func (c *Corpus) scanSections(ctx context.Context, tx pgx.Tx, docID uuid.UUID) (
 
 // scanEvents reads docID's amendment events, ordered by event_date.
 func (c *Corpus) scanEvents(ctx context.Context, tx pgx.Tx, docID uuid.UUID) ([]AmendmentEvent, error) {
-	const cols = `target_doc_id, amending_doc_id, clause, event_date`
+	const cols = `target_doc_id, amending_doc_id, clause, event_date, kind`
 	q := `SELECT ` + cols + ` FROM ` + c.qualify("amendment_event") + ` WHERE target_doc_id = $1 ORDER BY event_date`
 
 	rows, err := tx.Query(ctx, q, docID)
@@ -184,7 +184,7 @@ func (c *Corpus) scanEvents(ctx context.Context, tx pgx.Tx, docID uuid.UUID) ([]
 	for rows.Next() {
 		var e AmendmentEvent
 		var clause *string
-		if err := rows.Scan(&e.TargetDocID, &e.AmendingDocID, &clause, &e.EventDate); err != nil {
+		if err := rows.Scan(&e.TargetDocID, &e.AmendingDocID, &clause, &e.EventDate, &e.Kind); err != nil {
 			return nil, fmt.Errorf("scanning amendment event row for document %s: %w", docID, err)
 		}
 		e.Clause = derefOr(clause)
@@ -192,6 +192,40 @@ func (c *Corpus) scanEvents(ctx context.Context, tx pgx.Tx, docID uuid.UUID) ([]
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("reading amendment event rows for document %s: %w", docID, err)
+	}
+	return out, nil
+}
+
+// EventsForTarget returns docID's amendment events, ordered by event_date —
+// the same rows GetDocument's DocumentDetail.Events carries, but as a lean,
+// owner-role read with no RLS role-switch or section/document join (no SET
+// ROLE, like GetValidity above). The ingest pipeline uses it to re-derive a
+// re-indexed document's validity_status from every amendment event already
+// recorded against it (pkg/pipeline's index step), after UpsertDocument's
+// update path has just overwritten validity_status with the source-derived
+// value.
+func (c *Corpus) EventsForTarget(ctx context.Context, docID uuid.UUID) ([]AmendmentEvent, error) {
+	const cols = `target_doc_id, amending_doc_id, clause, event_date, kind`
+	q := `SELECT ` + cols + ` FROM ` + c.qualify("amendment_event") + ` WHERE target_doc_id = $1 ORDER BY event_date`
+
+	rows, err := c.pool.Query(ctx, q, docID)
+	if err != nil {
+		return nil, fmt.Errorf("querying amendment events for target %s: %w", docID, err)
+	}
+	defer rows.Close()
+
+	var out []AmendmentEvent
+	for rows.Next() {
+		var e AmendmentEvent
+		var clause *string
+		if err := rows.Scan(&e.TargetDocID, &e.AmendingDocID, &clause, &e.EventDate, &e.Kind); err != nil {
+			return nil, fmt.Errorf("scanning amendment event row for target %s: %w", docID, err)
+		}
+		e.Clause = derefOr(clause)
+		out = append(out, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("reading amendment event rows for target %s: %w", docID, err)
 	}
 	return out, nil
 }

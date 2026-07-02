@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/googleapis/gax-go/v2/apierror"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/grpc/codes"
 )
 
@@ -39,15 +40,29 @@ func (g *GCS) Put(ctx context.Context, key string, r io.Reader) (bool, error) {
 	}
 
 	if err := w.Close(); err != nil {
-		if apiErr, ok := errors.AsType[*apierror.APIError](err); ok {
-			if apiErr.HTTPCode() == http.StatusPreconditionFailed ||
-				apiErr.GRPCStatus().Code() == codes.FailedPrecondition {
-				return false, nil // already exists — immutable, put-once
-			}
+		if preconditionFailed(err) {
+			return false, nil // already exists — immutable, put-once
 		}
 		return false, fmt.Errorf("committing %s: %w", key, err)
 	}
 	return true, nil
+}
+
+// preconditionFailed reports whether err is GCS's "already exists" signal for
+// Put's DoesNotExist precondition (HTTP 412 / gRPC FailedPrecondition),
+// across every error shape the storage client's transports can surface it
+// as: *apierror.APIError (the common case on both transports), and the
+// older *googleapi.Error the JSON transport can still return directly on
+// some call paths.
+func preconditionFailed(err error) bool {
+	if apiErr, ok := errors.AsType[*apierror.APIError](err); ok {
+		return apiErr.HTTPCode() == http.StatusPreconditionFailed ||
+			apiErr.GRPCStatus().Code() == codes.FailedPrecondition
+	}
+	if gErr, ok := errors.AsType[*googleapi.Error](err); ok {
+		return gErr.Code == http.StatusPreconditionFailed
+	}
+	return false
 }
 
 // Get implements Store.

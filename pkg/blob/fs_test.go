@@ -36,6 +36,21 @@ func TestKey(t *testing.T) {
 			ext:  "",
 			want: "raw/de/deadbeefcafe0000",
 		},
+		{
+			// A malformed (too-short) sha must degrade gracefully, not panic
+			// on the [:2] shard slice — no real caller passes one, but Key
+			// itself doesn't validate, so it must stay panic-safe regardless.
+			name: "one-char sha does not panic",
+			sha:  "a",
+			ext:  ".pdf",
+			want: "raw/a/a.pdf",
+		},
+		{
+			name: "empty sha does not panic",
+			sha:  "",
+			ext:  ".pdf",
+			want: "raw//.pdf",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -46,11 +61,19 @@ func TestKey(t *testing.T) {
 	}
 }
 
+// fakeSHA returns a 64-char lowercase-hex string starting with prefix, padded
+// with '0' — a syntactically valid (if not really the SHA-256 of anything)
+// key component for tests that only care that fs.go's key-shape validation
+// accepts it, not about a real hash.
+func fakeSHA(prefix string) string {
+	return prefix + strings.Repeat("0", 64-len(prefix))
+}
+
 func TestFSPutFirstWriteSucceeds(t *testing.T) {
 	store := blob.NewFS(t.TempDir())
 	ctx := context.Background()
 
-	wrote, err := store.Put(ctx, "raw/ab/abcd1234.pdf", strings.NewReader("hello"))
+	wrote, err := store.Put(ctx, blob.Key(fakeSHA("ab"), ".pdf"), strings.NewReader("hello"))
 	if err != nil {
 		t.Fatalf("Put() error = %v", err)
 	}
@@ -62,7 +85,7 @@ func TestFSPutFirstWriteSucceeds(t *testing.T) {
 func TestFSPutSecondWriteIsNoop(t *testing.T) {
 	store := blob.NewFS(t.TempDir())
 	ctx := context.Background()
-	key := "raw/ab/abcd1234.pdf"
+	key := blob.Key(fakeSHA("ab"), ".pdf")
 
 	if _, err := store.Put(ctx, key, strings.NewReader("hello")); err != nil {
 		t.Fatalf("first Put() error = %v", err)
@@ -94,7 +117,7 @@ func TestFSPutSecondWriteIsNoop(t *testing.T) {
 func TestFSGetRoundTrips(t *testing.T) {
 	store := blob.NewFS(t.TempDir())
 	ctx := context.Background()
-	key := "raw/cd/cdef5678.docx"
+	key := blob.Key(fakeSHA("cd"), ".docx")
 	want := "round trip content"
 
 	if _, err := store.Put(ctx, key, strings.NewReader(want)); err != nil {
@@ -120,7 +143,7 @@ func TestFSGetMissingKeyErrors(t *testing.T) {
 	store := blob.NewFS(t.TempDir())
 	ctx := context.Background()
 
-	if _, err := store.Get(ctx, "raw/00/does-not-exist.pdf"); err == nil {
+	if _, err := store.Get(ctx, blob.Key(fakeSHA("00"), ".pdf")); err == nil {
 		t.Error("Get() error = nil, want error for missing key")
 	}
 }
@@ -128,7 +151,7 @@ func TestFSGetMissingKeyErrors(t *testing.T) {
 func TestFSExists(t *testing.T) {
 	store := blob.NewFS(t.TempDir())
 	ctx := context.Background()
-	key := "raw/ef/ef123456.pdf"
+	key := blob.Key(fakeSHA("ef"), ".pdf")
 
 	ok, err := store.Exists(ctx, key)
 	if err != nil {
@@ -155,7 +178,8 @@ func TestFSPutWritesAtomicallyNoTempLeftovers(t *testing.T) {
 	root := t.TempDir()
 	store := blob.NewFS(root)
 	ctx := context.Background()
-	key := "raw/ab/atomic.pdf"
+	sha := fakeSHA("ab")
+	key := blob.Key(sha, ".pdf")
 
 	if _, err := store.Put(ctx, key, strings.NewReader("atomic content")); err != nil {
 		t.Fatalf("Put() error = %v", err)
@@ -166,11 +190,43 @@ func TestFSPutWritesAtomicallyNoTempLeftovers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadDir() error = %v", err)
 	}
-	if len(entries) != 1 || entries[0].Name() != "atomic.pdf" {
+	wantName := sha + ".pdf"
+	if len(entries) != 1 || entries[0].Name() != wantName {
 		names := make([]string, len(entries))
 		for i, e := range entries {
 			names[i] = e.Name()
 		}
-		t.Errorf("destination dir entries = %v, want only [atomic.pdf]", names)
+		t.Errorf("destination dir entries = %v, want only [%s]", names, wantName)
+	}
+}
+
+// TestFSRejectsPathTraversalKeys pins the fs.go key-shape guard: Put/Get/
+// Exists all reject a key that doesn't match Key()'s own raw/<2
+// hex>/<64-hex-sha>[.ext] shape, closing the path-containment gap a
+// hand-crafted key could otherwise exploit against the local FS root.
+func TestFSRejectsPathTraversalKeys(t *testing.T) {
+	store := blob.NewFS(t.TempDir())
+	ctx := context.Background()
+	sha := fakeSHA("ab")
+
+	tests := []struct {
+		name string
+		key  string
+	}{
+		{name: "dot-dot segment", key: "raw/../../../etc/passwd"},
+		{name: "trailing escape after a valid-looking key", key: "raw/ab/" + sha + ".pdf/../x"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := store.Put(ctx, tt.key, strings.NewReader("x")); err == nil {
+				t.Errorf("Put(%q) error = nil, want error", tt.key)
+			}
+			if _, err := store.Get(ctx, tt.key); err == nil {
+				t.Errorf("Get(%q) error = nil, want error", tt.key)
+			}
+			if _, err := store.Exists(ctx, tt.key); err == nil {
+				t.Errorf("Exists(%q) error = nil, want error", tt.key)
+			}
+		})
 	}
 }

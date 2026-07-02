@@ -113,3 +113,40 @@ func TestTransitionValidityConvergesOnRepealedRegardlessOfOrder(t *testing.T) {
 		}
 	}
 }
+
+// TestDueEventsReturnsPastDueOnlyOrderedByDate pins the store-layer half of
+// the C3 fix: DueEvents (the candidate set pkg/pipeline's ApplyDueEvents
+// sweeps) returns exactly the rows whose event_date is at or before now,
+// ordered oldest-first, and leaves future-dated rows out entirely.
+func TestDueEventsReturnsPastDueOnlyOrderedByDate(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+	c := newCorpus(t, pool, corpus.VNReg)
+
+	target := mustUpsertVNRegDoc(t, ctx, c, "due-events-"+uuid.NewString())
+	now := time.Now().UTC()
+
+	events := []store.AmendmentEvent{
+		{TargetDocID: target, Kind: ingest.StatusAmended, Clause: "future", EventDate: now.Add(24 * time.Hour)},
+		{TargetDocID: target, Kind: ingest.StatusSuperseded, Clause: "older-due", EventDate: now.Add(-48 * time.Hour)},
+		{TargetDocID: target, Kind: ingest.StatusRepealed, Clause: "newer-due", EventDate: now.Add(-time.Hour)},
+	}
+	if err := c.InsertAmendmentEvents(ctx, events); err != nil {
+		t.Fatalf("InsertAmendmentEvents() error = %v", err)
+	}
+
+	due, err := c.DueEvents(ctx, now)
+	if err != nil {
+		t.Fatalf("DueEvents() error = %v", err)
+	}
+	var gotClauses []string
+	for _, e := range due {
+		if e.TargetDocID == target {
+			gotClauses = append(gotClauses, e.Clause)
+		}
+	}
+	want := []string{"older-due", "newer-due"}
+	if len(gotClauses) != len(want) || gotClauses[0] != want[0] || gotClauses[1] != want[1] {
+		t.Errorf("DueEvents() clauses for target = %v, want %v (future excluded, oldest first)", gotClauses, want)
+	}
+}

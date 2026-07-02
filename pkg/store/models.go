@@ -57,13 +57,15 @@ type Section struct {
 }
 
 // AmendmentEvent is one dated act on TargetDocID's validity — amended,
-// superseded, or repealed — optionally attributing the act to AmendingDocID.
-// Both ids are only known once the target/amending documents are resolved in
-// the store (see ingest.RelationEvent for the pre-resolution form Normalize
-// produces).
+// superseded, or repealed (Kind, one of ingest.StatusAmended/
+// StatusSuperseded/StatusRepealed) — optionally attributing the act to
+// AmendingDocID. Both ids are only known once the target/amending documents
+// are resolved in the store (see ingest.RelationEvent for the pre-resolution
+// form Normalize produces, which is where Kind actually comes from).
 type AmendmentEvent struct {
 	TargetDocID   uuid.UUID
 	AmendingDocID *uuid.UUID
+	Kind          string
 	Clause        string
 	EventDate     time.Time
 }

@@ -58,7 +58,12 @@ type NormalizedDoc struct {
 // a later task can populate them once the upstream data exists.
 //
 // Normalize returns an error only for caller-side misuse: a zero-value desc
-// (ID empty — the caller likely forgot a corpus.Get lookup) or a nil runID.
+// (ID empty — the caller likely forgot a corpus.Get lookup), a nil runID, or
+// a src with neither Number nor DetailURL set (both become store.Document's
+// DocNumber/SourceURL — migration 006's partial unique indexes, and
+// UpsertDocument's own natural-key resolution, both need at least one to
+// find an existing row; a doc with neither would upsert a fresh, unmatchable
+// duplicate row on every re-index instead of updating in place).
 func Normalize(
 	desc corpus.Descriptor, src DiscoveredDoc, tree []*law.Node, fallbackText string,
 	runID uuid.UUID, now time.Time,
@@ -68,6 +73,10 @@ func Normalize(
 	}
 	if runID == uuid.Nil {
 		return NormalizedDoc{}, errors.New("normalize: runID must not be the nil uuid")
+	}
+	if src.Number == "" && src.DetailURL == "" {
+		return NormalizedDoc{}, errors.New(
+			"normalize: source document has neither a doc number nor a source url (unmatchable on re-index)")
 	}
 
 	validity := MapValidity(src.Status, src.EffectiveAt, now)

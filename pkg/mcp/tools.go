@@ -108,9 +108,12 @@ type DocSection struct {
 }
 
 // AmendmentOut is one dated act on the document's validity. AmendingDocID is
-// omitted when the amending document isn't resolved in the store.
+// omitted when the amending document isn't resolved in the store; Kind
+// (amended/superseded/repealed) is omitted only for a pre-migration-008 row
+// that predates the column.
 type AmendmentOut struct {
 	AmendingDocID *string `json:"amending_doc_id,omitempty"`
+	Kind          string  `json:"kind,omitempty"`
 	Clause        string  `json:"clause"`
 	EventDate     string  `json:"event_date"`
 }
@@ -324,6 +327,7 @@ func mapAmendments(evs []store.AmendmentEvent) []AmendmentOut {
 		}
 		out[i] = AmendmentOut{
 			AmendingDocID: amendingID,
+			Kind:          e.Kind,
 			Clause:        e.Clause,
 			EventDate:     e.EventDate.Format(time.RFC3339),
 		}

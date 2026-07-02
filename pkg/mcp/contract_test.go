@@ -182,8 +182,9 @@ func TestDocumentOutputMatchesSchema(t *testing.T) {
 	}
 
 	events := []store.AmendmentEvent{
-		{TargetDocID: docID, AmendingDocID: &amendingID, Clause: "Điều 5", EventDate: issued},
-		{TargetDocID: docID, Clause: "Điều 6", EventDate: issued}, // unattributed: amending_doc_id omitted
+		{TargetDocID: docID, AmendingDocID: &amendingID, Kind: "amended", Clause: "Điều 5", EventDate: issued},
+		// unattributed: amending_doc_id omitted
+		{TargetDocID: docID, Kind: "superseded", Clause: "Điều 6", EventDate: issued},
 	}
 	if err := c.InsertAmendmentEvents(ctx, events); err != nil {
 		t.Fatalf("InsertAmendmentEvents() error = %v", err)
@@ -200,6 +201,11 @@ func TestDocumentOutputMatchesSchema(t *testing.T) {
 	}
 	if len(out.Amendments) != 2 {
 		t.Fatalf("document handler returned %d amendments, want 2", len(out.Amendments))
+	}
+	for _, a := range out.Amendments {
+		if a.Kind != "amended" && a.Kind != "superseded" {
+			t.Errorf("Amendments[_].Kind = %q, want it to round-trip from the seeded event", a.Kind)
+		}
 	}
 
 	data, err := json.Marshal(out)

@@ -16,13 +16,15 @@ import (
 )
 
 // Discover reads every source of p.Corpus newest-first since its watermark and
-// returns the DocRefs to process: in-scope documents whose discovery
-// fingerprint changed since the last run. Each enqueued document gets a ledger
-// row in state "discovered"; out-of-scope documents are recorded as
-// "out_of_scope" (ledger-only bookkeeping — they are not enqueued and not
-// counted in IngestResult). Per-source cursors advance to the max IssuedAt
-// seen, so re-runs stay cheap; the ledger's fingerprint check keeps overlap
-// re-sights idempotent.
+// returns the DocRefs to process: in-scope documents that are new, whose
+// discovery fingerprint changed since the last run, or whose same-fingerprint
+// ledger row never reached a terminal state (see Ledger.Unchanged — a row
+// stuck in "discovered"/"failed" is re-enqueued, not skipped). Each enqueued
+// document gets a ledger row in state "discovered"; out-of-scope documents are
+// recorded as "out_of_scope" (ledger-only bookkeeping — they are not enqueued
+// and not counted in IngestResult). Per-source cursors advance to the max
+// IssuedAt seen, so re-runs stay cheap; the ledger's fingerprint+state check
+// keeps overlap re-sights idempotent.
 //
 // A failing source is logged and skipped — its cursor is not advanced, so the
 // next run catches up — rather than failing the whole activity; Discover
@@ -131,8 +133,8 @@ func (d *discovery) discoverSource(ctx context.Context, src ingest.Source) error
 	return nil
 }
 
-// record applies the scope filter and the ledger fingerprint check to one
-// discovered document, enqueueing a DocRef when it needs processing.
+// record applies the scope filter and the ledger fingerprint+state check to
+// one discovered document, enqueueing a DocRef when it needs processing.
 func (d *discovery) record(ctx context.Context, sourceID string, doc ingest.DiscoveredDoc) error {
 	if in, _ := inScope(d.matcher, d.params.Keyword, doc); !in {
 		// Ledger-only bookkeeping. The stored hash stays empty so a later
@@ -147,7 +149,7 @@ func (d *discovery) record(ctx context.Context, sourceID string, doc ingest.Disc
 		return err
 	}
 	if unchanged {
-		return nil // seen before with identical metadata — nothing to re-open
+		return nil // seen before with identical metadata AND already terminal — nothing to re-open
 	}
 	if err := d.ledger.Upsert(ctx, d.desc.ID, sourceID, doc.ExternalID, hash, stateDiscovered); err != nil {
 		return err

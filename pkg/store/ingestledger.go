@@ -53,20 +53,33 @@ SET content_hash = EXCLUDED.content_hash,
 }
 
 // Unchanged reports whether hash matches the content_hash already recorded
-// for corpusID/sourceID/externalID. A key that hasn't been observed yet
-// returns false, nil — an unseen document is never "unchanged".
+// for corpusID/sourceID/externalID AND the row's lifecycle state is a
+// terminal one — "indexed" (fully processed) or "out_of_scope" (deliberately
+// never enqueued) — with nothing left for the pipeline to do. A key that
+// hasn't been observed yet returns false, nil — an unseen document is never
+// "unchanged". Nor is a same-hash row stuck mid-pipeline: "discovered" (a
+// prior Discover enqueued it, then errored before a later stage finished) or
+// "failed" (a permanent data failure whose cause may no longer hold, e.g. a
+// source hiccup that has since resolved) both must be re-enqueued so the
+// pipeline gets another attempt, instead of being silently and permanently
+// skipped on every subsequent run. The two terminal state literals mirror
+// pipeline's stateIndexed/stateOutOfScope (pkg/pipeline/pipeline.go),
+// duplicated rather than imported — pipeline already imports store, and
+// Ledger's state parameter has always been an opaque caller-owned string
+// (see Upsert/SetState).
 func (l *Ledger) Unchanged(ctx context.Context, corpusID corpus.ID, sourceID, externalID, hash string) (bool, error) {
-	const q = `SELECT content_hash FROM ingest.doc_ledger WHERE corpus_id = $1 AND source_id = $2 AND external_id = $3`
+	const q = `SELECT content_hash, state FROM ingest.doc_ledger
+WHERE corpus_id = $1 AND source_id = $2 AND external_id = $3`
 
-	var stored string
-	err := l.pool.QueryRow(ctx, q, string(corpusID), sourceID, externalID).Scan(&stored)
+	var storedHash, state string
+	err := l.pool.QueryRow(ctx, q, string(corpusID), sourceID, externalID).Scan(&storedHash, &state)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 		return false, nil
 	case err != nil:
 		return false, fmt.Errorf("reading doc ledger %s/%s/%s: %w", corpusID, sourceID, externalID, err)
 	}
-	return stored == hash, nil
+	return storedHash == hash && (state == "indexed" || state == "out_of_scope"), nil
 }
 
 // Entry returns the content hash and lifecycle state recorded for

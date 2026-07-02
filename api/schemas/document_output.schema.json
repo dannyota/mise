@@ -83,6 +83,7 @@
       "required": ["clause", "event_date"],
       "properties": {
         "amending_doc_id": { "type": "string" },
+        "kind": { "type": "string" },
         "clause": { "type": "string" },
         "event_date": { "type": "string" }
       }

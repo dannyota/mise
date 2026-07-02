@@ -55,10 +55,12 @@ func IngestCorpusWorkflow(ctx workflow.Context, p IngestParams) (IngestResult, e
 	}
 
 	res := processAll(ctx, a, refs)
+	res.Transitions = applyDueEvents(ctx, a, p)
 
 	finishRun(ctx, a, runID, runStatusCompleted, res)
 	workflow.GetLogger(ctx).Info("ingest run complete", "corpus", p.Corpus,
-		"discovered", res.Discovered, "processed", res.Processed, "skipped", res.Skipped, "failed", res.Failed)
+		"discovered", res.Discovered, "processed", res.Processed, "skipped", res.Skipped,
+		"failed", res.Failed, "transitions", res.Transitions)
 	return res, nil
 }
 
@@ -114,4 +116,20 @@ func finishRun(ctx workflow.Context, a *Activities, runID, status string, res In
 	if err := workflow.ExecuteActivity(ctx, a.FinishRun, p).Get(ctx, nil); err != nil {
 		workflow.GetLogger(ctx).Error("finish run failed", "run_id", runID, "error", err)
 	}
+}
+
+// applyDueEvents sweeps p.Corpus's due amendment events and returns how many
+// validity transitions it applied. Best-effort like finishRun: a failure
+// (after ApplyDueEvents' own retry policy is exhausted) is logged, not
+// propagated — the documents this run discovered and processed are already
+// durably indexed, and an unswept event simply becomes due again on the
+// corpus's next scheduled run, so failing the whole run over it would be
+// needlessly destructive.
+func applyDueEvents(ctx workflow.Context, a *Activities, p IngestParams) int {
+	var transitions int
+	if err := workflow.ExecuteActivity(ctx, a.ApplyDueEvents, p).Get(ctx, &transitions); err != nil {
+		workflow.GetLogger(ctx).Error("apply due events failed", "corpus", p.Corpus, "error", err)
+		return 0
+	}
+	return transitions
 }

@@ -317,17 +317,23 @@ func TestNormalizeValidation(t *testing.T) {
 	now := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	desc := descriptor(t, corpus.VNReg)
 
+	noIdentity := baseSrc()
+	noIdentity.Number = ""
+	noIdentity.DetailURL = ""
+
 	tests := []struct {
 		name  string
 		desc  corpus.Descriptor
+		src   ingest.DiscoveredDoc
 		runID uuid.UUID
 	}{
-		{"zero-value descriptor", corpus.Descriptor{}, uuid.New()},
-		{"nil ingest run id", desc, uuid.Nil},
+		{"zero-value descriptor", corpus.Descriptor{}, baseSrc(), uuid.New()},
+		{"nil ingest run id", desc, baseSrc(), uuid.Nil},
+		{"doc number and source url both empty", desc, noIdentity, uuid.New()},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := ingest.Normalize(tt.desc, baseSrc(), sampleTree(), "", tt.runID, now)
+			_, err := ingest.Normalize(tt.desc, tt.src, sampleTree(), "", tt.runID, now)
 			if err == nil {
 				t.Fatal("Normalize() error = nil, want a validation error")
 			}

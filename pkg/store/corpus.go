@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -382,10 +383,10 @@ func (c *Corpus) InsertAmendmentEvents(ctx context.Context, evs []AmendmentEvent
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	q := `INSERT INTO ` + c.qualify("amendment_event") +
-		` (target_doc_id, amending_doc_id, clause, event_date) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`
+		` (target_doc_id, amending_doc_id, clause, event_date, kind) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING`
 	batch := &pgx.Batch{}
 	for _, e := range evs {
-		batch.Queue(q, e.TargetDocID, e.AmendingDocID, nullIfEmpty(e.Clause), e.EventDate)
+		batch.Queue(q, e.TargetDocID, e.AmendingDocID, nullIfEmpty(e.Clause), e.EventDate, e.Kind)
 	}
 	if err := tx.SendBatch(ctx, batch).Close(); err != nil {
 		return fmt.Errorf("bulk inserting amendment events: %w", err)
@@ -395,4 +396,40 @@ func (c *Corpus) InsertAmendmentEvents(ctx context.Context, evs []AmendmentEvent
 		return fmt.Errorf("committing amendment event insert: %w", err)
 	}
 	return nil
+}
+
+// DueEvents returns every amendment event of this corpus schema whose
+// event_date is at or before now, ordered by event_date — the candidate set
+// for a periodic sweep (pkg/pipeline's ApplyDueEvents) that re-drives
+// TransitionValidity for events whose target was not yet in the store, or
+// whose future date had not yet arrived, the last time an amending
+// document's indexing pass tried to apply them. It deliberately does not
+// pre-filter by "would this actually change the target's current status" —
+// target_doc_id is NOT NULL REFERENCES document(id), so every row's target
+// exists, and TransitionValidity is a no-op write when the status doesn't
+// change, so the caller can safely call it for every row this returns.
+func (c *Corpus) DueEvents(ctx context.Context, now time.Time) ([]AmendmentEvent, error) {
+	q := `SELECT target_doc_id, amending_doc_id, clause, event_date, kind FROM ` + c.qualify("amendment_event") +
+		` WHERE event_date <= $1 ORDER BY event_date`
+
+	rows, err := c.pool.Query(ctx, q, now)
+	if err != nil {
+		return nil, fmt.Errorf("querying due amendment events: %w", err)
+	}
+	defer rows.Close()
+
+	var out []AmendmentEvent
+	for rows.Next() {
+		var e AmendmentEvent
+		var clause *string
+		if err := rows.Scan(&e.TargetDocID, &e.AmendingDocID, &clause, &e.EventDate, &e.Kind); err != nil {
+			return nil, fmt.Errorf("scanning due amendment event row: %w", err)
+		}
+		e.Clause = derefOr(clause)
+		out = append(out, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("reading due amendment event rows: %w", err)
+	}
+	return out, nil
 }

@@ -314,7 +314,7 @@ func TestDocumentHandlerMapsEnvelopeSectionsAndTimeline(t *testing.T) {
 			ValidityStatus: "in_force",
 		}},
 		Events: []store.AmendmentEvent{{
-			TargetDocID: docID, AmendingDocID: &amendingID, Clause: "Điều 5", EventDate: issued,
+			TargetDocID: docID, AmendingDocID: &amendingID, Kind: "amended", Clause: "Điều 5", EventDate: issued,
 		}},
 	}}
 	h := newDocumentHandler(stub, "mise_public")
@@ -358,6 +358,9 @@ func TestDocumentHandlerMapsEnvelopeSectionsAndTimeline(t *testing.T) {
 	}
 	if gotAmend.Clause != "Điều 5" {
 		t.Errorf("out.Amendments[0].Clause = %q, want %q", gotAmend.Clause, "Điều 5")
+	}
+	if gotAmend.Kind != "amended" {
+		t.Errorf("out.Amendments[0].Kind = %q, want %q", gotAmend.Kind, "amended")
 	}
 }
 
