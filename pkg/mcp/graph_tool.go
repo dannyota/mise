@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -14,12 +15,15 @@ import (
 	"danny.vn/mise/pkg/store"
 )
 
-// Direction values the graph tool's direction input accepts (API-CONTRACT
-// §2). directionUp is the tool's default when direction is omitted, and the
-// only value graph.relation_edge.direction ever holds today (mirrors
-// store's own directionUp const, graph_chain.go); directionDown is accepted
-// for forward compatibility with the documented contract and simply
-// filters GetNode's edges down to none until a "down" edge is ever written.
+// Direction values named in the graph tool's direction input (API-CONTRACT
+// §2). directionUp is the tool's default when direction is omitted, the
+// only traversal supported today, and the only value
+// graph.relation_edge.direction ever holds (mirrors store's own directionUp
+// const, graph_chain.go). directionDown is a documented contract value but
+// is rejected as not-yet-supported: reverse (dependency) traversal is out
+// of scope until the M5 Graph Explorer, and repo.Chain only ever walks up —
+// so honouring "down" would silently answer the up-question under a "down"
+// label.
 const (
 	directionUp   = "up"
 	directionDown = "down"
@@ -36,8 +40,9 @@ type GraphRepoIface interface {
 
 // GraphInput is the graph tool's input (API-CONTRACT §2). NodeRef is the
 // wire form "<corpus_id>/<document_id>[/<section_id>]"; Direction defaults
-// to "up" when omitted; Depth defaults to store.MaxChainDepth when <= 0
-// (mirroring Chain's own clampDepth default).
+// to "up" when omitted and only "up" is supported today ("down"/reverse
+// traversal is rejected); Depth defaults to store.MaxChainDepth when <= 0
+// and is clamped to it when larger (mirroring Chain's own clampDepth).
 type GraphInput struct {
 	NodeRef   string   `json:"node_ref"`
 	Direction string   `json:"direction,omitempty"`
@@ -138,10 +143,12 @@ func newGraphHandler(repo GraphRepoIface, role string) mcp.ToolHandlerFor[GraphI
 	}
 }
 
-// graphOptsFromInput validates in.NodeRef (parseNodeRef) and in.Direction,
-// and applies the graph tool's defaults: direction "up", depth
-// store.MaxChainDepth — mirrors searchOptsFromInput's validate-before-dep
-// shape (tools.go).
+// graphOptsFromInput validates in.NodeRef (parseNodeRef) and in.Direction
+// (only "up" is supported today; "down"/reverse traversal is rejected as
+// not-yet-supported), and applies the graph tool's defaults: direction
+// "up", depth store.MaxChainDepth — which is also the upper bound, so a
+// larger request is clamped here rather than left to the store's own clamp.
+// Mirrors searchOptsFromInput's validate-before-dep shape (tools.go).
 func graphOptsFromInput(in GraphInput) (ref graph.NodeRef, direction string, depth int, err error) {
 	ref, err = parseNodeRef(in.NodeRef)
 	if err != nil {
@@ -152,13 +159,24 @@ func graphOptsFromInput(in GraphInput) (ref graph.NodeRef, direction string, dep
 	if direction == "" {
 		direction = directionUp
 	}
-	if direction != directionUp && direction != directionDown {
+	// Only the up (authority) walk exists today. "down" is a documented
+	// contract value but reverse traversal is out of scope until M5 — reject
+	// it explicitly rather than run the up-walk under a "down" label. Any
+	// other value is simply invalid.
+	if direction == directionDown {
+		return graph.NodeRef{}, "", 0, errors.New(
+			`mcp graph: direction "down" (reverse traversal) is not yet supported; use "up"`)
+	}
+	if direction != directionUp {
 		return graph.NodeRef{}, "", 0, fmt.Errorf(
-			"mcp graph: invalid direction %q, want %q or %q", direction, directionUp, directionDown)
+			"mcp graph: invalid direction %q, want %q", direction, directionUp)
 	}
 
+	// Default then clamp: store.GraphRepo.Chain clamps to MaxChainDepth too
+	// (graph_chain.go), but bound it here as well so the MCP layer is
+	// self-documenting and safe even if the store's clamp ever changes.
 	depth = in.Depth
-	if depth <= 0 {
+	if depth <= 0 || depth > store.MaxChainDepth {
 		depth = store.MaxChainDepth
 	}
 	return ref, direction, depth, nil

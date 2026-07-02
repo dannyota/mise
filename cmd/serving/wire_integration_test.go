@@ -42,7 +42,7 @@ func TestNewRouterHealthzOnlyWithoutAlloyDBHost(t *testing.T) {
 
 // TestNewRouterWiresEvidenceWithAlloyDBHost points ALLOYDB_HOST/PORT/USER/
 // PASSWORD/DATABASE at the real testdb container and asserts the other half
-// of wireEvidence: a live pool, a working /readyz, and the MCP evidence +
+// of wireEvidence: a live pool, a working /readyz, plus the MCP evidence and
 // graph tools actually registered — reached over the real streamable-HTTP
 // mount, not just inferred from the pool being non-nil (T13 Important:
 // wireEvidence was untested).

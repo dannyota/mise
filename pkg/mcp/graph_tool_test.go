@@ -70,23 +70,60 @@ func TestGraphHandlerAppliesDefaults(t *testing.T) {
 }
 
 // TestGraphHandlerHonoursExplicitDepthAndDirection proves an explicit depth
-// and direction override the defaults.
+// and an explicit direction "up" override the defaults and still walk.
 func TestGraphHandlerHonoursExplicitDepthAndDirection(t *testing.T) {
 	ref := graph.NodeRef{CorpusID: string(corpus.VNReg), DocumentID: uuid.New()}
 	upEdge := graph.Edge{ID: uuid.New(), From: ref, EdgeType: graph.EdgeSatisfies, Direction: "up"}
-	downEdge := graph.Edge{ID: uuid.New(), From: ref, EdgeType: graph.EdgeSatisfies, Direction: "down"}
-	stub := &stubGraphRepo{view: store.NodeView{Ref: ref, Edges: []graph.Edge{upEdge, downEdge}}}
+	stub := &stubGraphRepo{view: store.NodeView{Ref: ref, Edges: []graph.Edge{upEdge}}}
 	h := newGraphHandler(stub, "mise_public")
 
-	_, out, err := h(context.Background(), nil, GraphInput{NodeRef: nodeRefWire(ref), Direction: "down", Depth: 3})
+	_, out, err := h(context.Background(), nil, GraphInput{NodeRef: nodeRefWire(ref), Direction: "up", Depth: 3})
 	if err != nil {
 		t.Fatalf("handler error = %v, want nil", err)
 	}
 	if stub.chainDepth != 3 {
 		t.Errorf("Chain depth = %d, want 3 (explicit)", stub.chainDepth)
 	}
-	if len(out.Edges) != 1 || out.Edges[0].ID != downEdge.ID.String() {
-		t.Errorf("out.Edges = %+v, want exactly the down-direction edge (explicit direction=down)", out.Edges)
+	if len(out.Edges) != 1 || out.Edges[0].ID != upEdge.ID.String() {
+		t.Errorf("out.Edges = %+v, want exactly the up-direction edge (explicit direction=up)", out.Edges)
+	}
+}
+
+// TestGraphHandlerRejectsUnsupportedDownDirection proves direction "down"
+// (reverse traversal) is rejected as not-yet-supported before any repo call
+// — rather than silently returning the up-walk chain under a "down" label
+// (edges filtered to none, but a non-empty up-walk chain) as it once did.
+func TestGraphHandlerRejectsUnsupportedDownDirection(t *testing.T) {
+	stub := &stubGraphRepo{}
+	h := newGraphHandler(stub, "mise_public")
+
+	ref := graph.NodeRef{CorpusID: string(corpus.VNReg), DocumentID: uuid.New()}
+	_, _, err := h(context.Background(), nil, GraphInput{NodeRef: nodeRefWire(ref), Direction: "down"})
+	if err == nil {
+		t.Fatal(`handler error = nil, want error for unsupported direction "down"`)
+	}
+	if stub.getNodeCalls != 0 || stub.chainCalls != 0 {
+		t.Errorf("repo called (GetNode=%d, Chain=%d), want 0 (validation should short-circuit)",
+			stub.getNodeCalls, stub.chainCalls)
+	}
+}
+
+// TestGraphHandlerClampsDepthToMaxChainDepth proves a requested depth above
+// store.MaxChainDepth is clamped to it at the MCP layer — asserted via the
+// depth passed to Chain, so the bound holds even independently of the
+// store's own clamp.
+func TestGraphHandlerClampsDepthToMaxChainDepth(t *testing.T) {
+	ref := graph.NodeRef{CorpusID: string(corpus.VNReg), DocumentID: uuid.New()}
+	stub := &stubGraphRepo{view: store.NodeView{Ref: ref}}
+	h := newGraphHandler(stub, "mise_public")
+
+	in := GraphInput{NodeRef: nodeRefWire(ref), Depth: store.MaxChainDepth + 100}
+	_, _, err := h(context.Background(), nil, in)
+	if err != nil {
+		t.Fatalf("handler error = %v, want nil", err)
+	}
+	if stub.chainDepth != store.MaxChainDepth {
+		t.Errorf("Chain depth = %d, want %d (clamped to MaxChainDepth)", stub.chainDepth, store.MaxChainDepth)
 	}
 }
 
