@@ -23,6 +23,13 @@ var (
 // in-scope by construction (only technology/digital sections are crawled), so it is
 // triggered with a keyword and the pipeline's keyword-bypass treats every doc as in
 // scope. The keyword is provenance only; the section list is fixed.
+//
+// Number and DetailURL are both derived from the document's own guid (scNumber,
+// downloadURL) rather than the shared section-listing page: store.UpsertDocument
+// resolves a document by doc_number then source_url (migration 006's partial unique
+// indexes), so every document discovered from one section page needs its own distinct
+// value on at least one of those fields — the section URL alone collapses them all
+// into one row.
 func (s *Source) Discover(ctx context.Context, _ time.Time, _ string) ([]ingest.DiscoveredDoc, error) {
 	seen := map[string]bool{}
 	var out []ingest.DiscoveredDoc
@@ -45,10 +52,11 @@ func (s *Source) Discover(ctx context.Context, _ time.Time, _ string) ([]ingest.
 			out = append(out, ingest.DiscoveredDoc{
 				SourceID:   SourceID,
 				ExternalID: guid,
+				Number:     scNumber(guid),
 				Title:      title,
 				Abstract:   title,
 				DocType:    "Guideline",
-				DetailURL:  s.baseURL + sec,
+				DetailURL:  downloadURL(s.baseURL, guid),
 				Files:      []ingest.FileRef{fileFor(s.baseURL, guid, title)},
 			})
 		}

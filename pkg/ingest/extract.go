@@ -54,11 +54,7 @@ func (e *Extractor) Text(ctx context.Context, content []byte, contentType string
 		if err != nil {
 			return "", fmt.Errorf("parsing %s content: %w", mt, err)
 		}
-		texts := make([]string, len(result.Sections))
-		for i, s := range result.Sections {
-			texts[i] = s.Text
-		}
-		return strings.Join(texts, "\n\n"), nil
+		return joinSections(result.Sections), nil
 	default:
 		return "", fmt.Errorf("%w: %q", ErrUnsupportedContentType, contentType)
 	}
@@ -69,4 +65,66 @@ func (e *Extractor) Text(ctx context.Context, content []byte, contentType string
 func mediaType(contentType string) string {
 	mt, _, _ := strings.Cut(contentType, ";")
 	return strings.ToLower(strings.TrimSpace(mt))
+}
+
+// headingPathSep is the separator vertex's sectionWalker.headingPath
+// (pkg/vertex/parse_docai.go) joins heading segments with, outermost first.
+const headingPathSep = " > "
+
+// joinSections joins a PDF/DOCX parse's sections into one linear text stream
+// for the downstream legal-structure parsers (pkg/parse/vnlaw, pkg/parse/
+// mylaw): deterministic line-by-line state machines that rebuild citation
+// paths by matching heading lines like "Điều 7" or "PART III" on their own
+// line.
+//
+// Doc AI's Layout Parser never emits a heading block as a section's own Text
+// — a heading-N block's text is recorded ONLY in the HeadingPath of the
+// sections that follow it (vertex.sectionWalker.textBlock) — so joining just
+// s.Text (the prior behavior) silently drops every heading line the
+// downstream parsers key on, and a PDF/DOCX document parses into a
+// structureless blob with no citation paths.
+//
+// joinSections reconstructs the heading lines: for each section, the
+// HeadingPath segments newly entered since the previous section's path are
+// emitted as their own lines immediately before that section's body text. A
+// heading already emitted for a prior section (an unchanged path prefix,
+// e.g. sibling list items under one Điều) is never repeated. Distinct
+// sections stay separated by a blank line, matching the pre-fix join of
+// section bodies.
+func joinSections(sections []vertex.Section) string {
+	parts := make([]string, 0, len(sections))
+	var prev []string
+	for _, s := range sections {
+		cur := splitHeadingPath(s.HeadingPath)
+		lines := newHeadingLines(prev, cur)
+		if s.Text != "" {
+			lines = append(lines, s.Text)
+		}
+		if len(lines) > 0 {
+			parts = append(parts, strings.Join(lines, "\n"))
+		}
+		prev = cur
+	}
+	return strings.Join(parts, "\n\n")
+}
+
+// splitHeadingPath splits a Section.HeadingPath on the outermost-first
+// headingPathSep separator sectionWalker.headingPath joins with. An empty
+// path returns nil.
+func splitHeadingPath(path string) []string {
+	if path == "" {
+		return nil
+	}
+	return strings.Split(path, headingPathSep)
+}
+
+// newHeadingLines returns the cur heading segments from the first index
+// where cur diverges from prev — the segments this section enters for the
+// first time and must still be emitted as a heading line.
+func newHeadingLines(prev, cur []string) []string {
+	i := 0
+	for i < len(prev) && i < len(cur) && prev[i] == cur[i] {
+		i++
+	}
+	return cur[i:]
 }

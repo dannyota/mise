@@ -169,6 +169,15 @@ func downloadURL(baseURL, guid string) string {
 	return strings.TrimRight(baseURL, "/") + downloadPath + guid
 }
 
+// scNumber returns the citation-number stand-in mise gives an SC document. SC
+// exposes no native số ký hiệu/Act number, so "SC/"+guid (mirrors bnm's
+// "BNM/"+slug) gives every document a distinct, stable doc_number — the
+// natural key store.UpsertDocument resolves on first — and makes SC docs
+// citable.
+func scNumber(guid string) string {
+	return "SC/" + guid
+}
+
 func sleep(ctx context.Context, d time.Duration) error {
 	t := time.NewTimer(d)
 	defer t.Stop()

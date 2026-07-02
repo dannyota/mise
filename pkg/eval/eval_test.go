@@ -461,6 +461,33 @@ func TestRun(t *testing.T) {
 	}
 }
 
+// TestRunAppliesAbstainMinScore is the regression test for IMPORTANT C: Run
+// must thread RunOpts.AbstainMinScore into shouldAbstain, not the old
+// hardcoded 0 (else -min-abstain is structurally unreachable).
+func TestRunAppliesAbstainMinScore(t *testing.T) {
+	cases := []Case{
+		{ID: "below-floor", Question: "q1", Expected: []ExpectedCitation{{DocNumber: "Act 758"}}},
+		{ID: "at-floor", Question: "q2", Expected: []ExpectedCitation{{DocNumber: "Act 758"}}},
+	}
+	s := &fakeSearcher{
+		hits: map[string][]store.Hit{
+			"q1": {{DocNumber: "Act 758", Score: 0.2}}, // below the 0.5 floor
+			"q2": {{DocNumber: "Act 758", Score: 0.5}}, // at the floor
+		},
+	}
+
+	report, err := Run(context.Background(), s, cases, RunOpts{AbstainMinScore: 0.5})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if !report.Results[0].Abstained {
+		t.Errorf("case %q Abstained = false, want true (top score 0.2 below floor 0.5)", cases[0].ID)
+	}
+	if report.Results[1].Abstained {
+		t.Errorf("case %q Abstained = true, want false (top score 0.5 at floor 0.5)", cases[1].ID)
+	}
+}
+
 func TestRunPropagatesSearchError(t *testing.T) {
 	wantErr := errors.New("boom")
 	s := &fakeSearcher{err: wantErr}

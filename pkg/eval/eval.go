@@ -101,12 +101,24 @@ type Searcher interface {
 }
 
 // RunOpts controls how Run queries Searcher for every Case: the corpus/role
-// scope and retrieval depth, forwarded into a store.SearchOpts per case.
+// scope and retrieval depth, forwarded into a store.SearchOpts per case, plus
+// the abstain score floor threaded into shouldAbstain.
 type RunOpts struct {
 	Corpora     []corpus.ID
 	TopK        int
 	InForceOnly bool
 	Role        string
+
+	// AbstainMinScore is shouldAbstain's minScore: on top of the always-on
+	// zero-hits check, a case whose top hit scores below this also counts as
+	// an abstain. 0 disables the floor (banhmi's own -abstain-min-score
+	// default) — cmd/eval's -abstain-min-score flag sets this from the CLI.
+	// PROVISIONAL until calibrated against a real corpus run: an unset floor
+	// leaves the -min-abstain gate below structurally unreachable (hybrid
+	// retrieval returns some hit for nearly any query, so only the zero-hits
+	// branch ever fires), while a miscalibrated one abstains on genuinely
+	// answerable queries.
+	AbstainMinScore float64
 }
 
 // Report is Run's output: every case's scored CaseResult plus the
@@ -136,17 +148,17 @@ func Run(ctx context.Context, s Searcher, cases []Case, opts RunOpts) (Report, e
 		if err != nil {
 			return Report{}, fmt.Errorf("eval: search case %q: %w", c.ID, err)
 		}
-		results = append(results, Score(c, hits, shouldAbstain(hits, 0)))
+		results = append(results, Score(c, hits, shouldAbstain(hits, opts.AbstainMinScore)))
 	}
 	return Report{Results: results, Aggregate: Summarize(results)}, nil
 }
 
 // shouldAbstain ports banhmi's cmd/eval retrievalShouldAbstain rule: an empty
 // hit list always abstains; a positive minScore additionally abstains when
-// the top hit's score falls below it. Run always calls this with minScore 0
-// (score-floor check disabled), matching banhmi's own default wiring
-// (-abstain-min-score defaults to 0) — mise's Run/RunOpts has no flag to set
-// a nonzero floor today, so only the zero-hits branch is currently reachable.
+// the top hit's score falls below it. Run calls this with
+// RunOpts.AbstainMinScore (cmd/eval's -abstain-min-score flag); 0 disables
+// the score-floor check, matching banhmi's own default wiring
+// (-abstain-min-score defaults to 0), leaving only the zero-hits branch live.
 func shouldAbstain(hits []store.Hit, minScore float64) bool {
 	if len(hits) == 0 {
 		return true

@@ -37,6 +37,8 @@ type opts struct {
 	minInForce  float64
 	minAbstain  float64
 	minCitation float64
+
+	abstainMinScore float64
 }
 
 func main() {
@@ -59,7 +61,17 @@ func parseFlags() opts {
 	flag.Float64Var(&o.minMRR, "min-mrr", 0.85, "fail if aggregate mrr@k is below this (0 = no gate)")
 	flag.Float64Var(&o.minInForce, "min-inforce", 1.0,
 		"fail if aggregate current-law precision is below this (0 = no gate)")
+	// min-abstain gates AbstainCorrect, which sits above shouldAbstain's
+	// always-on zero-hits check — it is structurally unreachable unless
+	// -abstain-min-score below also sets a nonzero score floor. Treat both
+	// together as provisional until a real corpus run calibrates them
+	// (TESTING.md §5), the same caveat -min-citation below documents.
 	flag.Float64Var(&o.minAbstain, "min-abstain", 0.95, "fail if abstention accuracy is below this (0 = no gate)")
+	// abstainMinScore feeds eval.RunOpts.AbstainMinScore, shouldAbstain's score
+	// floor on top of the always-on zero-hits check; 0 disables it, matching
+	// banhmi's own -abstain-min-score default.
+	flag.Float64Var(&o.abstainMinScore, "abstain-min-score", 0,
+		"score floor below which a case's top hit counts as an abstain (0 = disabled, matching banhmi)")
 	// min-citation gates CitationPrecision, whose semantics are new to mise
 	// (precision over every top-k hit, not a port of banhmi's dead
 	// answer-citation field — see CitationPrecision's doc comment). Treat
@@ -97,10 +109,11 @@ func run(o opts) error {
 	}
 
 	report, err := eval.Run(ctx, liveSearcher{pool: pool, emb: emb}, cases, eval.RunOpts{
-		Corpora:     parseCorpora(o.corpora),
-		TopK:        o.topK,
-		InForceOnly: o.inForceOnly,
-		Role:        o.role,
+		Corpora:         parseCorpora(o.corpora),
+		TopK:            o.topK,
+		InForceOnly:     o.inForceOnly,
+		Role:            o.role,
+		AbstainMinScore: o.abstainMinScore,
 	})
 	if err != nil {
 		return fmt.Errorf("cmd/eval: run: %w", err)

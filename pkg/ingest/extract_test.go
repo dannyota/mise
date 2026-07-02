@@ -24,6 +24,18 @@ func (multiSectionParser) Parse(_ context.Context, _ []byte, _ string) (vertex.P
 	}}, nil
 }
 
+// headingStubParser is a consumer-side stub whose sections carry distinct,
+// nested HeadingPaths, for TestExtractorReconstructsHeadingLines (CRITICAL A:
+// a regression that dropped HeadingPath again would fail this test).
+type headingStubParser struct{}
+
+func (headingStubParser) Parse(_ context.Context, _ []byte, _ string) (vertex.ParseResult, error) {
+	return vertex.ParseResult{Sections: []vertex.Section{
+		{HeadingPath: "Điều 7", Text: "Ngân hàng phải bảo đảm an toàn hệ thống thông tin."},
+		{HeadingPath: "Điều 7 > Khoản 1", Text: "Xây dựng quy trình quản lý rủi ro công nghệ thông tin."},
+	}}, nil
+}
+
 // writeFixture stores text under sha256(content).txt in dir, the key scheme
 // vertex.NewFixtureParser reads.
 func writeFixture(t *testing.T, dir string, content []byte, text string) {
@@ -128,9 +140,34 @@ func TestExtractorJoinsSectionsWithBlankLine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Text() error = %v", err)
 	}
-	want := "Điều 1. Phạm vi điều chỉnh\n\nĐiều 2. Đối tượng áp dụng"
+	// "Chương I" is emitted once, ahead of Điều 1's body, and NOT repeated
+	// before Điều 2 even though both sections share that HeadingPath.
+	want := "Chương I\nĐiều 1. Phạm vi điều chỉnh\n\nĐiều 2. Đối tượng áp dụng"
 	if got != want {
 		t.Errorf("Text() = %q, want %q", got, want)
+	}
+}
+
+// TestExtractorReconstructsHeadingLines is the regression test for CRITICAL
+// A: Doc AI never emits a heading block as a section's own Text — its text
+// lives only in the following sections' HeadingPath (pkg/vertex/
+// parse_docai.go) — so Text must reconstruct "Điều 7" / "Khoản 1" as their
+// own lines ahead of their bodies. The downstream legal parsers
+// (pkg/parse/vnlaw, pkg/parse/mylaw) are line-by-line state machines that
+// rebuild citation paths by matching exactly such heading lines; a join that
+// keeps only s.Text (the pre-fix behavior) would drop them and this
+// assertion would fail.
+func TestExtractorReconstructsHeadingLines(t *testing.T) {
+	e := ingest.NewExtractor(headingStubParser{})
+	got, err := e.Text(context.Background(), []byte("%PDF"), "application/pdf")
+	if err != nil {
+		t.Fatalf("Text() error = %v", err)
+	}
+	want := "Điều 7\nNgân hàng phải bảo đảm an toàn hệ thống thông tin.\n\n" +
+		"Khoản 1\nXây dựng quy trình quản lý rủi ro công nghệ thông tin."
+	if got != want {
+		t.Errorf("Text() = %q, want %q (heading lines \"Điều 7\"/\"Khoản 1\" each once, in order, before their bodies)",
+			got, want)
 	}
 }
 
