@@ -171,6 +171,11 @@ func stepChain(
 // policy that both satisfies a law and implements a group standard) still
 // yields a single, deterministic Chain path by following only this one; ok
 // is false when edges has no up-edge at all (end of chain).
+//
+// edges is already role's own tier-filtered view (GetNode's RLS read), so
+// this "earliest-created" pick is evaluated per caller-role — two roles can
+// legitimately walk different single paths when a node's up-edges span more
+// than one access tier; that's expected per-role divergence, not a leak.
 func firstUpEdge(edges []graph.Edge) (edge graph.Edge, ok bool) {
 	for _, e := range edges {
 		if e.Direction == directionUp {

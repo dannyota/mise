@@ -19,31 +19,42 @@ import (
 // can't see" and "this node doesn't exist at all" are indistinguishable
 // there too (graph_read.go's ErrNodeNotFound doc comment), so the fake
 // doesn't need to model them separately.
+//
+// edges is a SLICE per node key — a node can carry more than one outgoing
+// edge (e.g. two up-edges) — and slice order stands in for scanNodeEdges'
+// own `ORDER BY created_at, id` (graph_read.go): link/linkTo append, so the
+// earliest-linked edge is always edges[0], exactly like the earliest-created
+// row would be in Postgres.
 type fakeChainSource struct {
-	edges    map[string]graph.Edge
+	edges    map[string][]graph.Edge
 	targets  map[uuid.UUID]docRefTarget
 	evidence map[uuid.UUID][]graph.Evidence
 }
 
 func newFakeChainSource() *fakeChainSource {
 	return &fakeChainSource{
-		edges:    map[string]graph.Edge{},
+		edges:    map[string][]graph.Edge{},
 		targets:  map[uuid.UUID]docRefTarget{},
 		evidence: map[uuid.UUID][]graph.Evidence{},
 	}
 }
 
-// GetNode satisfies chainSource: ref's one fixture edge (if any), plus its
-// evidence.
+// GetNode satisfies chainSource: ref's fixture edges (if any), in the same
+// order they were linked (see fakeChainSource's doc comment), plus each
+// edge's evidence.
 func (f *fakeChainSource) GetNode(_ context.Context, _ string, ref graph.NodeRef) (NodeView, error) {
-	edge, ok := f.edges[nodeKey(ref)]
-	if !ok {
+	edges, ok := f.edges[nodeKey(ref)]
+	if !ok || len(edges) == 0 {
 		return NodeView{}, fmt.Errorf("fake GetNode(%s): %w", nodeKey(ref), ErrNodeNotFound)
+	}
+	evidence := make(map[uuid.UUID][]graph.Evidence, len(edges))
+	for _, e := range edges {
+		evidence[e.ID] = f.evidence[e.ID]
 	}
 	return NodeView{
 		Ref:      ref,
-		Edges:    []graph.Edge{edge},
-		Evidence: map[uuid.UUID][]graph.Evidence{edge.ID: f.evidence[edge.ID]},
+		Edges:    edges,
+		Evidence: evidence,
 	}, nil
 }
 
@@ -72,15 +83,19 @@ func (f *fakeChainSource) link(
 // linkTo records one up-edge from "from" to the caller-supplied "to" ref —
 // unlike link (which always mints a fresh target), this lets a test point
 // an edge at an EXISTING ref, the shape a cycle fixture needs (e.g. wiring a
-// node back to the walk's own start).
+// node back to the walk's own start). Calling this more than once for the
+// same "from" APPENDS another up-edge rather than replacing the first, so a
+// test can give one node several up-edges (see
+// TestFirstUpEdgePicksEarliestCreatedAmongMultipleUpEdges below) — append
+// order models scanNodeEdges' `created_at, id` order.
 func (f *fakeChainSource) linkTo(
 	from, to graph.NodeRef, corpusID, edgeType string, promoted bool, confidence, groundingScore float64,
 ) {
 	refID, edgeID := uuid.New(), uuid.New()
-	f.edges[nodeKey(from)] = graph.Edge{
+	f.edges[nodeKey(from)] = append(f.edges[nodeKey(from)], graph.Edge{
 		ID: edgeID, From: from, ToRefID: refID, ToCorpusID: corpusID,
 		EdgeType: graph.EdgeType(edgeType), Direction: directionUp, Promoted: promoted,
-	}
+	})
 	docID := to.DocumentID
 	f.targets[refID] = docRefTarget{
 		CorpusID: corpusID, DocID: &docID, SecID: to.SectionID,
@@ -244,7 +259,7 @@ func TestWalkChainStartInvisibleToRoleEndsCleanly(t *testing.T) {
 func TestWalkChainNoUpEdgeEndsChain(t *testing.T) {
 	start := graph.NodeRef{CorpusID: "local-sop", DocumentID: uuid.New()}
 	f := newFakeChainSource()
-	f.edges[nodeKey(start)] = graph.Edge{ID: uuid.New(), From: start, Direction: "down"}
+	f.edges[nodeKey(start)] = []graph.Edge{{ID: uuid.New(), From: start, Direction: "down"}}
 
 	hops, err := walkChain(context.Background(), f, "mise_local", start, 0)
 	if err != nil {
@@ -252,6 +267,38 @@ func TestWalkChainNoUpEdgeEndsChain(t *testing.T) {
 	}
 	if len(hops) != 0 {
 		t.Fatalf("walkChain() hops = %d, want 0 (no up-edge to follow)", len(hops))
+	}
+}
+
+// TestFirstUpEdgePicksEarliestCreatedAmongMultipleUpEdges proves
+// firstUpEdge's determinism claim for the multi-up-edge case: a node with
+// TWO up-edges to different targets (e.g. a policy that both satisfies a
+// law and implements a group standard) still yields a single, deterministic
+// Chain path — the FIRST (earliest-created) one, per scanNodeEdges' own
+// `ORDER BY created_at, id` (graph_read.go). The fake models that ordering
+// positionally (fakeChainSource's doc comment): the first link call is
+// "earlier-created" than the second, so this proves the walk always takes
+// edges[0] among the up-edges, never edges[1].
+func TestFirstUpEdgePicksEarliestCreatedAmongMultipleUpEdges(t *testing.T) {
+	start := graph.NodeRef{CorpusID: "local-policy", DocumentID: uuid.New()}
+	f := newFakeChainSource()
+	earliest := f.link(start, "my-reg", "satisfies", false, 0.9, 0.9) // linked 1st: earliest-created
+	_ = f.link(start, "group-std", "implements", false, 0.5, 0.5)     // linked 2nd: later-created
+
+	hops, err := walkChain(context.Background(), f, "mise_local", start, 0)
+	if err != nil {
+		t.Fatalf("walkChain() error = %v", err)
+	}
+	if len(hops) != 1 {
+		t.Fatalf("walkChain() hops = %d, want 1", len(hops))
+	}
+	if hops[0].CorpusID != "my-reg" {
+		t.Errorf("hops[0].CorpusID = %q, want %q (the earliest-created up-edge, not group-std)",
+			hops[0].CorpusID, "my-reg")
+	}
+	if hops[0].Ref.DocumentID != earliest.DocumentID {
+		t.Errorf("hops[0].Ref.DocumentID = %s, want %s (the earliest-created up-edge's target)",
+			hops[0].Ref.DocumentID, earliest.DocumentID)
 	}
 }
 
@@ -263,10 +310,10 @@ func TestWalkChainUnresolvedDocRefStubEndsChain(t *testing.T) {
 	start := graph.NodeRef{CorpusID: "local-sop", DocumentID: uuid.New()}
 	f := newFakeChainSource()
 	refID, edgeID := uuid.New(), uuid.New()
-	f.edges[nodeKey(start)] = graph.Edge{
+	f.edges[nodeKey(start)] = []graph.Edge{{
 		ID: edgeID, From: start, ToRefID: refID, ToCorpusID: "local-policy",
 		EdgeType: graph.EdgeDerives, Direction: directionUp,
-	}
+	}}
 	f.targets[refID] = docRefTarget{CorpusID: "local-policy", DocID: nil, RefKey: "unresolved-ref"}
 
 	hops, err := walkChain(context.Background(), f, "mise_local", start, 0)
@@ -288,6 +335,22 @@ func TestBestEvidencePicksZeroConfidenceRowsGroundingScoreToo(t *testing.T) {
 	got := bestEvidence(ev)
 	if got.GroundingScore != 0.7 {
 		t.Errorf("bestEvidence(single zero-confidence row).GroundingScore = %v, want 0.7", got.GroundingScore)
+	}
+}
+
+// TestBestEvidencePicksHigherConfidenceRow covers bestEvidence's general
+// (n>=2) case — the zero-confidence test above only ever exercised a single
+// row. The higher-Confidence row is placed SECOND so the assertion actually
+// exercises the "replace best" branch, not just the ev[0] seed.
+func TestBestEvidencePicksHigherConfidenceRow(t *testing.T) {
+	ev := []graph.Evidence{
+		{Confidence: 0.4, GroundingScore: 0.5},
+		{Confidence: 0.9, GroundingScore: 0.2},
+	}
+	got := bestEvidence(ev)
+	if got.Confidence != 0.9 || got.GroundingScore != 0.2 {
+		t.Errorf("bestEvidence(2 rows).Confidence/GroundingScore = %v/%v, want 0.9/0.2 (the higher-Confidence row)",
+			got.Confidence, got.GroundingScore)
 	}
 }
 
