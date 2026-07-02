@@ -1,6 +1,8 @@
 package graph
 
 import (
+	"encoding/json"
+
 	"github.com/google/uuid"
 
 	"danny.vn/mise/pkg/corpus"
@@ -15,11 +17,28 @@ import (
 // resolver's — even a resolved Target still needs that row to exist, since
 // relation_edge.to_ref_id is a foreign key to doc_ref, not to the document
 // directly.
+//
+// RefKey/Label/SrcRef carry the target's citation metadata through to the
+// writer: GraphStore.WriteExtractedEdge reads them to create the target's
+// graph.doc_ref row (ref_key/label/src_ref). ResolveRef populates them from
+// the RawControlRef so the resolution is complete for both the resolved and
+// stub cases.
 type ResolvedRef struct {
 	Target     NodeRef
 	ToRefID    uuid.UUID
 	ToCorpusID string
 	IsStub     bool
+
+	// RefKey is the target's cited doc number (RawControlRef.TargetNumber),
+	// raw/pre-normalization. GraphStore.EnsureDocRef corpus-scopes and
+	// upper-cases it into doc_ref.ref_key.
+	RefKey string
+	// Label is the citation's target title (RawControlRef.TargetTitle),
+	// stored as doc_ref.label.
+	Label string
+	// SrcRef is the raw citation payload (the marshaled RawControlRef)
+	// carried through unchanged into doc_ref.src_ref, for audit.
+	SrcRef json.RawMessage
 }
 
 // ExtractedEdge is one Method A candidate edge: a source document's NodeRef,
@@ -108,9 +127,30 @@ func ResolveRef(
 			Target:     NodeRef{CorpusID: string(target), DocumentID: docID},
 			ToCorpusID: string(target),
 			IsStub:     false,
+			RefKey:     ref.TargetNumber,
+			Label:      ref.TargetTitle,
+			SrcRef:     marshalRef(ref),
 		}, true
 	}
-	return ResolvedRef{ToCorpusID: string(target), IsStub: true}, true
+	return ResolvedRef{
+		ToCorpusID: string(target),
+		IsStub:     true,
+		RefKey:     ref.TargetNumber,
+		Label:      ref.TargetTitle,
+		SrcRef:     marshalRef(ref),
+	}, true
+}
+
+// marshalRef renders a RawControlRef as the doc_ref.src_ref audit payload.
+// RawControlRef is all-string, so json.Marshal cannot fail; a defensive
+// fallback keeps the resolver total (no error return in ResolveRef's
+// canonical signature).
+func marshalRef(ref RawControlRef) json.RawMessage {
+	b, err := json.Marshal(ref)
+	if err != nil {
+		return json.RawMessage("{}")
+	}
+	return b
 }
 
 // targetCorpusFor decides ResolveRef's target corpus from the source corpus

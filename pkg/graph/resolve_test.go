@@ -1,6 +1,7 @@
 package graph_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/google/uuid"
@@ -115,13 +116,13 @@ func TestResolveRefResolvesToExistingCorpusNode(t *testing.T) {
 				t.Errorf("lookup called with (%s, %q), want (%s, %q)",
 					gotCorpus, gotNumber, tt.wantTarget, tt.ref.TargetNumber)
 			}
-			want := graph.ResolvedRef{
-				Target:     graph.NodeRef{CorpusID: string(tt.wantTarget), DocumentID: docID},
-				ToCorpusID: string(tt.wantTarget),
-				IsStub:     false,
+			wantTarget := graph.NodeRef{CorpusID: string(tt.wantTarget), DocumentID: docID}
+			if got.Target != wantTarget || got.ToCorpusID != string(tt.wantTarget) || got.IsStub {
+				t.Errorf("ResolveRef() = %+v, want resolved node %+v", got, wantTarget)
 			}
-			if got != want {
-				t.Errorf("ResolveRef() = %+v, want %+v", got, want)
+			if got.RefKey != tt.ref.TargetNumber || got.Label != tt.ref.TargetTitle {
+				t.Errorf("ResolveRef() RefKey=%q Label=%q, want %q/%q from the RawControlRef",
+					got.RefKey, got.Label, tt.ref.TargetNumber, tt.ref.TargetTitle)
 			}
 		})
 	}
@@ -159,9 +160,12 @@ func TestResolveRefStubWhenLookupMisses(t *testing.T) {
 			if !ok {
 				t.Fatal("ResolveRef() ok = false, want true (a stub is still a resolution)")
 			}
-			want := graph.ResolvedRef{ToCorpusID: string(tt.wantTarget), IsStub: true}
-			if got != want {
-				t.Errorf("ResolveRef() = %+v, want stub %+v", got, want)
+			if got.ToCorpusID != string(tt.wantTarget) || !got.IsStub {
+				t.Errorf("ResolveRef() = %+v, want stub for %q", got, tt.wantTarget)
+			}
+			if got.RefKey != tt.ref.TargetNumber || got.Label != tt.ref.TargetTitle {
+				t.Errorf("ResolveRef() RefKey=%q Label=%q, want %q/%q from the RawControlRef",
+					got.RefKey, got.Label, tt.ref.TargetNumber, tt.ref.TargetTitle)
 			}
 		})
 	}
@@ -210,7 +214,7 @@ func TestResolveRefAmbiguousIsDropped(t *testing.T) {
 			if ok {
 				t.Error("ResolveRef() ok = true, want false (ambiguous ref must be dropped)")
 			}
-			if got != (graph.ResolvedRef{}) {
+			if !reflect.DeepEqual(got, graph.ResolvedRef{}) {
 				t.Errorf("ResolveRef() = %+v, want the zero value when ok = false", got)
 			}
 			if lookupCalled {
