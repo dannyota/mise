@@ -100,7 +100,7 @@ type DetailRef struct {
 	DetailURL  string
 }
 
-// Source is a self-contained Bronze crawler for one official site. Discovery is
+// Source is a self-contained crawler for one official site. Discovery is
 // newest-first and watermark-bounded so the hourly Discover schedule stays
 // nearly free; FetchDetail and Download are the heavier stages run per genuinely
 // new document. Temporal bounds fetch concurrency; sources may also apply
