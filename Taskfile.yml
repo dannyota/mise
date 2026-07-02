@@ -13,6 +13,9 @@ tasks:
   go:build:
     cmds:
       - go build ./...
+  contract:gen:
+    cmds:
+      - go run ./cmd/openapi-gen
   ts:lint:
     cmds:
       - pnpm lint

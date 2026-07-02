@@ -14,6 +14,7 @@ import (
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"danny.vn/mise/internal/testdb"
@@ -21,7 +22,8 @@ import (
 
 // TestNewRouterHealthzOnlyWithoutAlloyDBHost pins wireEvidence's
 // zero-dependency path end to end through newRouter: without ALLOYDB_HOST,
-// serving stays healthz-only — no pool, no /readyz route.
+// serving stays healthz-only — no pool, no /readyz route, no /api/v1 mount
+// (httpapi's graph endpoints are a pure DB read, gated the same way).
 func TestNewRouterHealthzOnlyWithoutAlloyDBHost(t *testing.T) {
 	t.Setenv("ALLOYDB_HOST", "")
 
@@ -38,6 +40,7 @@ func TestNewRouterHealthzOnlyWithoutAlloyDBHost(t *testing.T) {
 
 	assertStatus(t, srv.URL+"/healthz", http.StatusOK)
 	assertStatus(t, srv.URL+"/readyz", http.StatusNotFound)
+	assertStatus(t, srv.URL+"/api/v1/graph/nodes/vn-reg%2F"+uuid.NewString(), http.StatusNotFound)
 }
 
 // TestNewRouterWiresEvidenceWithAlloyDBHost points ALLOYDB_HOST/PORT/USER/
@@ -45,7 +48,10 @@ func TestNewRouterHealthzOnlyWithoutAlloyDBHost(t *testing.T) {
 // of wireEvidence: a live pool, a working /readyz, plus the MCP evidence and
 // graph tools actually registered — reached over the real streamable-HTTP
 // mount, not just inferred from the pool being non-nil (T13 Important:
-// wireEvidence was untested).
+// wireEvidence was untested) — and the /api/v1 graph REST mount wired to a
+// real GraphRepo over that same pool: a well-formed but nonexistent ref
+// reports 404, proving the mount reaches all the way to a real (if empty)
+// database rather than 404-ing because the route itself is missing.
 func TestNewRouterWiresEvidenceWithAlloyDBHost(t *testing.T) {
 	dbPool := testdb.New(t)
 	setTestdbEnv(t, dbPool)
@@ -65,6 +71,7 @@ func TestNewRouterWiresEvidenceWithAlloyDBHost(t *testing.T) {
 	assertStatus(t, srv.URL+"/healthz", http.StatusOK)
 	assertStatus(t, srv.URL+"/readyz", http.StatusOK)
 	assertMCPToolsRegistered(t, srv.URL, []string{"document", "graph", "search"})
+	assertStatus(t, srv.URL+"/api/v1/graph/nodes/vn-reg%2F"+uuid.NewString(), http.StatusNotFound)
 }
 
 // setTestdbEnv points the ALLOYDB_* env vars config.DB/wireEvidence read at

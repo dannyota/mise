@@ -20,6 +20,7 @@ import (
 	"danny.vn/mise/pkg/config"
 	"danny.vn/mise/pkg/corpus"
 	"danny.vn/mise/pkg/graph"
+	"danny.vn/mise/pkg/httpapi"
 	"danny.vn/mise/pkg/mcp"
 	"danny.vn/mise/pkg/rag/embed"
 	"danny.vn/mise/pkg/store"
@@ -98,11 +99,11 @@ func readyzHandler(pool *pgxpool.Pool) http.HandlerFunc {
 	}
 }
 
-// newRouter builds the chi router — health/readiness endpoints and the MCP
-// mount — and returns the AlloyDB pool wireEvidence opened (nil when
-// ALLOYDB_HOST is unset), so the caller can close it on shutdown. Split out
-// of main so tests can drive the real routing/wiring path directly, without
-// starting a listener or blocking on OS signals.
+// newRouter builds the chi router — health/readiness endpoints, the REST
+// graph API, and the MCP mount — and returns the AlloyDB pool wireEvidence
+// opened (nil when ALLOYDB_HOST is unset), so the caller can close it on
+// shutdown. Split out of main so tests can drive the real routing/wiring
+// path directly, without starting a listener or blocking on OS signals.
 func newRouter(ctx context.Context, log *slog.Logger) (*chi.Mux, *pgxpool.Pool, error) {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
@@ -115,6 +116,13 @@ func newRouter(ctx context.Context, log *slog.Logger) (*chi.Mux, *pgxpool.Pool, 
 	}
 	if pool != nil {
 		r.Get("/readyz", readyzHandler(pool))
+		// /api/v1 needs a real pool (GraphRepo is a pure DB read), so it stays
+		// gated behind the same ALLOYDB_HOST check as /readyz — without a pool,
+		// serving stays healthz-only, unchanged from before this endpoint set.
+		r.Route("/api/v1", func(v1 chi.Router) {
+			api := httpapi.NewAPI(v1)
+			httpapi.Register(api, store.NewGraphRepo(pool), config.Role())
+		})
 	}
 
 	mcpServer := mcp.New(mcpOpts...)

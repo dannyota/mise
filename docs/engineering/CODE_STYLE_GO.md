@@ -30,6 +30,13 @@ live in [TOOLCHAIN.md](./TOOLCHAIN.md).
   so it can be faked offline (LOCAL-DEV §4) — never hard-wire the SDK call.
 - **Auth as `http.RoundTripper`:** wrap auth (OIDC token injection, ADC) as a transport
   decorator — composable, testable, keeps auth out of business logic.
+- **REST handlers (huma v2, first use in `pkg/httpapi`):** one typed `Input`/`Output` struct
+  pair per operation — path/query params via struct tags (`path:"ref"`, `query:"max_depth"`),
+  the payload under `Output.Body`. Wire types (`*Wire` suffix, e.g. `EdgeWire`) map 1:1 to the
+  domain type they mirror and are never the domain type itself, so a schema change is a
+  deliberate, visible edit. Errors are `huma.ErrorNNNxxx(msg, err)` (RFC 9457
+  `application/problem+json`) for an expected 4xx; return a plain wrapped `error` only for a
+  genuine failure — huma maps that to a 500 itself.
 
 ## ⚠️ Errors
 
