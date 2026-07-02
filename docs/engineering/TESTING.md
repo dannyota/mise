@@ -38,6 +38,15 @@ See also:
 - **RLS tests are mandatory**: a low-tier caller must not see `group-std`/`local-policy` rows
   even through a cross-corpus graph join (DATA-GOVERNANCE §2). Test against real AlloyDB
   Omni via testcontainers, not a mock.
+- **Graph RLS/cross-tier-deny gate** (M2): the graph's compliance-chain surface has a dedicated
+  deny suite (`pkg/store/graph_rls_test.go`, `pkg/httpapi/graph_deny_test.go`) that seeds
+  local-confidential edges and asserts tier isolation across **every** read path — raw SQL
+  oracle (`SET LOCAL ROLE`), `GraphRepo.GetNode`/`Chain`, REST `GET /graph/nodes` and
+  `/graph/chain`, and the MCP `graph` handler — for all three roles
+  (`mise_public`/`mise_group`/`mise_local`). An extraction-to-chain E2E test
+  (`pkg/store/graph_e2e_test.go`) additionally proves the full Method A pipeline —
+  `ExtractEdges` → `WriteExtractedEdge` → `Chain` — including write idempotency. Both run
+  under `//go:build integration` against real Postgres.
 
 ## 3. TS (reasoning) & Vue (web)
 

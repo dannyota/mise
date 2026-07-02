@@ -33,7 +33,7 @@ Each phase reaches one milestone; the milestone _is_ the phase's demonstrable ou
 | **M0**    | [M0-skeleton](./plan/M0-skeleton/README.md)   | the stack stands up locally — module, corpus registry, AlloyDB + Temporal, Vertex fake seam | `podman compose up` is green                          |
 | **M1a**   | [M1-ingest](./plan/M1-ingest/README.md) WS1+4 | law corpora ingested, embedded @1536-d, searchable per-corpus (public, ungated)             | per-corpus evidence search (MCP) on VN+MY law         |
 | **M1b**   | [M1-ingest](./plan/M1-ingest/README.md) WS2+3 | internal corpora ingested via SharePoint, metadata envelope + tier tagging complete         | all 5 corpora tier-isolated and retrievable           |
-| **M2**    | [M2-graph](./plan/M2-graph/README.md)         | the `graph` schema + explicit internal edges + graph API                                    | the SOP→Policy→Group chain query                      |
+| **M2**    | [M2-graph](./plan/M2-graph/README.md)         | the `graph` schema + explicit internal edges + graph API (done)                             | the SOP→Policy→Group chain query                      |
 | **M3**    | [M3-detectors](./plan/M3-detectors/README.md) | the 4 detectors + findings + the review queue                                               | a grounded `satisfies` candidate + a conflict finding |
 | **M4**    | [M4-audit-qa](./plan/M4-audit-qa/README.md)   | cited, grounded answers over REST + MCP + SSE                                               | ask a question → cited answer / abstain               |
 | **M5**    | [M5-web-ui](./plan/M5-web-ui/README.md)       | all screens live in the Vue SPA                                                             | the full product in a browser                         |
@@ -68,8 +68,9 @@ flowchart LR
   decisions; M1b has real-adopter connector integration input. M0's own gate (DEC 14, embedding
   call site) is locked.
 - **M1a/M1b split:** M1a (public law corpora) is ungated and exits independently; M1b (internal
-  connectors: WS2 + WS3) runs when SharePoint access materializes. M2 can start graph schema
-  migration after M1a; full graph extraction (Method A) needs M1b. See
+  connectors: WS2 + WS3) runs when SharePoint access materializes. M2's graph schema,
+  extraction, and API are complete; live Method-A wiring into an internal-corpus ingest run
+  is deferred to M1b (the connectors that produce the doc-control headers). See
   [M1 plan](./plan/M1-ingest/README.md) §1.
 - **Fan-in, not a parallel path:** M4 reads M1+M2+M3 artifacts and M5 reads M2+M3+M4 — drawn
   linearly because one builder runs them in order, but each later phase depends on _all_ prior.

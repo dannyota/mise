@@ -117,6 +117,35 @@ See also:
     deploy config and may choose stricter in-country hosting by policy; that is an operator
     control, not an upstream decision gate.
 
+20. **Graph tier via GENERATED column, not trigger.** `graph.relation_edge.access_tier` is
+    `GENERATED ALWAYS AS (graph.stricter_tier(graph.corpus_tier(from_corpus_id),
+    graph.corpus_tier(to_corpus_id))) STORED` — three IMMUTABLE functions (`corpus_tier`,
+    `tier_rank`, `stricter_tier`), no trigger, no app-set column. RLS policies reference
+    `access_tier` directly, so a new corpus only needs one new `corpus_tier` CASE branch; no
+    app deploy. Locked 2026-07.
+21. **doc_ref stub model for forward references.** `graph.doc_ref` rows can exist with
+    `document_id IS NULL` (an unresolved stub) before the target document is ingested.
+    `relation_edge.to_ref_id` FK's to `doc_ref.id`, not to the document directly, so edges
+    written today survive a later ingest that resolves the stub — no edge rewrites. A partial
+    index (`doc_ref_unresolved_idx`) finds unresolved stubs for batch resolution. Locked 2026-07.
+22. **direction='up' convention.** Every `relation_edge.direction` value today is `'up'` — the
+    control-chain authority direction (SOP -> Policy -> Group -> law). Reverse (`'down'`)
+    traversal is documented in the API contract but rejected at runtime until M5 Graph Explorer.
+    Locked 2026-07.
+23. **huma v2 for REST.** The graph REST surface (`GET /graph/nodes/{ref}`,
+    `GET /graph/chain/{ref}`) uses huma v2 on chi — its struct-tag-driven OpenAPI generation
+    keeps the Go source and `api/openapi.yaml` in lock-step, validated by an `openapi_drift_test`
+    `cmp.Diff` guard. Locked 2026-07.
+24. **depguard scoping: pkg/graph is Method-A-pure.** golangci-lint's depguard rule restricts
+    `pkg/graph` to `pkg/corpus`, `encoding/json`, `strings`, `github.com/google/uuid` — no
+    model client, no store, no network. Method A extraction is a pure function over
+    already-resolved data; any store or model call must happen in the caller (`pkg/store`),
+    never inside `pkg/graph`. Locked 2026-07.
+25. **org_role forward-pull.** `graph.org_role` is seeded in M2 (migration 011) with the
+    resolver (`OrgRole.Resolve`) available for attestation-owner lookup at extraction time.
+    The full as-of-date history and UI surface are deferred to M4; M2 uses it as a simple
+    current-holder lookup. Locked 2026-07.
+
 <!-- prettier-ignore-end -->
 
 ## 🗺️ Open
