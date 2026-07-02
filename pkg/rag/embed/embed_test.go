@@ -2,6 +2,7 @@ package embed_test
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	"danny.vn/mise/pkg/rag/embed"
@@ -50,4 +51,64 @@ func TestFakeEmbedderBatch(t *testing.T) {
 	if len(vecs) != 3 {
 		t.Fatalf("expected 3 vectors, got %d", len(vecs))
 	}
+}
+
+// TestFakeEmbedderTokenOverlap asserts the fake embedder carries real token-
+// overlap signal: a text sharing tokens with a query must cosine-score
+// higher than a text sharing none, so offline retrieval tests (recall@k,
+// ranking) are meaningful without a live Vertex call.
+func TestFakeEmbedderTokenOverlap(t *testing.T) {
+	e := embed.NewFake()
+	vecs, err := e.Embed(context.Background(), []string{
+		"vốn điều lệ ngân hàng",
+		"vốn điều lệ",
+		"kiểm toán nội bộ",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	overlap := cosine(vecs[0], vecs[1])
+	distinct := cosine(vecs[0], vecs[2])
+	if !(overlap > distinct) {
+		t.Fatalf("cos(overlapping) = %f, want > cos(distinct) = %f", overlap, distinct)
+	}
+}
+
+// TestFakeEmbedderQueryEmbedderSameVectors asserts the fake's QueryEmbedder
+// returns the same vectors as Embed, since the fake has no task-type split.
+func TestFakeEmbedderQueryEmbedderSameVectors(t *testing.T) {
+	e := embed.NewFake()
+	qe, ok := e.(embed.QueryEmbedder)
+	if !ok {
+		t.Fatal("fake embedder does not implement QueryEmbedder")
+	}
+	ctx := context.Background()
+	texts := []string{"vốn điều lệ ngân hàng"}
+	docVecs, err := e.Embed(ctx, texts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	queryVecs, err := qe.EmbedQueries(ctx, texts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(docVecs) != len(queryVecs) {
+		t.Fatalf("doc vecs = %d, query vecs = %d", len(docVecs), len(queryVecs))
+	}
+	for i := range docVecs[0] {
+		if docVecs[0][i] != queryVecs[0][i] {
+			t.Fatalf("EmbedQueries differs from Embed at index %d: %f != %f", i, docVecs[0][i], queryVecs[0][i])
+		}
+	}
+}
+
+// cosine returns the cosine similarity between two equal-length vectors.
+func cosine(a, b []float32) float64 {
+	var dot, na, nb float64
+	for i := range a {
+		dot += float64(a[i]) * float64(b[i])
+		na += float64(a[i]) * float64(a[i])
+		nb += float64(b[i]) * float64(b[i])
+	}
+	return dot / (math.Sqrt(na) * math.Sqrt(nb))
 }
