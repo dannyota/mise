@@ -118,7 +118,7 @@ func (a *Activities) processStages(
 	}
 
 	heartbeat(ctx, "index "+ref.ExternalID)
-	docID, err := a.index(ctx, desc, *detail, tree, text)
+	docID, err := a.index(ctx, desc, *detail, tree, text, ref.RunID)
 	if err != nil {
 		return "", uuid.UUID{}, err
 	}
@@ -288,21 +288,36 @@ func vnStructure(
 	return tree, nil
 }
 
+// parseRunID parses runID — a DocRef.RunID, the ingest.run id the workflow
+// stamps onto every ref after Discover returns (see IngestCorpusWorkflow) —
+// into a uuid.UUID for Document.IngestRunID. An empty runID means ProcessDoc
+// was invoked without going through the workflow's stamp, which is always a
+// bug: it fails loudly here instead of minting a throwaway uuid.New() the way
+// the old CurrentRun heuristic did for its "no open run" case.
+func parseRunID(runID string) (uuid.UUID, error) {
+	if runID == "" {
+		return uuid.UUID{}, errors.New("missing run id")
+	}
+	id, err := uuid.Parse(runID)
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("parsing run id %q: %w", runID, err)
+	}
+	return id, nil
+}
+
 // index normalizes the document, embeds its section bodies, and writes the
 // document, sections, and resolved amendment events to the corpus store.
+// runID is the DocRef.RunID the workflow stamped after Discover returned.
 func (a *Activities) index(
-	ctx context.Context, desc corpus.Descriptor, doc ingest.DiscoveredDoc, tree []*law.Node, text string,
+	ctx context.Context, desc corpus.Descriptor, doc ingest.DiscoveredDoc, tree []*law.Node, text, runID string,
 ) (uuid.UUID, error) {
-	now := time.Now().UTC()
-	runID, found, err := store.CurrentRun(ctx, a.deps.Pool, desc.ID)
+	parsedRunID, err := parseRunID(runID)
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.UUID{}, fmt.Errorf("index: %w", err)
 	}
-	if !found {
-		runID = uuid.New() // no open run bracket (standalone call) — still valid provenance
-	}
+	now := time.Now().UTC()
 
-	norm, err := ingest.Normalize(desc, doc, tree, text, runID, now)
+	norm, err := ingest.Normalize(desc, doc, tree, text, parsedRunID, now)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("normalizing: %w", err)
 	}
@@ -353,10 +368,17 @@ func (a *Activities) embedSections(ctx context.Context, secs []store.Section) er
 
 // applyRelations resolves the document's pending relation events against the
 // store: each target found by citation number gets an amendment_event row
-// attributed to docID, and its validity transitions per TransitionAt (future-
-// dated events are recorded but do not change current validity). Targets not
-// in the store yet are skipped — the event re-materializes when the source
-// re-publishes, and a later backfill pass can sweep the remainder.
+// attributed to docID, and its validity transitions atomically per
+// TransitionAt (future-dated events are recorded but do not change current
+// validity). Targets not in the store yet are skipped — the event
+// re-materializes when the source re-publishes, and a later backfill pass can
+// sweep the remainder.
+//
+// The validity read-and-write is one TransitionValidity call, not a
+// GetValidity/SetValidity pair: two ProcessDoc activities racing an amendment
+// event onto the same target document must never interleave a plain
+// read-modify-write, or one's write silently overwrites the other's.
+// TransitionValidity's row lock (SELECT ... FOR UPDATE) serializes them.
 func applyRelations(
 	ctx context.Context, c *store.Corpus, docID uuid.UUID, evs []ingest.RelationEvent, now time.Time,
 ) error {
@@ -375,14 +397,10 @@ func applyRelations(
 			Clause:        ev.Clause,
 			EventDate:     ev.Date,
 		})
-		current, err := c.GetValidity(ctx, targetID)
-		if err != nil {
+		if _, err := c.TransitionValidity(ctx, targetID, func(current string) string {
+			return ingest.TransitionAt(current, ev.Kind, ev.Date, now)
+		}); err != nil {
 			return err
-		}
-		if next := ingest.TransitionAt(current, ev.Kind, ev.Date, now); next != current {
-			if err := c.SetValidity(ctx, targetID, next); err != nil {
-				return err
-			}
 		}
 	}
 	return c.InsertAmendmentEvents(ctx, rows)

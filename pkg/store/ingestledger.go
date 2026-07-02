@@ -180,25 +180,6 @@ func StartRun(ctx context.Context, pool *pgxpool.Pool, corpusID corpus.ID) (uuid
 	return id, nil
 }
 
-// CurrentRun returns the id of corpusID's most recently started ingest.run row
-// still in status 'running', and whether one exists. ProcessDoc activities use
-// it to stamp document provenance (ingest_run_id) without threading the run id
-// through their fixed activity signature.
-func CurrentRun(ctx context.Context, pool *pgxpool.Pool, corpusID corpus.ID) (uuid.UUID, bool, error) {
-	const q = `SELECT id FROM ingest.run
-WHERE corpus_id = $1 AND status = 'running' ORDER BY started_at DESC LIMIT 1`
-
-	var id uuid.UUID
-	err := pool.QueryRow(ctx, q, string(corpusID)).Scan(&id)
-	switch {
-	case errors.Is(err, pgx.ErrNoRows):
-		return uuid.UUID{}, false, nil
-	case err != nil:
-		return uuid.UUID{}, false, fmt.Errorf("reading current ingest run for %s: %w", corpusID, err)
-	}
-	return id, true, nil
-}
-
 // FinishRun marks an ingest.run row finished with the given status and stats
 // (arbitrary counters/details, stored as jsonb). A nil stats map is stored as
 // an empty JSON object, matching the column's default.

@@ -48,6 +48,11 @@ func IngestCorpusWorkflow(ctx workflow.Context, p IngestParams) (IngestResult, e
 		finishRun(ctx, a, runID, runStatusFailed, IngestResult{})
 		return IngestResult{}, err
 	}
+	// Explicit run-id attribution (pure data transform over already-decided
+	// workflow state — deterministic, safe on replay): see DocRef.RunID.
+	for i := range refs {
+		refs[i].RunID = runID
+	}
 
 	res := processAll(ctx, a, refs)
 

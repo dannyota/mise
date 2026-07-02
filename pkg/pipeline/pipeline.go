@@ -40,6 +40,10 @@ const (
 	outcomeFailed  = "failed"
 )
 
+// defaultPaceBetweenSources is Deps.PaceBetweenSources' fallback when a
+// caller leaves it at the zero value; NewActivities fills it in.
+const defaultPaceBetweenSources = 200 * time.Millisecond
+
 // IngestParams selects what one IngestCorpusWorkflow run ingests.
 type IngestParams struct {
 	// Corpus is the corpus.ID to ingest ("vn-reg" or "my-reg").
@@ -66,13 +70,21 @@ type IngestResult struct {
 
 // DocRef identifies one discovered document for ProcessDoc. ContentHash is the
 // discovery fingerprint Discover stored in the ledger for this enqueue —
-// sha256(Number|Title|DetailURL|DocType) — used to detect retried work.
+// sha256(Number|Title|DetailURL|DocType) — used to detect retried work. RunID
+// is stamped by the workflow, not Discover (see IngestCorpusWorkflow), with
+// the ingest.run id StartRun opened for this run: explicit attribution so
+// ProcessDoc always records Document.IngestRunID against the exact run that
+// discovered it, instead of the old "most recently started running run for
+// this corpus" heuristic (store.CurrentRun), which misattributed whenever two
+// runs of one corpus overlapped (e.g. an operator backfill racing a scheduled
+// run).
 type DocRef struct {
 	Corpus      string
 	SourceID    string
 	ExternalID  string
 	DetailURL   string
 	ContentHash string
+	RunID       string
 }
 
 // Deps carries every side-effecting dependency the activities need.
@@ -82,6 +94,11 @@ type Deps struct {
 	Embedder embed.Embedder
 	Extract  *ingest.Extractor
 	Sources  map[corpus.ID][]ingest.Source
+	// PaceBetweenSources is the politeness delay Discover waits between
+	// sources within one corpus run (skipped after the last source). The
+	// zero value means "unset" — NewActivities fills in
+	// defaultPaceBetweenSources.
+	PaceBetweenSources time.Duration
 }
 
 // Activities holds the ingest activity implementations. Register one instance
@@ -91,8 +108,12 @@ type Activities struct {
 	deps Deps
 }
 
-// NewActivities returns Activities backed by d.
+// NewActivities returns Activities backed by d. A zero d.PaceBetweenSources is
+// replaced with defaultPaceBetweenSources.
 func NewActivities(d Deps) *Activities {
+	if d.PaceBetweenSources == 0 {
+		d.PaceBetweenSources = defaultPaceBetweenSources
+	}
 	return &Activities{deps: d}
 }
 

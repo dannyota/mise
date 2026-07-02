@@ -82,14 +82,49 @@ func (c *Corpus) FindDocIDByNumber(ctx context.Context, docNumber string) (uuid.
 	return c.findByColumn(ctx, c.pool, "doc_number", docNumber)
 }
 
-// SetValidity updates docID's validity_status — e.g. when a later amendment
-// or repeal is detected downstream of ingest.
-func (c *Corpus) SetValidity(ctx context.Context, docID uuid.UUID, status string) error {
-	q := `UPDATE ` + c.qualify("document") + ` SET validity_status = $2, updated_at = now() WHERE id = $1`
-	if _, err := c.pool.Exec(ctx, q, docID, status); err != nil {
-		return fmt.Errorf("setting validity for document %s: %w", docID, err)
+// TransitionValidity atomically reads docID's validity_status under a row
+// lock, applies next to it, and writes the result back when it differs from
+// what next saw. next must be pure. Returns the resulting status, whether or
+// not it changed.
+//
+// This is the only safe way to change validity_status downstream of ingest:
+// two ProcessDoc activities racing an amendment event onto the same target
+// document must never interleave a plain read-in-Go-then-write — one's write
+// would silently overwrite the other's, corrupting the current-law
+// invariant. SELECT ... FOR UPDATE serializes them instead — the second
+// transaction blocks until the first commits, then reads its result, so next
+// always applies to the true current value.
+func (c *Corpus) TransitionValidity(
+	ctx context.Context, docID uuid.UUID, next func(current string) string,
+) (string, error) {
+	tx, err := c.pool.Begin(ctx)
+	if err != nil {
+		return "", fmt.Errorf("beginning validity transition for document %s: %w", docID, err)
 	}
-	return nil
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	q := `SELECT validity_status FROM ` + c.qualify("document") + ` WHERE id = $1 FOR UPDATE`
+	var cur string
+	err = tx.QueryRow(ctx, q, docID).Scan(&cur)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return "", fmt.Errorf("transitioning validity for document %s: %w (%w)", docID, ErrDocumentNotFound, err)
+	case err != nil:
+		return "", fmt.Errorf("transitioning validity for document %s: %w", docID, err)
+	}
+
+	n := next(cur)
+	if n != cur {
+		updateQ := `UPDATE ` + c.qualify("document") + ` SET validity_status = $2, updated_at = now() WHERE id = $1`
+		if _, err := tx.Exec(ctx, updateQ, docID, n); err != nil {
+			return "", fmt.Errorf("updating validity for document %s: %w", docID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return "", fmt.Errorf("committing validity transition for document %s: %w", docID, err)
+	}
+	return n, nil
 }
 
 // documentInsertCols, documentInsertPlaceholders, and documentUpdateSet

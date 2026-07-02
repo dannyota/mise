@@ -27,6 +27,10 @@ import (
 // A failing source is logged and skipped — its cursor is not advanced, so the
 // next run catches up — rather than failing the whole activity; Discover
 // errors only when every source failed and nothing was discovered.
+//
+// Between sources (never after the last one) it waits Deps.PaceBetweenSources
+// as a politeness delay; a context cancellation during that wait fails the
+// activity immediately instead of hitting the next source.
 func (a *Activities) Discover(ctx context.Context, p IngestParams) ([]DocRef, error) {
 	desc, err := descriptor(p.Corpus)
 	if err != nil {
@@ -46,7 +50,7 @@ func (a *Activities) Discover(ctx context.Context, p IngestParams) ([]DocRef, er
 	}
 
 	var srcErrs []error
-	for _, src := range sources {
+	for i, src := range sources {
 		if d.full() {
 			break
 		}
@@ -56,6 +60,12 @@ func (a *Activities) Discover(ctx context.Context, p IngestParams) ([]DocRef, er
 			srcErrs = append(srcErrs, fmt.Errorf("source %s: %w", src.ID(), err))
 		}
 		heartbeat(ctx, "discovered "+src.ID())
+
+		if i < len(sources)-1 {
+			if err := Pace(ctx, a.deps.PaceBetweenSources); err != nil {
+				return nil, fmt.Errorf("discover %s: pacing between sources: %w", p.Corpus, err)
+			}
+		}
 	}
 	if len(srcErrs) == len(sources) && len(d.refs) == 0 {
 		return nil, fmt.Errorf("discover %s: every source failed: %w", p.Corpus, errors.Join(srcErrs...))

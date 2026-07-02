@@ -20,9 +20,21 @@ func newTestEnv(t *testing.T) *testsuite.TestWorkflowEnvironment {
 	return env
 }
 
+// stampRunID returns ref with RunID set to runID — the shape ProcessDoc
+// actually receives once the workflow has stamped it (Fix 1: explicit
+// run-id attribution replaces the old store.CurrentRun heuristic). Discover
+// itself never sets RunID, so every test below mocks Discover returning
+// unstamped refs and expects ProcessDoc to be called with the stamped ones.
+func stampRunID(ref pipeline.DocRef, runID string) pipeline.DocRef {
+	ref.RunID = runID
+	return ref
+}
+
 // TestIngestCorpusWorkflowAggregatesOutcomes drives the workflow over three
 // mocked documents — one indexed, one skipped, one failed — and checks the
-// aggregated IngestResult and that the run is finished as completed.
+// aggregated IngestResult, that the run is finished as completed, and that
+// every ProcessDoc call carries the run id the workflow stamped after
+// Discover returned.
 func TestIngestCorpusWorkflowAggregatesOutcomes(t *testing.T) {
 	env := newTestEnv(t)
 	a := pipeline.NewActivities(pipeline.Deps{})
@@ -34,9 +46,19 @@ func TestIngestCorpusWorkflowAggregatesOutcomes(t *testing.T) {
 	}
 	env.OnActivity(a.StartRun, mock.Anything, "vn-reg").Return(testRunID, nil).Once()
 	env.OnActivity(a.Discover, mock.Anything, mock.Anything).Return(refs, nil).Once()
-	env.OnActivity(a.ProcessDoc, mock.Anything, refs[0]).Return("indexed", nil).Once()
-	env.OnActivity(a.ProcessDoc, mock.Anything, refs[1]).Return("skipped", nil).Once()
-	env.OnActivity(a.ProcessDoc, mock.Anything, refs[2]).Return("failed", nil).Once()
+	// Each expectation matches only the RunID-stamped ref (not the bare refs[i]
+	// Discover returned) — the assertion that the workflow stamps RunID before
+	// dispatch: if it didn't, none of these calls would match and
+	// env.AssertExpectations(t) below would fail.
+	env.OnActivity(a.ProcessDoc, mock.Anything, mock.MatchedBy(func(r pipeline.DocRef) bool {
+		return r == stampRunID(refs[0], testRunID)
+	})).Return("indexed", nil).Once()
+	env.OnActivity(a.ProcessDoc, mock.Anything, mock.MatchedBy(func(r pipeline.DocRef) bool {
+		return r == stampRunID(refs[1], testRunID)
+	})).Return("skipped", nil).Once()
+	env.OnActivity(a.ProcessDoc, mock.Anything, mock.MatchedBy(func(r pipeline.DocRef) bool {
+		return r == stampRunID(refs[2], testRunID)
+	})).Return("failed", nil).Once()
 	env.OnActivity(a.FinishRun, mock.Anything, mock.MatchedBy(func(p pipeline.FinishRunParams) bool {
 		return p.RunID == testRunID && p.Status == "completed" &&
 			p.Result == pipeline.IngestResult{Discovered: 3, Processed: 1, Skipped: 1, Failed: 1}
@@ -74,8 +96,8 @@ func TestIngestCorpusWorkflowToleratesActivityFailure(t *testing.T) {
 	}
 	env.OnActivity(a.StartRun, mock.Anything, "vn-reg").Return(testRunID, nil).Once()
 	env.OnActivity(a.Discover, mock.Anything, mock.Anything).Return(refs, nil).Once()
-	env.OnActivity(a.ProcessDoc, mock.Anything, refs[0]).Return("indexed", nil).Once()
-	env.OnActivity(a.ProcessDoc, mock.Anything, refs[1]).
+	env.OnActivity(a.ProcessDoc, mock.Anything, stampRunID(refs[0], testRunID)).Return("indexed", nil).Once()
+	env.OnActivity(a.ProcessDoc, mock.Anything, stampRunID(refs[1], testRunID)).
 		Return("", errors.New("source down")).Times(4) // retry policy: 4 attempts
 	env.OnActivity(a.FinishRun, mock.Anything, mock.Anything).Return(nil).Once()
 
