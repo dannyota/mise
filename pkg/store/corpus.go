@@ -360,22 +360,39 @@ func (c *Corpus) ReplaceSections(ctx context.Context, docID uuid.UUID, secs []Se
 	return nil
 }
 
-// amendmentEventColumns is the column order InsertAmendmentEvents writes.
-var amendmentEventColumns = []string{"target_doc_id", "amending_doc_id", "clause", "event_date"}
-
-// InsertAmendmentEvents bulk-inserts evs via pgx.CopyFrom. No embedding
-// column is involved, so no pgvector type registration is needed here.
+// InsertAmendmentEvents inserts evs, skipping (ON CONFLICT DO NOTHING) any
+// event that exactly matches one already recorded — migration 007's
+// per-schema unique index on (target_doc_id, amending_doc_id, clause,
+// event_date). A changed document re-indexed by the ingest pipeline
+// re-derives its relation events from the source's current Relations and
+// re-inserts them (applyRelations has no read-before-write check); without
+// this dedup, that duplicates the row on every genuine re-index whose
+// relations haven't actually changed. Batched over one transaction so a
+// partial failure never leaves some of evs committed and others not — the
+// same all-or-nothing guarantee the prior pgx.CopyFrom implementation had
+// (COPY can't express ON CONFLICT, hence the switch to a batch of inserts).
 func (c *Corpus) InsertAmendmentEvents(ctx context.Context, evs []AmendmentEvent) error {
 	if len(evs) == 0 {
 		return nil
 	}
-	src := pgx.CopyFromSlice(len(evs), func(i int) ([]any, error) {
-		e := evs[i]
-		return []any{e.TargetDocID, e.AmendingDocID, nullIfEmpty(e.Clause), e.EventDate}, nil
-	})
-	tbl := pgx.Identifier{c.schema, "amendment_event"}
-	if _, err := c.pool.CopyFrom(ctx, tbl, amendmentEventColumns, src); err != nil {
+	tx, err := c.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("beginning amendment event insert: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	q := `INSERT INTO ` + c.qualify("amendment_event") +
+		` (target_doc_id, amending_doc_id, clause, event_date) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`
+	batch := &pgx.Batch{}
+	for _, e := range evs {
+		batch.Queue(q, e.TargetDocID, e.AmendingDocID, nullIfEmpty(e.Clause), e.EventDate)
+	}
+	if err := tx.SendBatch(ctx, batch).Close(); err != nil {
 		return fmt.Errorf("bulk inserting amendment events: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("committing amendment event insert: %w", err)
 	}
 	return nil
 }

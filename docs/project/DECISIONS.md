@@ -94,6 +94,11 @@ See also:
     Conditional-Access exception, source URLs/shares, crawl cadence, and source-column mapping in
     deploy config. Build and CI use fixtures or a non-bank test site until a real adopter
     environment is available; that is integration input, not a mise decision.
+14. **Embedding call site:** **in-app Go embedder** — the ingest pipeline calls `pkg/rag/embed`'s
+    `Embedder` interface directly, not AlloyDB's in-DB `google_ml.embedding()`. Rationale:
+    `google_ml.embedding()` still calls Vertex over the network, so it gives no true-offline path;
+    the Go interface gives Mode B (LOCAL-DEV §4) a real fake seam and keeps the store portable off
+    AlloyDB Omni if that's ever needed. Locked 2026-07.
 15. **Scale-down is decided; tuning is deploy config.** Auto scale-down stays in the reference
     deployment (KEDA + cluster autoscaler; workers scale to zero; DB idle-stop/pre-warm policy in
     DEPLOYMENT/COST). Exact cadence, idle thresholds, and pre-warm windows are operator settings,
@@ -124,11 +129,6 @@ See also:
     via the Agent SDK (decisions 5/10). What remains open is the implementation-time calibration:
     confidence, grounding, abstain, and escalation thresholds must be logged, versioned, tuned
     against the golden set in M3/M4, and reviewed before lock.
-14. **Embedding call site:** choose and lock the call site during M0/M1 implementation:
-    `google_ml.embedding()` in AlloyDB vs the Go embedder calling Vertex. The bias is **in-app Go
-    embedder** because true offline Mode B needs a fake behind the interface and `google_ml` still
-    calls Vertex over the network; implementation should still review IAM, latency, portability,
-    and whether DB-side embedding is useful for operator-owned backfills.
 18. **Eval cold-start (golden-set bootstrap):** before any human attestation exists, seed a
     small hand-labelled VN/Malay `satisfies` set so the eval harness produces a baseline at
     first release. The first mapping precision/recall number is a baseline, not a pass/fail

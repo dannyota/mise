@@ -35,27 +35,16 @@ func main() {
 	defer cancel()
 
 	log := slog.New(slog.NewJSONHandler(os.Stderr, nil))
-
 	port := envOr("SERVING_PORT", "8080")
 
-	r := chi.NewRouter()
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.RequestID)
-
-	r.Get("/healthz", healthzHandler)
-
-	pool, mcpOpts, err := wireEvidence(ctx, log)
+	r, pool, err := newRouter(ctx, log)
 	if err != nil {
 		log.Error("wiring evidence store", "error", err)
 		os.Exit(1)
 	}
 	if pool != nil {
 		defer pool.Close()
-		r.Get("/readyz", readyzHandler(pool))
 	}
-
-	mcpServer := mcp.New(mcpOpts...)
-	r.Mount("/mcp", mcpServer.Handler())
 
 	srv := &http.Server{
 		Addr:              ":" + port,
@@ -106,6 +95,30 @@ func readyzHandler(pool *pgxpool.Pool) http.HandlerFunc {
 			slog.Error("readyz: write response", "error", werr)
 		}
 	}
+}
+
+// newRouter builds the chi router — health/readiness endpoints and the MCP
+// mount — and returns the AlloyDB pool wireEvidence opened (nil when
+// ALLOYDB_HOST is unset), so the caller can close it on shutdown. Split out
+// of main so tests can drive the real routing/wiring path directly, without
+// starting a listener or blocking on OS signals.
+func newRouter(ctx context.Context, log *slog.Logger) (*chi.Mux, *pgxpool.Pool, error) {
+	r := chi.NewRouter()
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.RequestID)
+	r.Get("/healthz", healthzHandler)
+
+	pool, mcpOpts, err := wireEvidence(ctx, log)
+	if err != nil {
+		return nil, nil, err
+	}
+	if pool != nil {
+		r.Get("/readyz", readyzHandler(pool))
+	}
+
+	mcpServer := mcp.New(mcpOpts...)
+	r.Mount("/mcp", mcpServer.Handler())
+	return r, pool, nil
 }
 
 // wireEvidence builds the AlloyDB pool, embedder, and per-corpus store map

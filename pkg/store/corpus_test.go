@@ -390,6 +390,39 @@ func TestGetDocumentReturnsDocSectionsAndEvents(t *testing.T) {
 	}
 }
 
+// TestInsertAmendmentEventsDedupesIdenticalEvent pins migration 007's
+// per-schema unique index + ON CONFLICT DO NOTHING: a changed document
+// re-indexed by the ingest pipeline re-derives and re-inserts the same
+// relation event (T14 self-review, "Amendment-event duplication on genuine
+// re-index") and must not duplicate the row.
+func TestInsertAmendmentEventsDedupesIdenticalEvent(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+	c := newCorpus(t, pool, corpus.VNReg)
+
+	targetID := mustUpsertVNRegDoc(t, ctx, c, "dedup-target-"+uuid.NewString())
+	amendingID := mustUpsertVNRegDoc(t, ctx, c, "dedup-amending-"+uuid.NewString())
+
+	event := store.AmendmentEvent{
+		TargetDocID: targetID, AmendingDocID: &amendingID,
+		Clause: "Điều 5", EventDate: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+	if err := c.InsertAmendmentEvents(ctx, []store.AmendmentEvent{event}); err != nil {
+		t.Fatalf("first InsertAmendmentEvents() error = %v", err)
+	}
+	if err := c.InsertAmendmentEvents(ctx, []store.AmendmentEvent{event}); err != nil {
+		t.Fatalf("duplicate InsertAmendmentEvents() error = %v, want nil (ON CONFLICT DO NOTHING)", err)
+	}
+
+	detail, err := c.GetDocument(ctx, "", targetID)
+	if err != nil {
+		t.Fatalf("GetDocument() error = %v", err)
+	}
+	if len(detail.Events) != 1 {
+		t.Fatalf("len(Events) after inserting the same event twice = %d, want 1", len(detail.Events))
+	}
+}
+
 func TestGetDocumentMasksConfidentialRowFromPublicRole(t *testing.T) {
 	pool := testdb.New(t)
 	ctx := context.Background()

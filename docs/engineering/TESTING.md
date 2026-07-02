@@ -76,17 +76,22 @@ The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gat
   planning targets, not gates** — set the real bar from the **first eval run** on the
   bootstrap golden set (DECISIONS 18). Tracked **per release** and trended (a drop on a
   gated metric = a model/threshold change shipped badly — model change-control,
-  AI-GOVERNANCE §3).
+  AI-GOVERNANCE §3). **Citation precision** carries over banhmi's ≥ 0.95 floor **value**, but
+  not its meaning: banhmi's citation field scored an answer model's citations — a mode mise
+  doesn't have — and was permanently unpopulated, whereas mise's `CitationPrecision` is a
+  live metric, precision over every top-k hit a search call returns. Treat its floor like the
+  mapping targets: provisional until the first real-corpus eval run confirms 0.95 still holds
+  under the new definition.
 
-  | Metric                                           | Floor / target    | Basis                                                               |
-  | ------------------------------------------------ | ----------------- | ------------------------------------------------------------------- |
-  | retrieval **recall@k**                           | ≥ 0.90            | banhmi hybrid measured ~0.89–1.0                                    |
-  | retrieval **MRR@k**                              | ≥ 0.85            | banhmi ~0.85–0.89                                                   |
-  | **current-law precision** (in-force)             | = 1.0             | banhmi 1.0 — validity correctness is non-negotiable                 |
-  | **abstention accuracy**                          | ≥ 0.95            | banhmi 1.0                                                          |
-  | **citation correctness**                         | ≥ 0.95            | banhmi citation gate                                                |
-  | **mapping precision** (cross-corpus `satisfies`) | ~0.70 provisional | **new to mise** — no banhmi basis; calibrate at first eval (DEC 18) |
-  | **mapping recall@k**                             | ~0.60 provisional | as above                                                            |
+  | Metric                                           | Floor / target     | Basis                                                                      |
+  | ------------------------------------------------ | ------------------ | -------------------------------------------------------------------------- |
+  | retrieval **recall@k**                           | ≥ 0.90             | banhmi hybrid measured ~0.89–1.0                                           |
+  | retrieval **MRR@k**                              | ≥ 0.85             | banhmi ~0.85–0.89                                                          |
+  | **current-law precision** (in-force)             | = 1.0              | banhmi 1.0 — validity correctness is non-negotiable                        |
+  | **abstention accuracy**                          | ≥ 0.95             | banhmi 1.0                                                                 |
+  | **citation correctness**                         | ≥ 0.95 provisional | banhmi's floor value; **new semantics** in mise — recalibrate at first run |
+  | **mapping precision** (cross-corpus `satisfies`) | ~0.70 provisional  | **new to mise** — no banhmi basis; calibrate at first eval (DEC 18)        |
+  | **mapping recall@k**                             | ~0.60 provisional  | as above                                                                   |
 
 - **Cold-start:** before any human attestation exists, seed a small hand-labelled set so
   the harness produces a baseline (this is the bootstrap gap flagged for discussion).

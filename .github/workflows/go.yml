@@ -25,3 +25,23 @@ jobs:
       - run: go vet ./...
       - run: go test -race -count=1 ./...
       - run: go build ./...
+
+  integration:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      VERTEX: fake
+      # ubuntu-latest ships Docker; testcontainers-go uses it directly (no
+      # Podman socket wiring needed — that's the local-dev recipe,
+      # internal/testdb.go). pgvector/pgvector is smaller than the reference
+      # google/alloydbomni image and has no ScaNN — testdb.go's index
+      # migration falls back to HNSW, so CI stays the fast/cheap path while
+      # AlloyDB Omni (via TESTDB_IMAGE unset) stays the local/nightly truth.
+      TESTDB_IMAGE: pgvector/pgvector:pg17
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test -race -tags integration -timeout 20m ./...

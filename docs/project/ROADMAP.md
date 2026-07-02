@@ -58,14 +58,15 @@ flowchart LR
     M5 --> M6["M6 — scale"]
     classDef gated fill:#6d28d9,stroke:#a78bfa,color:#fff,stroke-width:2px
     classDef public fill:#059669,stroke:#34d399,color:#fff,stroke-width:2px
-    class M0,M1b,M3,M4,M5 gated
+    class M1b,M3,M4,M5 gated
     class M1a public
 ```
 
 - **Green = runs entirely on public data** — M1a (law ingest: WS1 + WS4) delivers per-corpus
   evidence search over `vn-reg` + `my-reg` without any internal doc access.
-- **Violet = has non-code exit gates** (§3) — M0/M3/M4/M5 have open implementation-review
-  decisions; M1b has real-adopter connector integration input.
+- **Violet = has non-code exit gates** (§3) — M3/M4/M5 have open implementation-review
+  decisions; M1b has real-adopter connector integration input. M0's own gate (DEC 14, embedding
+  call site) is locked.
 - **M1a/M1b split:** M1a (public law corpora) is ungated and exits independently; M1b (internal
   connectors: WS2 + WS3) runs when SharePoint access materializes. M2 can start graph schema
   migration after M1a; full graph extraction (Method A) needs M1b. See
@@ -83,7 +84,6 @@ Open implementation-review decisions plus adopter inputs that create milestone e
 
 | Resolve by | Decision                                           | Gates                                                                                |
 | ---------- | -------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **M0/M1a** | **14** embedding call site                         | in-app Go embedder vs AlloyDB `google_ml.embedding()` implementation review          |
 | **M1b**    | **13** adopter-provided source access config       | real-intranet validation; build/CI run on fixtures or a non-bank test site meanwhile |
 | **M3**     | **18** eval golden-set bootstrap                   | the mapping precision/recall eval emits its first baseline                           |
 | **M3/M4**  | **11** judge + serve threshold / escalation tuning | judge threshold calibration (M3) + serve-model abstain/escalation calibration (M4)   |

@@ -71,6 +71,40 @@ already does this for the embedder, `pkg/rag/embed`). Add the same seam for pars
 and grounding. Local config wires the fake/fallback; deploy wires Vertex; a `VERTEX=real|fake`
 toggle selects per environment.
 
-> Note: AlloyDB's in-DB `google_ml.embedding()` still calls Vertex over the network. DECISIONS 14
-> stays open until implementation reviews the call site; true-offline CI still uses the in-app
-> fake behind the embedder interface.
+> Note: AlloyDB's in-DB `google_ml.embedding()` still calls Vertex over the network — mise calls
+> the embedder from Go instead (DECISIONS 14, locked), which is what gives Mode B its true-offline
+> fake seam.
+
+---
+
+## 5. Run law ingest locally
+
+The M1a public-law pipeline end to end, `VERTEX=fake`: vn-reg/my-reg sources are **public**
+government sites that need no credentials, so — unlike the internal connectors (§3) — there is no
+"fake source" to swap in here; the fully offline/no-network path is
+`pkg/pipeline/e2e_test.go`'s in-memory fixture source, exercised by `go test -tags integration`,
+not this CLI walkthrough.
+
+1. `podman compose up -d` — starts AlloyDB Omni + Temporal (UI on `localhost:8088`), runs the
+   `migrate` job, then `serving` and `worker` (both default to `VERTEX=fake`, compose.yaml).
+2. Start a run:
+
+   ```bash
+   temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
+     --input '{"Corpus":"vn-reg"}'
+   ```
+
+   The worker's crawlers hit the live public sources (vbpl/vanban/congbao/sbv_hanoi) for real —
+   `VERTEX=fake` only swaps the embed/parse seams — so expect real documents with fake
+   (token-bag) embeddings.
+
+3. Watch it in the Temporal UI, or read `ingest.run` / `ingest.doc_ledger` directly against
+   AlloyDB.
+4. Check what landed:
+
+   ```bash
+   go run ./cmd/eval -golden deploy/eval/golden-vn.json -corpora vn-reg
+   ```
+
+DEPLOYMENT.md §6 has the same commands for the GKE reference deployment, plus the `VERTEX=real`
+prerequisites.

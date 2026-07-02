@@ -117,3 +117,41 @@ Plus, common to all connectors:
   mounted at deploy — never baked into images (CI-CD §5).
 - **Region pinning** (DECISIONS 17): configure GCS, AlloyDB, Vertex, and backups in the bank's
   selected GCP region(s). This is deploy config, not a project gate.
+
+---
+
+## 6. Ingest operations
+
+Operator commands for the law-ingest Temporal workflow ([pkg/pipeline](../../pkg/pipeline));
+[LOCAL-DEV.md](./LOCAL-DEV.md) §5 walks through the same commands against the local stack first.
+
+- **Start a run:**
+
+  ```bash
+  temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
+    --input '{"Corpus":"vn-reg"}'
+  ```
+
+  `Corpus` is `vn-reg` or `my-reg`; add `"Since"`, `"Keyword"`, or `"MaxDocs"` to the input for a
+  backfill or a bounded run (`IngestParams`, pkg/pipeline).
+
+- **`VERTEX=real` prerequisites** (worker env, beyond the `fake` local default): `GCP_PROJECT`,
+  `GCP_REGION`, ADC/workload identity for the worker's service account, and — for PDF/DOCX
+  extraction — a provisioned Doc AI Layout Parser `DOCAI_PROCESSOR_ID` (`DOCAI_LOCATION` defaults
+  to `us`).
+- **BNM needs a headless Chrome.** `pkg/ingest/bnm` mints its WAF-bypass token via chromedp; the
+  worker image must ship (or sidecar) a Chrome/Chromium binary, or BNM's `Discover` fails — the
+  per-source error policy turns that into a skip, not a run failure, but BNM documents stay
+  un-ingested until it's available.
+- **`REINDEX` after a bulk load.** ScaNN's index quality can lag a large first-time ingest (many
+  rows added since the index was last built); `REINDEX INDEX <schema>.section_embedding_ann_idx`
+  (e.g. `vn_reg.section_embedding_ann_idx`) after the first full corpus run, or after any backfill
+  that materially changes a corpus's row count.
+- **Check retrieval quality against what landed:**
+
+  ```bash
+  go run ./cmd/eval -golden deploy/eval/golden-vn.json -corpora vn-reg
+  ```
+
+  Exits non-zero if an aggregate metric falls below its floor (TESTING §5); run the MY golden set
+  (`deploy/eval/golden-my.json -corpora my-reg`) the same way.
