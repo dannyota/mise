@@ -198,10 +198,26 @@ func TestIngestCorpusWorkflowEndToEnd(t *testing.T) {
 	assertLedgerIndexed(t, ctx, pool, doc1ExternalID)
 	assertLedgerIndexed(t, ctx, pool, doc2ExternalID)
 
+	// Re-discover: call the REAL Discover again with the same params, now
+	// that both fixture docs are ledger-indexed. This is the FIRST of two
+	// idempotency layers — Discover's own Ledger.Unchanged fingerprint
+	// check (discover.go's record): the fixture source still reports the
+	// same two documents, but their discovery hash (Number|Title|
+	// DetailURL|DocType) is unchanged, so record() short-circuits before
+	// enqueueing any DocRef.
+	refs2, err := a.Discover(ctx, params)
+	if err != nil {
+		t.Fatalf("Discover() re-run error = %v", err)
+	}
+	if len(refs2) != 0 {
+		t.Fatalf("Discover() re-run returned %d refs, want 0 (ledger-deduped)", len(refs2))
+	}
+
 	// Re-run: replay the SAME two refs (same ContentHash Discover already
-	// recorded) through a fresh workflow execution. Both are already
-	// "indexed" in the ledger, so ProcessDoc's own idempotency check (not
-	// Discover's) short-circuits before touching the store — see
+	// recorded) through a fresh workflow execution. This is the SECOND
+	// idempotency layer — ProcessDoc's own idempotency check, distinct from
+	// Discover's above: both refs are already "indexed" in the ledger, so
+	// ProcessDoc short-circuits before touching the store — see
 	// process.go's ProcessDoc doc comment ("an idempotent retry").
 	rerun := runIngestWorkflow(t, a, params, []pipeline.DocRef{ref1, ref2})
 	assertIngestResult(t, rerun, pipeline.IngestResult{Discovered: 2, Skipped: 2})

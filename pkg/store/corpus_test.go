@@ -423,6 +423,37 @@ func TestInsertAmendmentEventsDedupesIdenticalEvent(t *testing.T) {
 	}
 }
 
+// TestInsertAmendmentEventsDedupesIdenticalEventNullFields is the
+// COALESCE-path sibling above: AmendingDocID nil / Clause "" both store as
+// SQL NULL (nullIfEmpty), so this pins migration 007's COALESCE-to-sentinel
+// dedup, not just the direct-value unique-index comparison the sibling covers.
+func TestInsertAmendmentEventsDedupesIdenticalEventNullFields(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+	c := newCorpus(t, pool, corpus.VNReg)
+
+	targetID := mustUpsertVNRegDoc(t, ctx, c, "dedup-target-null-"+uuid.NewString())
+
+	event := store.AmendmentEvent{
+		TargetDocID: targetID, AmendingDocID: nil,
+		Clause: "", EventDate: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+	if err := c.InsertAmendmentEvents(ctx, []store.AmendmentEvent{event}); err != nil {
+		t.Fatalf("first InsertAmendmentEvents() error = %v", err)
+	}
+	if err := c.InsertAmendmentEvents(ctx, []store.AmendmentEvent{event}); err != nil {
+		t.Fatalf("duplicate InsertAmendmentEvents() error = %v, want nil (ON CONFLICT DO NOTHING)", err)
+	}
+
+	detail, err := c.GetDocument(ctx, "", targetID)
+	if err != nil {
+		t.Fatalf("GetDocument() error = %v", err)
+	}
+	if len(detail.Events) != 1 {
+		t.Fatalf("len(Events) after inserting the same null-field event twice = %d, want 1", len(detail.Events))
+	}
+}
+
 func TestGetDocumentMasksConfidentialRowFromPublicRole(t *testing.T) {
 	pool := testdb.New(t)
 	ctx := context.Background()
