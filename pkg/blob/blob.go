@@ -16,7 +16,8 @@ type Store interface {
 	// Put writes r to key if key does not already exist. It returns false
 	// (with a nil error) when the key already exists, so callers can
 	// distinguish "already have it" from a fresh write without a separate
-	// Exists call.
+	// Exists call. Keys are expected to come from Key() (full SHA-256 hex +
+	// extension); backends do not validate arbitrary paths.
 	Put(ctx context.Context, key string, r io.Reader) (bool, error)
 
 	// Get opens key for reading. Callers must Close the returned reader.
@@ -29,7 +30,8 @@ type Store interface {
 // Key returns the content-addressed storage key for a downloaded file: the raw
 // bytes' lowercase-hex SHA-256 (as returned by ingest.Source.Download),
 // sharded two hex chars deep so any one directory can't grow unbounded, plus
-// the file's extension (with leading dot, e.g. ".pdf"; may be empty).
+// the file's extension (with leading dot, e.g. ".pdf"; may be empty). The input
+// sha256Hex must be a full 64-char SHA-256 hex string.
 func Key(sha256Hex, ext string) string {
 	return "raw/" + sha256Hex[:2] + "/" + sha256Hex + ext
 }

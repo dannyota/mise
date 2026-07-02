@@ -1,9 +1,9 @@
-// Package ingest defines the Bronze-layer source contract shared by every
-// crawler under pkg/ingest/{source}. A Source discovers newly published
-// documents from a newest-first feed, fetches a document's server-rendered
-// detail (metadata + downloadable file references or inline HTML body), and
-// downloads the raw files. Each source package is self-contained; this file
-// holds only the cross-source types.
+// Package ingest defines the source contract shared by every crawler under
+// pkg/ingest/{source}. A Source discovers newly published documents from a
+// newest-first feed, fetches a document's server-rendered detail (metadata +
+// downloadable file references or inline HTML body), and downloads the raw
+// files. Each source package is self-contained; this file holds only the
+// cross-source types.
 package ingest
 
 import (
@@ -26,7 +26,7 @@ type FileRef struct {
 	URL      string // absolute download URL (e.g. the CDN stream link)
 	Name     string // file name as advertised by the source
 	Ext      string // lowercase extension without the dot: "pdf", "docx", "doc"
-	Kind     string // bronze.raw_file role: main, appendix, original_scan, attachment
+	Kind     string // file's role in ingest: main, appendix, original_scan, attachment
 	MIMEType string // best-effort content type, may be empty until downloaded
 }
 
@@ -85,9 +85,8 @@ type DiscoveredDoc struct {
 	GazetteDate   time.Time
 
 	// RawMeta is the source's raw record for this document as returned by the
-	// feed, persisted verbatim to bronze.source_document (raw_meta JSONB). It
-	// preserves fields not mapped to typed columns for audit and offline scope
-	// re-tuning.
+	// feed, carried through ingest as provenance. It preserves fields not mapped
+	// to typed columns for audit and offline scope re-tuning.
 	RawMeta json.RawMessage
 }
 

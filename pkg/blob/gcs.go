@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/googleapis/gax-go/v2/apierror"
+	"google.golang.org/grpc/codes"
 )
 
 // GCS is a Store backed by a Google Cloud Storage bucket (GKE deployment;
@@ -19,6 +20,7 @@ type GCS struct {
 }
 
 // NewGCS returns a Store backed by bucket, using client for all calls.
+// Put-once conflict detection supports both the HTTP/JSON and gRPC storage transports.
 func NewGCS(client *storage.Client, bucket string) Store {
 	return &GCS{client: client, bucket: bucket}
 }
@@ -37,8 +39,11 @@ func (g *GCS) Put(ctx context.Context, key string, r io.Reader) (bool, error) {
 	}
 
 	if err := w.Close(); err != nil {
-		if apiErr, ok := apierror.FromError(err); ok && apiErr.HTTPCode() == http.StatusPreconditionFailed {
-			return false, nil // already exists — immutable, put-once
+		if apiErr, ok := errors.AsType[*apierror.APIError](err); ok {
+			if apiErr.HTTPCode() == http.StatusPreconditionFailed ||
+				apiErr.GRPCStatus().Code() == codes.FailedPrecondition {
+				return false, nil // already exists — immutable, put-once
+			}
 		}
 		return false, fmt.Errorf("committing %s: %w", key, err)
 	}
