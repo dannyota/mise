@@ -42,10 +42,10 @@ func TestNewRouterHealthzOnlyWithoutAlloyDBHost(t *testing.T) {
 
 // TestNewRouterWiresEvidenceWithAlloyDBHost points ALLOYDB_HOST/PORT/USER/
 // PASSWORD/DATABASE at the real testdb container and asserts the other half
-// of wireEvidence: a live pool, a working /readyz, and the MCP evidence
-// tools actually registered — reached over the real streamable-HTTP mount,
-// not just inferred from the pool being non-nil (T13 Important: wireEvidence
-// was untested).
+// of wireEvidence: a live pool, a working /readyz, and the MCP evidence +
+// graph tools actually registered — reached over the real streamable-HTTP
+// mount, not just inferred from the pool being non-nil (T13 Important:
+// wireEvidence was untested).
 func TestNewRouterWiresEvidenceWithAlloyDBHost(t *testing.T) {
 	dbPool := testdb.New(t)
 	setTestdbEnv(t, dbPool)
@@ -64,7 +64,7 @@ func TestNewRouterWiresEvidenceWithAlloyDBHost(t *testing.T) {
 
 	assertStatus(t, srv.URL+"/healthz", http.StatusOK)
 	assertStatus(t, srv.URL+"/readyz", http.StatusOK)
-	assertMCPToolsRegistered(t, srv.URL, []string{"document", "search"})
+	assertMCPToolsRegistered(t, srv.URL, []string{"document", "graph", "search"})
 }
 
 // setTestdbEnv points the ALLOYDB_* env vars config.DB/wireEvidence read at

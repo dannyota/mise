@@ -19,6 +19,7 @@ import (
 
 	"danny.vn/mise/pkg/config"
 	"danny.vn/mise/pkg/corpus"
+	"danny.vn/mise/pkg/graph"
 	"danny.vn/mise/pkg/mcp"
 	"danny.vn/mise/pkg/rag/embed"
 	"danny.vn/mise/pkg/store"
@@ -127,7 +128,7 @@ func newRouter(ctx context.Context, log *slog.Logger) (*chi.Mux, *pgxpool.Pool, 
 // ALLOYDB_HOST set, serving stays healthz-only — the zero-dependency path
 // mcp.New always supports — and pool is nil.
 func wireEvidence(ctx context.Context, log *slog.Logger) (*pgxpool.Pool, []mcp.Option, error) {
-	opts := make([]mcp.Option, 0, 2) // WithLogger, plus WithEvidence once wiring succeeds
+	opts := make([]mcp.Option, 0, 3) // WithLogger, plus WithEvidence/WithGraph once wiring succeeds
 	opts = append(opts, mcp.WithLogger(log))
 	if os.Getenv("ALLOYDB_HOST") == "" {
 		return nil, opts, nil
@@ -152,7 +153,9 @@ func wireEvidence(ctx context.Context, log *slog.Logger) (*pgxpool.Pool, []mcp.O
 
 	searcher := storeSearcher{pool: pool, emb: emb}
 	docGetter := storeDocGetter{corpora: corpora}
-	opts = append(opts, mcp.WithEvidence(searcher, docGetter, config.Role()))
+	graphRepo := storeGraphRepo{repo: store.NewGraphRepo(pool)}
+	role := config.Role()
+	opts = append(opts, mcp.WithEvidence(searcher, docGetter, role), mcp.WithGraph(graphRepo, role))
 	return pool, opts, nil
 }
 
@@ -197,6 +200,27 @@ func (g storeDocGetter) GetDocument(
 		return store.DocumentDetail{}, fmt.Errorf("serving: %q is not a registered corpus", corpusID)
 	}
 	return c.GetDocument(ctx, role, docID)
+}
+
+// storeGraphRepo adapts *store.GraphRepo to mcp.GraphRepoIface. Both methods
+// already match store.GraphRepo's own signatures exactly, so this is a pure
+// pass-through — kept as an explicit adapter (like storeSearcher/
+// storeDocGetter above) so the MCP-exposed surface is pinned to exactly
+// GetNode+Chain, independent of whatever else store.GraphRepo might grow.
+type storeGraphRepo struct {
+	repo *store.GraphRepo
+}
+
+// GetNode implements mcp.GraphRepoIface.
+func (g storeGraphRepo) GetNode(ctx context.Context, role string, ref graph.NodeRef) (store.NodeView, error) {
+	return g.repo.GetNode(ctx, role, ref)
+}
+
+// Chain implements mcp.GraphRepoIface.
+func (g storeGraphRepo) Chain(
+	ctx context.Context, role string, start graph.NodeRef, maxDepth int,
+) ([]store.Hop, error) {
+	return g.repo.Chain(ctx, role, start, maxDepth)
 }
 
 // envOr returns the environment variable named key, or fallback if unset or empty.

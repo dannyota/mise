@@ -21,6 +21,8 @@ type Server struct {
 	searcher  Searcher
 	docGetter DocGetter
 	role      string
+	graphRepo GraphRepoIface
+	graphRole string
 }
 
 // Option configures the MCP server.
@@ -43,9 +45,19 @@ func WithEvidence(s Searcher, g DocGetter, role string) Option {
 	}
 }
 
-// New creates an MCP server. With no options — or without WithEvidence — it
-// has zero tools registered, the dependency-free path healthz-only serving
-// relies on. WithEvidence registers the search and document tools.
+// WithGraph registers the graph tool, backed by repo. Every store call the
+// tool makes is scoped to role, exactly like WithEvidence.
+func WithGraph(repo GraphRepoIface, role string) Option {
+	return func(s *Server) {
+		s.graphRepo = repo
+		s.graphRole = role
+	}
+}
+
+// New creates an MCP server. With no options — or without WithEvidence/
+// WithGraph — it has zero tools registered, the dependency-free path
+// healthz-only serving relies on. WithEvidence registers the search and
+// document tools; WithGraph registers the graph tool.
 func New(opts ...Option) *Server {
 	s := &Server{
 		log: slog.Default(),
@@ -59,6 +71,9 @@ func New(opts ...Option) *Server {
 	)
 	if s.searcher != nil && s.docGetter != nil {
 		registerEvidenceTools(s.mcp, s.searcher, s.docGetter, s.role)
+	}
+	if s.graphRepo != nil {
+		registerGraphTool(s.mcp, s.graphRepo, s.graphRole)
 	}
 	return s
 }
