@@ -1,0 +1,143 @@
+{
+  "document": {
+    "documentLayout": {
+      "blocks": [
+        {
+          "blockId": "1",
+          "textBlock": {
+            "text": "THÔNG TƯ Quy định về an toàn hệ thống thông tin",
+            "type": "title"
+          },
+          "pageSpan": { "pageStart": 1, "pageEnd": 1 }
+        },
+        {
+          "blockId": "2",
+          "textBlock": {
+            "text": "Chương I QUY ĐỊNH CHUNG",
+            "type": "heading-1",
+            "blocks": [
+              {
+                "blockId": "3",
+                "textBlock": {
+                  "text": "Điều 1. Phạm vi điều chỉnh",
+                  "type": "heading-2",
+                  "blocks": [
+                    {
+                      "blockId": "4",
+                      "textBlock": {
+                        "text": "Thông tư này quy định về bảo đảm an toàn hệ thống thông tin trong hoạt động ngân hàng.\n",
+                        "type": "paragraph"
+                      },
+                      "pageSpan": { "pageStart": 1, "pageEnd": 1 }
+                    },
+                    {
+                      "blockId": "5",
+                      "listBlock": {
+                        "type": "unordered",
+                        "listEntries": [
+                          {
+                            "blocks": [
+                              {
+                                "blockId": "6",
+                                "textBlock": {
+                                  "text": "a) Ngân hàng thương mại;",
+                                  "type": "paragraph"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "blocks": [
+                              {
+                                "blockId": "7",
+                                "textBlock": {
+                                  "text": "b) Tổ chức tín dụng phi ngân hàng;",
+                                  "type": "paragraph"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "pageSpan": { "pageStart": 1, "pageEnd": 1 }
+              },
+              {
+                "blockId": "8",
+                "textBlock": {
+                  "text": "Điều 2. Đối tượng áp dụng",
+                  "type": "heading-2",
+                  "blocks": [
+                    {
+                      "blockId": "9",
+                      "textBlock": {
+                        "text": "Thông tư này áp dụng đối với các tổ chức tín dụng.",
+                        "type": "paragraph"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "pageSpan": { "pageStart": 1, "pageEnd": 1 }
+        },
+        {
+          "blockId": "10",
+          "textBlock": {
+            "text": "Chương II ĐIỀU KHOẢN THI HÀNH",
+            "type": "heading-1",
+            "blocks": [
+              {
+                "blockId": "11",
+                "tableBlock": {
+                  "headerRows": [
+                    {
+                      "cells": [
+                        {
+                          "blocks": [
+                            {
+                              "blockId": "12",
+                              "textBlock": {
+                                "text": "Hệ thống",
+                                "type": "paragraph"
+                              }
+                            }
+                          ],
+                          "rowSpan": 1,
+                          "colSpan": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "bodyRows": [
+                    {
+                      "cells": [
+                        {
+                          "blocks": [
+                            {
+                              "blockId": "13",
+                              "textBlock": {
+                                "text": "Cấp độ 3",
+                                "type": "paragraph"
+                              }
+                            }
+                          ],
+                          "rowSpan": 1,
+                          "colSpan": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "pageSpan": { "pageStart": 2, "pageEnd": 2 }
+        }
+      ]
+    }
+  }
+}
