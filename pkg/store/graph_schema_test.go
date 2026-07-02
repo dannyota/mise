@@ -195,6 +195,93 @@ func TestRelationEdgeAccessTierRejectsDirectInsert(t *testing.T) {
 	t.Logf("got expected generated-column rejection: SQLSTATE %s: %s", pgErr.Code, pgErr.Message)
 }
 
+// TestRelationEdgeAccessTierUnknownFromCorpusFailsClosed asserts that
+// graph.corpus_tier's fail-closed ELSE branch (migrations/009_graph_tables.sql)
+// really does feed the GENERATED access_tier column: an edge whose
+// from_corpus_id is a value corpus_tier doesn't recognize must still land at
+// the strictest tier, local-confidential — even though the to-side here is a
+// known public corpus. A regression that flipped the ELSE branch to 'public'
+// (fail-open) would pass every other test in this file but fail this one.
+func TestRelationEdgeAccessTierUnknownFromCorpusFailsClosed(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+
+	ref := insertDocRef(t, ctx, pool, "vn-reg", "vn-reg:ref-"+uuid.NewString())
+	tier := insertEdge(t, ctx, pool, "nonexistent-corpus", "vn-reg", ref.ID, graph.EdgeDerives)
+	if tier != graph.TierLocalConfidential {
+		t.Errorf("access_tier = %q, want %q (fail-closed on unmapped from_corpus_id)", tier, graph.TierLocalConfidential)
+	}
+}
+
+// TestRelationEdgeAccessTierToSideLocalPolicyIsLocalConfidential is the
+// mirror of TestRelationEdgeAccessTierLocalPolicyToGroupStdIsLocalConfidential:
+// there the FROM side was the stricter one; here the FROM side is public
+// (vn-reg) and only the TO side (local-policy) is local-confidential. The
+// generated tier must still come out local-confidential, proving
+// graph.stricter_tier actually consults the TO side rather than merely
+// reflecting whichever side happens to be FROM.
+func TestRelationEdgeAccessTierToSideLocalPolicyIsLocalConfidential(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+
+	ref := insertDocRef(t, ctx, pool, "local-policy", "local-policy:ref-"+uuid.NewString())
+	tier := insertEdge(t, ctx, pool, "vn-reg", "local-policy", ref.ID, graph.EdgeImplements)
+	if tier != graph.TierLocalConfidential {
+		t.Errorf("access_tier = %q, want %q", tier, graph.TierLocalConfidential)
+	}
+}
+
+// TestRelationEdgeAccessTierGroupStdToMYRegIsGroupConfidential exercises the
+// middle tier: group-std ranks stricter than a public corpus but looser than
+// a local-confidential one, and no other test in this file lands there. A
+// regression that collapsed tier_rank's three-way ordering into a two-way
+// (public vs. everything-else) one would still pass every other test here
+// but fail this one.
+func TestRelationEdgeAccessTierGroupStdToMYRegIsGroupConfidential(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+
+	ref := insertDocRef(t, ctx, pool, "my-reg", "my-reg:ref-"+uuid.NewString())
+	tier := insertEdge(t, ctx, pool, "group-std", "my-reg", ref.ID, graph.EdgeSatisfies)
+	if tier != graph.TierGroupConfidential {
+		t.Errorf("access_tier = %q, want %q", tier, graph.TierGroupConfidential)
+	}
+}
+
+// TestRelationEdgeTriggerOverwritesMislabeledToCorpusID proves the
+// relation_edge_set_to_corpus BEFORE trigger (migrations/009_graph_tables.sql)
+// — not the app — is authoritative for to_corpus_id. The INSERT below
+// deliberately lies: it claims to_corpus_id = 'vn-reg' (public) for a
+// to_ref_id whose real doc_ref is 'local-policy' (local-confidential). If the
+// trigger didn't overwrite NEW.to_corpus_id before the GENERATED access_tier
+// is computed, this row would come back mislabeled with the app's looser
+// claimed tier instead of the target's true, stricter one — exactly the
+// mislabel-to-looser-tier hole this trigger closes.
+func TestRelationEdgeTriggerOverwritesMislabeledToCorpusID(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+
+	ref := insertDocRef(t, ctx, pool, "local-policy", "local-policy:ref-"+uuid.NewString())
+
+	const q = `
+		INSERT INTO graph.relation_edge (from_corpus_id, from_document_id, to_ref_id, to_corpus_id, edge_type)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING to_corpus_id, access_tier`
+	var gotToCorpus, gotTier string
+	err := pool.QueryRow(ctx, q, "vn-reg", uuid.New(), ref.ID, "vn-reg", string(graph.EdgeCovers)).
+		Scan(&gotToCorpus, &gotTier)
+	if err != nil {
+		t.Fatalf("inserting graph.relation_edge with a mislabeled to_corpus_id: %v", err)
+	}
+	if gotToCorpus != "local-policy" {
+		t.Errorf("to_corpus_id = %q, want %q (trigger must overwrite the app's claimed value with the doc_ref's real corpus)",
+			gotToCorpus, "local-policy")
+	}
+	if graph.Tier(gotTier) != graph.TierLocalConfidential {
+		t.Errorf("access_tier = %q, want %q", gotTier, graph.TierLocalConfidential)
+	}
+}
+
 // TestRelationEvidenceRoundTrips exercises the third graph table: a
 // relation_evidence row FK'd to a real edge, scanned back into a
 // graph.Evidence — proving the join key and the evidence_kind CHECK

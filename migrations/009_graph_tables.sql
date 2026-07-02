@@ -46,6 +46,19 @@ CREATE TABLE graph.relation_edge (
 CREATE INDEX relation_edge_from_idx ON graph.relation_edge (from_corpus_id, from_document_id);
 CREATE INDEX relation_edge_to_idx ON graph.relation_edge (to_ref_id);
 
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION graph.set_edge_to_corpus() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  SELECT corpus_id INTO NEW.to_corpus_id FROM graph.doc_ref WHERE id = NEW.to_ref_id;
+  IF NEW.to_corpus_id IS NULL THEN
+    RAISE EXCEPTION 'graph.relation_edge.to_ref_id % has no doc_ref', NEW.to_ref_id;
+  END IF;
+  RETURN NEW;
+END $$;
+-- +goose StatementEnd
+CREATE TRIGGER relation_edge_set_to_corpus BEFORE INSERT OR UPDATE ON graph.relation_edge
+  FOR EACH ROW EXECUTE FUNCTION graph.set_edge_to_corpus();
+
 CREATE TABLE graph.relation_evidence (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   edge_id uuid NOT NULL REFERENCES graph.relation_edge(id) ON DELETE CASCADE,
@@ -68,8 +81,10 @@ CREATE INDEX relation_evidence_edge_idx ON graph.relation_evidence (edge_id);
 
 -- +goose Down
 DROP TABLE IF EXISTS graph.relation_evidence;
+DROP TRIGGER IF EXISTS relation_edge_set_to_corpus ON graph.relation_edge;
 DROP TABLE IF EXISTS graph.relation_edge;
 DROP TABLE IF EXISTS graph.doc_ref;
+DROP FUNCTION IF EXISTS graph.set_edge_to_corpus();
 DROP FUNCTION IF EXISTS graph.stricter_tier(text,text);
 DROP FUNCTION IF EXISTS graph.tier_rank(text);
 DROP FUNCTION IF EXISTS graph.corpus_tier(text);
