@@ -6,10 +6,12 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"danny.vn/mise/internal/testdb"
@@ -65,15 +67,13 @@ func countSections(t *testing.T, ctx context.Context, pool *pgxpool.Pool, schema
 }
 
 // setSectionCreatedAt directly rewrites one section's created_at, bypassing
-// the store API. created_at defaults to the DB's now(), which is constant
-// for every row written by the same transaction — so two sections from one
-// ReplaceSections call always tie on created_at and fall back to sorting by
-// their (random) id. Real created_at ties only don't happen across separate
-// ingest runs; backdating here makes that realistic, distinct-timestamp case
-// deterministic so the "ordered created_at, id" contract can actually be
-// asserted. Scoped to docID (not just citationPath): the test container is a
-// shared singleton, and other tests reuse the same citation_path text for
-// their own, unrelated documents.
+// the store API. Sections order by their stamped `position` column
+// (ReplaceSections, migrations/006_search_and_write_keys.sql), not
+// created_at — this lets a test set created_at in the opposite order from
+// position and prove position, not created_at, governs GetDocument's
+// section order. Scoped to docID (not just citationPath): the test
+// container is a shared singleton, and other tests reuse the same
+// citation_path text for their own, unrelated documents.
 func setSectionCreatedAt(
 	t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 	schema string, docID uuid.UUID, citationPath string, at time.Time,
@@ -173,6 +173,70 @@ func TestUpsertDocumentBySourceURLWhenNumberEmpty(t *testing.T) {
 	}
 }
 
+// TestUpsertDocumentConvergesConcurrentInsertsOnSameDocNumber forces the
+// select-then-insert race UpsertDocument's retry exists for: every racer
+// shares one brand-new doc_number, so none of them can find it via
+// findExisting before at least one has to insert. Postgres blocks a losing
+// concurrent INSERT against a conflicting unique-index entry until the
+// winner commits or rolls back, so every loser resolves to a definitive
+// SQLSTATE 23505 the instant the winner commits — meaning UpsertDocument's
+// single retry (its fresh-transaction findExisting is guaranteed to see the
+// winner's now-committed row) converges deterministically, regardless of
+// how many racers there are or exactly how the goroutine scheduler
+// interleaves them.
+func TestUpsertDocumentConvergesConcurrentInsertsOnSameDocNumber(t *testing.T) {
+	pool := testdb.New(t)
+	ctx := context.Background()
+	c := newCorpus(t, pool, corpus.VNReg)
+
+	docNumber := "concurrent-upsert-" + uuid.NewString()
+	d := store.Document{
+		CorpusID:       string(corpus.VNReg),
+		Title:          "Concurrent Upsert Doc",
+		DocNumber:      docNumber,
+		Language:       "vi",
+		ValidityStatus: "in_force",
+		AccessTier:     string(corpus.TierPublic),
+		ObservedAt:     time.Now().UTC(),
+	}
+
+	const racers = 6
+	ids := make([]uuid.UUID, racers)
+	errs := make([]error, racers)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(racers)
+	for i := range racers {
+		go func(i int) {
+			defer wg.Done()
+			<-start // release every racer as close to simultaneously as possible
+			ids[i], errs[i] = c.UpsertDocument(ctx, d)
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+
+	for i, err := range errs {
+		if err != nil {
+			t.Errorf("racer %d: UpsertDocument() error = %v, want nil", i, err)
+		}
+	}
+	for i, id := range ids[1:] {
+		if id != ids[0] {
+			t.Errorf("racer %d: UpsertDocument() id = %v, want %v (same row as racer 0)", i+1, id, ids[0])
+		}
+	}
+
+	var count int
+	q := `SELECT count(*) FROM vn_reg.document WHERE doc_number = $1`
+	if err := pool.QueryRow(ctx, q, docNumber).Scan(&count); err != nil {
+		t.Fatalf("counting documents for doc_number %q: %v", docNumber, err)
+	}
+	if count != 1 {
+		t.Errorf("document count for doc_number %q = %d, want 1", docNumber, count)
+	}
+}
+
 func TestReplaceSectionsReplacesFully(t *testing.T) {
 	pool := testdb.New(t)
 	ctx := context.Background()
@@ -230,6 +294,22 @@ func TestReplaceSectionsRejectsWrongEmbeddingDims(t *testing.T) {
 	}
 }
 
+// assertSectionOrder checks that sections' CitationPath and Position exactly
+// match wantOrder, by index — used to prove GetDocument orders sections by
+// position, not created_at.
+func assertSectionOrder(t *testing.T, sections []store.Section, wantOrder []string) {
+	t.Helper()
+	for i, s := range sections {
+		if s.CitationPath != wantOrder[i] {
+			t.Errorf("Sections[%d].CitationPath = %q, want %q (order by position, not created_at)",
+				i, s.CitationPath, wantOrder[i])
+		}
+		if s.Position != i {
+			t.Errorf("Sections[%d].Position = %d, want %d", i, s.Position, i)
+		}
+	}
+}
+
 func TestGetDocumentReturnsDocSectionsAndEvents(t *testing.T) {
 	pool := testdb.New(t)
 	ctx := context.Background()
@@ -258,18 +338,23 @@ func TestGetDocumentReturnsDocSectionsAndEvents(t *testing.T) {
 			CorpusID: string(corpus.VNReg), CitationPath: "Điều 2", Body: "second",
 			ValidityStatus: "in_force", AccessTier: string(corpus.TierPublic),
 		},
+		{
+			CorpusID: string(corpus.VNReg), CitationPath: "Điều 3", Body: "third",
+			ValidityStatus: "in_force", AccessTier: string(corpus.TierPublic),
+		},
 	}
 	if err := c.ReplaceSections(ctx, docID, secs); err != nil {
 		t.Fatalf("ReplaceSections() error = %v", err)
 	}
-	// Both sections above were written by the same ReplaceSections
-	// transaction, so they share one created_at (Postgres now() is
-	// transaction-constant) — back-date them apart to exercise the "ordered
-	// created_at, id" contract deterministically, as distinct ingest runs
-	// would produce naturally.
+	// Back-date created_at in the OPPOSITE order from secs' input order: if
+	// GetDocument's section order were still driven by created_at (or fell
+	// back to it on a tie), this would read back reversed. It won't — order
+	// comes from the `position` column ReplaceSections stamps from each
+	// section's slice index, independent of created_at.
 	base := time.Now().UTC()
-	setSectionCreatedAt(t, ctx, pool, "vn_reg", docID, "Điều 1", base)
+	setSectionCreatedAt(t, ctx, pool, "vn_reg", docID, "Điều 1", base.Add(2*time.Second))
 	setSectionCreatedAt(t, ctx, pool, "vn_reg", docID, "Điều 2", base.Add(time.Second))
+	setSectionCreatedAt(t, ctx, pool, "vn_reg", docID, "Điều 3", base)
 
 	events := []store.AmendmentEvent{
 		{TargetDocID: docID, Clause: "Điều 5", EventDate: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)},
@@ -289,13 +374,10 @@ func TestGetDocumentReturnsDocSectionsAndEvents(t *testing.T) {
 	if detail.Doc.Title != "Full Detail Doc" {
 		t.Errorf("Doc.Title = %q, want %q", detail.Doc.Title, "Full Detail Doc")
 	}
-	if len(detail.Sections) != 2 {
-		t.Fatalf("len(Sections) = %d, want 2", len(detail.Sections))
+	if len(detail.Sections) != 3 {
+		t.Fatalf("len(Sections) = %d, want 3", len(detail.Sections))
 	}
-	if detail.Sections[0].CitationPath != "Điều 1" || detail.Sections[1].CitationPath != "Điều 2" {
-		t.Errorf("Sections order = [%q, %q], want [Điều 1, Điều 2]",
-			detail.Sections[0].CitationPath, detail.Sections[1].CitationPath)
-	}
+	assertSectionOrder(t, detail.Sections, []string{"Điều 1", "Điều 2", "Điều 3"})
 	if len(detail.Sections[0].Embedding) != 1536 {
 		t.Errorf("Sections[0].Embedding len = %d, want 1536", len(detail.Sections[0].Embedding))
 	}
@@ -336,5 +418,17 @@ func TestGetDocumentMasksConfidentialRowFromPublicRole(t *testing.T) {
 	}
 	if !errors.Is(err, store.ErrDocumentNotFound) {
 		t.Errorf("GetDocument() error = %v, want errors.Is(_, store.ErrDocumentNotFound)", err)
+	}
+	// The fold to ErrDocumentNotFound must not discard the underlying
+	// SQLSTATE 42501 (insufficient_privilege) that actually happened here —
+	// losing it would make a missing GRANT indistinguishable from a clean
+	// not-found. errors.As must still reach the *pgconn.PgError through the
+	// multi-wrapped chain.
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		t.Fatalf("GetDocument() error = %v, want errors.As(_, *pgconn.PgError) to succeed", err)
+	}
+	if pgErr.Code != "42501" {
+		t.Errorf("GetDocument() underlying pgconn.PgError.Code = %q, want %q", pgErr.Code, "42501")
 	}
 }

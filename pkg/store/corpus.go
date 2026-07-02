@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pgvector/pgvector-go"
 	pgxvec "github.com/pgvector/pgvector-go/pgx"
@@ -106,9 +107,42 @@ const (
 )
 
 // UpsertDocument resolves d to an existing row (by doc_number, then by
-// source_url) and updates it, or inserts a new row when neither matches —
-// all in one transaction. It returns the row's id either way.
+// source_url) and updates it, or inserts a new row when neither matches. It
+// returns the row's id either way.
+//
+// Select-then-insert races under concurrency: two callers (e.g. mise's vbpl
+// and vanban ingest sources, which can carry the same VN doc_number) can
+// both run upsertOnce, both see "not found", and both attempt the insert.
+// The loser fails migration 006's partial unique index on doc_number/
+// source_url with SQLSTATE 23505 (unique_violation) because the winner
+// already committed by the time the loser's insert is evaluated. Rather
+// than surface that race as an error, UpsertDocument retries once, in a
+// fresh transaction (the first is aborted by the failed insert): findExisting
+// is re-run and, once it resolves the winner's now-committed row, the update
+// path converges onto it. If the retry still finds nothing — a genuinely
+// unexpected state, not the ordinary race — the original insert error is
+// returned instead of masking it behind a confusing second failure.
 func (c *Corpus) UpsertDocument(ctx context.Context, d Document) (uuid.UUID, error) {
+	id, err := c.upsertOnce(ctx, d)
+	if err == nil || !isUniqueViolation(err) {
+		return id, err
+	}
+
+	retryID, found, retryErr := c.retryUpdateAfterCollision(ctx, d)
+	switch {
+	case retryErr != nil:
+		return uuid.UUID{}, retryErr
+	case !found:
+		return uuid.UUID{}, err
+	default:
+		return retryID, nil
+	}
+}
+
+// upsertOnce runs one find-then-insert-or-update pass in its own
+// transaction — UpsertDocument's normal path, and also its post-collision
+// retry's insert-side attempt (see retryUpdateAfterCollision).
+func (c *Corpus) upsertOnce(ctx context.Context, d Document) (uuid.UUID, error) {
 	tx, err := c.pool.Begin(ctx)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("beginning document upsert: %w", err)
@@ -135,6 +169,37 @@ func (c *Corpus) UpsertDocument(ctx context.Context, d Document) (uuid.UUID, err
 		return uuid.UUID{}, fmt.Errorf("committing document upsert: %w", err)
 	}
 	return id, nil
+}
+
+// retryUpdateAfterCollision re-resolves d's natural key in a fresh
+// transaction after upsertOnce lost an insert race, and updates that row if
+// found. Called only from UpsertDocument's unique_violation retry path.
+func (c *Corpus) retryUpdateAfterCollision(ctx context.Context, d Document) (uuid.UUID, bool, error) {
+	tx, err := c.pool.Begin(ctx)
+	if err != nil {
+		return uuid.UUID{}, false, fmt.Errorf("beginning upsert collision retry: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	id, found, err := c.findExisting(ctx, tx, d)
+	if err != nil || !found {
+		return uuid.UUID{}, false, err
+	}
+	if err := c.updateDocument(ctx, tx, id, d); err != nil {
+		return uuid.UUID{}, false, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return uuid.UUID{}, false, fmt.Errorf("committing upsert collision retry: %w", err)
+	}
+	return id, true, nil
+}
+
+// isUniqueViolation reports whether err is Postgres SQLSTATE 23505 — a
+// losing concurrent insert against migration 006's partial unique index on
+// document.doc_number/source_url.
+func isUniqueViolation(err error) bool {
+	pgErr, ok := errors.AsType[*pgconn.PgError](err)
+	return ok && pgErr.Code == "23505"
 }
 
 // findExisting looks up d's existing row by doc_number, then by
@@ -202,7 +267,7 @@ func nullIfEmpty(s string) any {
 // sectionColumns is the column order ReplaceSections' bulk insert writes;
 // body_tsv (migration 006) is a generated column and never appears here.
 var sectionColumns = []string{
-	"document_id", "corpus_id", "citation_path", "heading_path", "body",
+	"document_id", "corpus_id", "citation_path", "heading_path", "position", "body",
 	"embedding", "validity_status", "access_tier", "effective_date",
 }
 
@@ -210,7 +275,10 @@ var sectionColumns = []string{
 // delete followed by a bulk insert (pgx.CopyFrom), in one transaction. Every
 // non-nil Embedding must be exactly 1536-d (the shared embed space,
 // pkg/corpus's sharedEmbed) — checked before any write happens, so a batch
-// with one bad embedding never touches the database.
+// with one bad embedding never touches the database. Each written row's
+// position is secs' slice index at write time (any Section.Position the
+// caller set is ignored), so GetDocument can read sections back in exactly
+// this order.
 func (c *Corpus) ReplaceSections(ctx context.Context, docID uuid.UUID, secs []Section) error {
 	for i, s := range secs {
 		if s.Embedding != nil && len(s.Embedding) != 1536 {
@@ -242,7 +310,7 @@ func (c *Corpus) ReplaceSections(ctx context.Context, docID uuid.UUID, secs []Se
 				emb = pgvector.NewVector(s.Embedding)
 			}
 			return []any{
-				docID, s.CorpusID, nullIfEmpty(s.CitationPath), nullIfEmpty(s.HeadingPath), s.Body,
+				docID, s.CorpusID, nullIfEmpty(s.CitationPath), nullIfEmpty(s.HeadingPath), i, s.Body,
 				emb, s.ValidityStatus, s.AccessTier, s.EffectiveDate,
 			}, nil
 		})

@@ -99,7 +99,12 @@ func (c *Corpus) scanDocument(ctx context.Context, tx pgx.Tx, docID uuid.UUID) (
 	)
 	switch {
 	case isNotFound(err):
-		return Document{}, fmt.Errorf("getting document %s: %w", docID, ErrDocumentNotFound)
+		// Multi-wrap (%w twice) so errors.Is(_, ErrDocumentNotFound) still
+		// holds while the underlying cause (pgx.ErrNoRows, or the
+		// *pgconn.PgError for SQLSTATE 42501) survives in the chain —
+		// losing it here would make a missing GRANT on a future schema
+		// masquerade as a clean not-found with zero diagnostics.
+		return Document{}, fmt.Errorf("getting document %s: %w (%w)", docID, ErrDocumentNotFound, err)
 	case err != nil:
 		return Document{}, fmt.Errorf("getting document %s: %w", docID, err)
 	}
@@ -113,11 +118,11 @@ func (c *Corpus) scanDocument(ctx context.Context, tx pgx.Tx, docID uuid.UUID) (
 	return d, nil
 }
 
-// scanSections reads docID's sections, ordered created_at, id.
+// scanSections reads docID's sections, ordered by position, id.
 func (c *Corpus) scanSections(ctx context.Context, tx pgx.Tx, docID uuid.UUID) ([]Section, error) {
-	const cols = `id, document_id, corpus_id, citation_path, heading_path, body, embedding, validity_status,
-		access_tier, effective_date`
-	q := `SELECT ` + cols + ` FROM ` + c.qualify("section") + ` WHERE document_id = $1 ORDER BY created_at, id`
+	const cols = `id, document_id, corpus_id, citation_path, heading_path, position, body, embedding,
+		validity_status, access_tier, effective_date`
+	q := `SELECT ` + cols + ` FROM ` + c.qualify("section") + ` WHERE document_id = $1 ORDER BY position, id`
 
 	rows, err := tx.Query(ctx, q, docID)
 	if err != nil {
@@ -130,8 +135,8 @@ func (c *Corpus) scanSections(ctx context.Context, tx pgx.Tx, docID uuid.UUID) (
 		var s Section
 		var citationPath, headingPath *string
 		var emb *pgvector.Vector
-		err := rows.Scan(&s.ID, &s.DocumentID, &s.CorpusID, &citationPath, &headingPath, &s.Body, &emb,
-			&s.ValidityStatus, &s.AccessTier, &s.EffectiveDate)
+		err := rows.Scan(&s.ID, &s.DocumentID, &s.CorpusID, &citationPath, &headingPath, &s.Position, &s.Body,
+			&emb, &s.ValidityStatus, &s.AccessTier, &s.EffectiveDate)
 		if err != nil {
 			return nil, fmt.Errorf("scanning section row for document %s: %w", docID, err)
 		}

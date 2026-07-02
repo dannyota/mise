@@ -38,12 +38,17 @@ type Document struct {
 // (pkg/parse/law.Flatten) or a whole-document fallback when structure parsing
 // found no nodes. ValidityStatus and AccessTier are inherited from the parent
 // Document at normalize time; Embedding is populated by a later ingest stage.
+// Position is the section's 0-based order within the document, stamped from
+// its index in the slice ReplaceSections writes (migrations/006_search_and_
+// write_keys.sql) — GetDocument reads sections back ordered by it, not by
+// created_at/id, so document rendering never depends on write timing.
 type Section struct {
 	ID             uuid.UUID
 	DocumentID     uuid.UUID
 	CorpusID       string
 	CitationPath   string
 	HeadingPath    string
+	Position       int
 	Body           string
 	ValidityStatus string
 	AccessTier     string
