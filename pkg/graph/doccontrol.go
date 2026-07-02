@@ -3,6 +3,8 @@ package graph
 import (
 	"strings"
 
+	"github.com/google/uuid"
+
 	"danny.vn/mise/pkg/corpus"
 )
 
@@ -12,11 +14,23 @@ import (
 // absent header (the zero value, with no ControlRefs) is not an error —
 // ParseControlRefs yields no edges for it (RISKS R6: an absent or
 // unparsable header must never produce a guessed edge).
+//
+// DocID and AttestationOwner are envelope fields the M1b/ingest caller sets
+// before calling ExtractEdges (extract.go): DocID is the source document's
+// own id (it becomes the extracted edge's From.DocumentID); AttestationOwner
+// is OwnerDepartment/OwnerRole already resolved to a holder string via
+// store.OrgRole.Resolve, done owner-side by the ingest caller before
+// extraction. Neither is read by ParseControlRefs — this package has no
+// store handle of its own, so Method A stays a pure function over data the
+// caller already resolved, never a store or model call from within
+// pkg/graph.
 type DocControlHeader struct {
 	Corpus                     corpus.ID
 	DocNumber, Title, Version  string
 	OwnerDepartment, OwnerRole string
 	ControlRefs                []RawControlRef
+	DocID                      uuid.UUID
+	AttestationOwner           string
 }
 
 // RawControlRef is one explicit upstream-control reference as named in a
