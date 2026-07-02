@@ -107,9 +107,9 @@ pie showData title "One-time build split — Gemini 3.5 Flash judge, digital par
     "Embedding backfill" : 15
 ```
 
-The one-time build **is** the AI spend (~$1.3–3k of essentially pure AI). Parse and
+The one-time build **is** the AI spend (~~$1.3–3k of essentially pure AI). Parse and
 judge dominate; grounding is meaningful; embedding is negligible. Swapping the judge to
-Haiku 4.5 (~$370) or Sonnet 4.6 (~$1.1k) moves the second slice.
+Haiku 4.5 (~$370) or Sonnet 4.6 (~~$1.1k) moves the second slice.
 
 ---
 
@@ -209,10 +209,10 @@ it earns out. **Dev/non-prod is free.**
    pgvector/AlloyDB over **Vertex AI Vector Search** avoided per-index always-on
    serving nodes — at 5 corpora that would have been roughly **$2,500–10,000/mo**
    for vectors alone.
-3. **AlloyDB Omni cost = vCPU count, not usage.** The ~$40/vCPU-mo license is fixed
+3. **AlloyDB Omni cost = vCPU count, not usage.** The ~~$40/vCPU-mo license is fixed
    regardless of query volume, so **right-sizing the vCPUs is the only lever** —
    2 vCPU (~$80/mo) fits this data/QPS; 8 vCPU would be 4× that for no benefit.
-   Dropping to pgvector removes the license entirely (~−$80/mo at 2 vCPU) if cost
+   Dropping to pgvector removes the license entirely (~~−$80/mo at 2 vCPU) if cost
    ever outweighs ScaNN's filtered-search gain. Here the read path is **always
    filtered** (access-tier/RLS), so that gain is user-facing — the license earns out.
 4. **Full-bank vs tech-only is cheap to add:** ~$1–2k extra one-time
@@ -221,7 +221,7 @@ it earns out. **Dev/non-prod is free.**
 5. **Doc AI parsing is the largest one-time line** — halve it by digital-parsing
    born-digital VN/HTML and reserving Doc AI Layout for PDFs/scanned/internal.
 6. **Model routing matters on the judge — all on Vertex** (one auth / governance
-   boundary). **Haiku 4.5** is cheapest for the ~123k-call judge (~$370),
+   boundary). **Haiku 4.5** is cheapest for the ~~123k-call judge (~~$370),
    **Gemini 3.5 Flash** is the default (~$600; native Grounding/Ranking ecosystem),
    **Sonnet 4.6** for the hardest cross-lingual judging (~$1.1k). Batch halves each.
    Answer composition is the **serve endpoint's** call — Claude Haiku 4.5 / Sonnet 4.6

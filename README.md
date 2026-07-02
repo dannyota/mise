@@ -38,39 +38,42 @@ bank-operated
 Grouped by folder (full navigator: [docs/README.md](docs/README.md)).
 
 **Design** — `docs/design/`
-| Doc | Purpose |
-|-----|---------|
-| [ARCHITECTURE](docs/design/ARCHITECTURE.md) | System design — components, the read/write planes, storage, tech stack |
-| [DATA-MODEL](docs/design/DATA-MODEL.md) | The schema — corpora, metadata, the compliance graph, control-detection, findings |
-| [AI-GOVERNANCE](docs/design/AI-GOVERNANCE.md) | Governing the **models** — control gates, agent guardrails, model risk/approval, AI audit |
-| [DATA-GOVERNANCE](docs/design/DATA-GOVERNANCE.md) | Governing the **data** — access tiers/RLS, data flow, human-in-the-loop, data audit |
-| [UI-DESIGN](docs/design/UI-DESIGN.md) | The Vue Web UI — screens, stack, design principles |
-| [API-CONTRACT](docs/design/API-CONTRACT.md) | REST + MCP tools + SSE surfaces; one generated contract |
+
+| Doc                                               | Purpose                                                                                   |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [ARCHITECTURE](docs/design/ARCHITECTURE.md)       | System design — components, the read/write planes, storage, tech stack                    |
+| [DATA-MODEL](docs/design/DATA-MODEL.md)           | The schema — corpora, metadata, the compliance graph, control-detection, findings         |
+| [AI-GOVERNANCE](docs/design/AI-GOVERNANCE.md)     | Governing the **models** — control gates, agent guardrails, model risk/approval, AI audit |
+| [DATA-GOVERNANCE](docs/design/DATA-GOVERNANCE.md) | Governing the **data** — access tiers/RLS, data flow, human-in-the-loop, data audit       |
+| [UI-DESIGN](docs/design/UI-DESIGN.md)             | The Vue Web UI — screens, stack, design principles                                        |
+| [API-CONTRACT](docs/design/API-CONTRACT.md)       | REST + MCP tools + SSE surfaces; one generated contract                                   |
 
 **Engineering** — `docs/engineering/`
-| Doc | Purpose |
-|-----|---------|
-| [FOLDER_STRUCTURE](docs/engineering/FOLDER_STRUCTURE.md) | Repo layout (monorepo) — read before scaffolding |
-| [TOOLCHAIN](docs/engineering/TOOLCHAIN.md) | Pinned versions · golangci-lint v2 + Go-1.26 idiom modernization · pre-commit |
-| [CODE_STYLE_GO](docs/engineering/CODE_STYLE_GO.md) · [\_TS](docs/engineering/CODE_STYLE_TS.md) · [\_VUE](docs/engineering/CODE_STYLE_VUE.md) | Per-language code style (Go · TS · Vue) |
-| [CI-CD](docs/engineering/CI-CD.md) | Build/release pipeline + supply-chain (SAST · SCA · SBOM · scan · sign) |
-| [TESTING](docs/engineering/TESTING.md) | Test pyramid · MCP contract test · eval golden-set · load |
-| [OBSERVABILITY](docs/engineering/OBSERVABILITY.md) | Tracing · metrics · logs · SLOs (vs the audit trail) |
-| [DELIVERY-MODEL](docs/engineering/DELIVERY-MODEL.md) | Delivery & operating model — single-tenant per enterprise, upstream↔adopter split, onboarding, upgrades |
-| [DEPLOYMENT](docs/engineering/DEPLOYMENT.md) | GKE deploy (runtime) — one cluster, no HA, scale-down, backup/DR, ingest connector ops |
-| [LOCAL-DEV](docs/engineering/LOCAL-DEV.md) | Run the full stack locally on Podman — separated from GKE |
-| [LICENSES](docs/engineering/LICENSES.md) | Tool/dep license inventory + the CI license gate (permissive-only) |
-| [THREAT-MODEL](docs/engineering/THREAT-MODEL.md) | Assets · trust boundaries · STRIDE · residual risks (design-level) |
+
+| Doc                                                                                                                                          | Purpose                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| [FOLDER_STRUCTURE](docs/engineering/FOLDER_STRUCTURE.md)                                                                                     | Repo layout (monorepo) — read before scaffolding                                                        |
+| [TOOLCHAIN](docs/engineering/TOOLCHAIN.md)                                                                                                   | Pinned versions · golangci-lint v2 + Go-1.26 idiom modernization · pre-commit                           |
+| [CODE_STYLE_GO](docs/engineering/CODE_STYLE_GO.md) · [\_TS](docs/engineering/CODE_STYLE_TS.md) · [\_VUE](docs/engineering/CODE_STYLE_VUE.md) | Per-language code style (Go · TS · Vue)                                                                 |
+| [CI-CD](docs/engineering/CI-CD.md)                                                                                                           | Build/release pipeline + supply-chain (SAST · SCA · SBOM · scan · sign)                                 |
+| [TESTING](docs/engineering/TESTING.md)                                                                                                       | Test pyramid · MCP contract test · eval golden-set · load                                               |
+| [OBSERVABILITY](docs/engineering/OBSERVABILITY.md)                                                                                           | Tracing · metrics · logs · SLOs (vs the audit trail)                                                    |
+| [DELIVERY-MODEL](docs/engineering/DELIVERY-MODEL.md)                                                                                         | Delivery & operating model — single-tenant per enterprise, upstream↔adopter split, onboarding, upgrades |
+| [DEPLOYMENT](docs/engineering/DEPLOYMENT.md)                                                                                                 | GKE deploy (runtime) — one cluster, no HA, scale-down, backup/DR, ingest connector ops                  |
+| [LOCAL-DEV](docs/engineering/LOCAL-DEV.md)                                                                                                   | Run the full stack locally on Podman — separated from GKE                                               |
+| [LICENSES](docs/engineering/LICENSES.md)                                                                                                     | Tool/dep license inventory + the CI license gate (permissive-only)                                      |
+| [THREAT-MODEL](docs/engineering/THREAT-MODEL.md)                                                                                             | Assets · trust boundaries · STRIDE · residual risks (design-level)                                      |
 
 **Project** — `docs/project/`
-| Doc | Purpose |
-|-----|---------|
-| [PLAN](docs/project/PLAN.md) | Thin build-plan index |
-| [plan/](docs/project/plan/README.md) | Build-plan workspace — goals, phases, delta, cross-cutting rules, milestone plans |
-| [ROADMAP](docs/project/ROADMAP.md) | Milestones M0–M6, critical path, exit gates, review-load |
-| [RISKS](docs/project/RISKS.md) | Delivery/execution risk register (vs the security THREAT-MODEL) |
-| [DECISIONS](docs/project/DECISIONS.md) | The decision log — locked + open |
-| [COST](docs/project/COST.md) | The cost model — unit rates, one-time build, recurring |
+
+| Doc                                    | Purpose                                                                           |
+| -------------------------------------- | --------------------------------------------------------------------------------- |
+| [PLAN](docs/project/PLAN.md)           | Thin build-plan index                                                             |
+| [plan/](docs/project/plan/README.md)   | Build-plan workspace — goals, phases, delta, cross-cutting rules, milestone plans |
+| [ROADMAP](docs/project/ROADMAP.md)     | Milestones M0–M6, critical path, exit gates, review-load                          |
+| [RISKS](docs/project/RISKS.md)         | Delivery/execution risk register (vs the security THREAT-MODEL)                   |
+| [DECISIONS](docs/project/DECISIONS.md) | The decision log — locked + open                                                  |
+| [COST](docs/project/COST.md)           | The cost model — unit rates, one-time build, recurring                            |
 
 **Meta:** [DOC_STYLE](docs/DOC_STYLE.md) — how these docs are written.
 
