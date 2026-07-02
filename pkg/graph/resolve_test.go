@@ -22,11 +22,31 @@ var allControlChainCorpora = []corpus.ID{
 // edgeTypeForPairWant is the brief's fixed control-chain pairs — the only
 // four (from, to) combinations EdgeTypeForPair should recognize. Every
 // other pair in the 5x5 cross product below must come back ("", false).
-var edgeTypeForPairWant = map[[2]corpus.ID]string{
-	{corpus.LocalSOP, corpus.LocalPolicy}: "derives",
-	{corpus.LocalPolicy, corpus.GroupStd}: "implements",
-	{corpus.GroupStd, corpus.MYReg}:       "satisfies",
-	{corpus.LocalPolicy, corpus.VNReg}:    "satisfies",
+// "derives" and "implements" are hardcoded literals (there is no registry
+// field for them); the two "satisfies" pairs are derived from the
+// registry's GraphRole.SatisfiesTarget instead of a third independent
+// hardcoded copy, so this table — and TestEdgeTypeForPair below — catches
+// EdgeTypeForPair drifting from the registry, not just re-asserting a
+// duplicate literal.
+var edgeTypeForPairWant = buildEdgeTypeForPairWant()
+
+// buildEdgeTypeForPairWant assembles edgeTypeForPairWant: the two
+// registry-less pairs as literals, plus a "satisfies" entry for every
+// corpus in allControlChainCorpora whose GraphRole.SatisfiesTarget is set
+// (group-std and local-policy, as of this registry).
+func buildEdgeTypeForPairWant() map[[2]corpus.ID]string {
+	want := map[[2]corpus.ID]string{
+		{corpus.LocalSOP, corpus.LocalPolicy}: "derives",
+		{corpus.LocalPolicy, corpus.GroupStd}: "implements",
+	}
+	for _, from := range allControlChainCorpora {
+		desc, ok := corpus.Get(from)
+		if !ok || desc.GraphRole.SatisfiesTarget == "" {
+			continue
+		}
+		want[[2]corpus.ID{from, desc.GraphRole.SatisfiesTarget}] = "satisfies"
+	}
+	return want
 }
 
 // TestEdgeTypeForPair exhaustively checks every (from, to) pair across all

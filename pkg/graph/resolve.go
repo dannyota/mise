@@ -39,29 +39,41 @@ type ExtractedEdge struct {
 }
 
 // controlChainEdgeType is the fixed control-chain (from, to) corpus pairs
-// EdgeTypeForPair recognizes, and the edge type each pair takes — mirrors
-// relation_edge.edge_type's CHECK constraint values (this package's EdgeType
-// consts, migrations/009_graph_tables.sql). Method A (doc-control header
-// parsing, this package) only ever produces "implements"/"derives" refs
-// (doccontrol.go's normalizeRelation), so ResolveRef only ever reaches the
-// first two pairs below; the two "satisfies" pairs are mapped here for
-// completeness — M3 (semantic citation matching, a later milestone) writes
-// those from the same corpus registry shape.
+// for the two edge types with no corresponding corpus registry field:
+// "derives" (local-sop→local-policy) and "implements" (local-policy→
+// group-std) — mirrors relation_edge.edge_type's CHECK constraint values
+// (this package's EdgeType consts, migrations/009_graph_tables.sql). The
+// third recognized edge type, "satisfies", is deliberately NOT hardcoded
+// here: EdgeTypeForPair derives it from the registry's canonical
+// GraphRole.SatisfiesTarget field instead, so corpus.go stays the one place
+// that says group-std satisfies my-reg and local-policy satisfies vn-reg.
+// Method A (doc-control header parsing, this package) only ever produces
+// "implements"/"derives" refs (doccontrol.go's normalizeRelation), so
+// ResolveRef only ever reaches the two pairs below — "satisfies" is resolved
+// for completeness; M3 (semantic citation matching, a later milestone)
+// writes those from the same corpus registry shape.
 var controlChainEdgeType = map[[2]corpus.ID]EdgeType{
 	{corpus.LocalSOP, corpus.LocalPolicy}: EdgeDerives,
 	{corpus.LocalPolicy, corpus.GroupStd}: EdgeImplements,
-	{corpus.GroupStd, corpus.MYReg}:       EdgeSatisfies,
-	{corpus.LocalPolicy, corpus.VNReg}:    EdgeSatisfies,
 }
 
 // EdgeTypeForPair returns the edge type for an edge sourced from corpus from
 // and targeting corpus to, and whether that pair is a recognized
-// control-chain edge at all. Any pair outside the fixed table above —
-// including from==to, and either id absent from the corpus registry —
-// returns ("", false) rather than guessing.
+// control-chain edge at all. "derives" and "implements" come from the fixed
+// table above; "satisfies" is derived rather than hardcoded — to is a
+// satisfies target of from iff corpus.Get(from) finds a descriptor whose
+// GraphRole.SatisfiesTarget is non-empty and equals to. Any pair outside
+// these — including from==to, and either id absent from the corpus
+// registry — returns ("", false) rather than guessing.
 func EdgeTypeForPair(from, to corpus.ID) (string, bool) {
-	edgeType, ok := controlChainEdgeType[[2]corpus.ID{from, to}]
-	return string(edgeType), ok
+	if edgeType, ok := controlChainEdgeType[[2]corpus.ID{from, to}]; ok {
+		return string(edgeType), true
+	}
+	desc, ok := corpus.Get(from)
+	if !ok || desc.GraphRole.SatisfiesTarget == "" || desc.GraphRole.SatisfiesTarget != to {
+		return "", false
+	}
+	return string(EdgeSatisfies), true
 }
 
 // ResolveRef resolves one RawControlRef, read from a doc-control header in a
