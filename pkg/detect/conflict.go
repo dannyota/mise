@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/uuid"
-
 	"danny.vn/mise/pkg/graph"
 	"danny.vn/mise/pkg/store"
 	"danny.vn/mise/pkg/vertex"
@@ -34,12 +32,6 @@ type ConflictCandidate struct {
 func (c ConflictCandidate) dedupKey() string {
 	return "conflict\x00" + c.StandardRef.DocumentID.String() +
 		"\x00" + c.LawRef.DocumentID.String()
-}
-
-// FindingCreator is the subset of store.FindingStore the detectors need:
-// create a finding with dedup. Implemented by the real store; faked in tests.
-type FindingCreator interface {
-	CreateFinding(ctx context.Context, f store.Finding) (uuid.UUID, error)
 }
 
 // ConflictDeps carries the conflict detector's injectable dependencies:
