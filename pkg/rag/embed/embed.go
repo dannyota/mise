@@ -23,3 +23,16 @@ type Embedder interface {
 type QueryEmbedder interface {
 	EmbedQueries(ctx context.Context, texts []string) ([][]float32, error)
 }
+
+// FactEmbedder is an optional Embedder capability for adapters that embed
+// candidate pairs for fact-verification scoring (Vertex's
+// gemini-embedding-001 FACT_VERIFICATION task type). Callers should
+// type-assert and fall back to Embed when an Embedder does not implement it:
+//
+//	vecs, err := embedder.Embed(ctx, texts)
+//	if fe, ok := embedder.(FactEmbedder); ok {
+//		vecs, err = fe.EmbedFact(ctx, texts)
+//	}
+type FactEmbedder interface {
+	EmbedFact(ctx context.Context, texts []string) ([][]float32, error)
+}

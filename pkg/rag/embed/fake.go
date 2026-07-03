@@ -30,6 +30,12 @@ func (f *fakeEmbedder) EmbedQueries(ctx context.Context, texts []string) ([][]fl
 	return f.Embed(ctx, texts)
 }
 
+// EmbedFact implements FactEmbedder. The fake has no task-type split, so it
+// returns exactly what Embed would.
+func (f *fakeEmbedder) EmbedFact(ctx context.Context, texts []string) ([][]float32, error) {
+	return f.Embed(ctx, texts)
+}
+
 // tokenBagVector embeds text as a bag of tokens so texts sharing vocabulary
 // score higher on cosine similarity — the offline stand-in for real semantic
 // embedding. Text is lowercased and split into unicode-aware letter/digit
