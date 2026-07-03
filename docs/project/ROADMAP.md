@@ -34,7 +34,7 @@ Each phase reaches one milestone; the milestone _is_ the phase's demonstrable ou
 | **M1a**   | [M1-ingest](./plan/M1-ingest/README.md) WS1+4 | law corpora ingested, embedded @1536-d, searchable per-corpus (public, ungated)             | per-corpus evidence search (MCP) on VN+MY law         |
 | **M1b**   | [M1-ingest](./plan/M1-ingest/README.md) WS2+3 | internal corpora ingested via SharePoint, metadata envelope + tier tagging complete         | all 5 corpora tier-isolated and retrievable           |
 | **M2**    | [M2-graph](./plan/M2-graph/README.md)         | the `graph` schema + explicit internal edges + graph API (done)                             | the SOP→Policy→Group chain query                      |
-| **M3**    | [M3-detectors](./plan/M3-detectors/README.md) | the 4 detectors + findings + the review queue                                               | a grounded `satisfies` candidate + a conflict finding |
+| **M3** ✅ | [M3-detectors](./plan/M3-detectors/README.md) | the 4 detectors + findings + the review queue                                               | a grounded `satisfies` candidate + a conflict finding |
 | **M4**    | [M4-audit-qa](./plan/M4-audit-qa/README.md)   | cited, grounded answers over REST + MCP + SSE                                               | ask a question → cited answer / abstain               |
 | **M5**    | [M5-web-ui](./plan/M5-web-ui/README.md)       | all screens live in the Vue SPA                                                             | the full product in a browser                         |
 | **M6**    | [M6-scale](./plan/M6-scale/README.md)         | corpus registry GA + multimodal + new scope by descriptor only                              | add a corpus with zero core edits                     |
@@ -83,12 +83,13 @@ flowchart LR
 
 Open implementation-review decisions plus adopter inputs that create milestone exit criteria.
 
-| Resolve by | Decision                                           | Gates                                                                                |
-| ---------- | -------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **M1b**    | **13** adopter-provided source access config       | real-intranet validation; build/CI run on fixtures or a non-bank test site meanwhile |
-| **M3**     | **18** eval golden-set bootstrap                   | the mapping precision/recall eval emits its first baseline                           |
-| **M3/M4**  | **11** judge + serve threshold / escalation tuning | judge threshold calibration (M3) + serve-model abstain/escalation calibration (M4)   |
-| **M5**     | **19** webhook egress policy                       | SSRF-safe endpoint allowlist / URL validation before webhook delivery ships          |
+| Resolve by | Decision                                          | Gates                                                                                |
+| ---------- | ------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **M1b**    | **13** adopter-provided source access config      | real-intranet validation; build/CI run on fixtures or a non-bank test site meanwhile |
+| ~~M3~~     | ~~**18** eval golden-set bootstrap~~              | locked (provisional) — first run sets baseline, thresholds are 0                     |
+| ~~M3~~     | ~~**11** threshold defaults~~                     | locked (provisional) — confidence ≥ 0.7, grounding ≥ 0.6, env-configurable           |
+| **M4**     | **11** serve-model abstain/escalation calibration | serve-path escalation thresholds tuned against golden set                            |
+| **M5**     | **19** webhook egress policy                      | SSRF-safe endpoint allowlist / URL validation before webhook delivery ships          |
 
 - **DECISIONS 1** (embedding @1536-d) is **enforced** as a fail-closed invariant from M0 and
   re-checked at M6 (the registry validator).
