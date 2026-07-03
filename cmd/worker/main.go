@@ -13,6 +13,7 @@ import (
 	"go.temporal.io/sdk/worker"
 
 	"danny.vn/mise/pkg/config"
+	"danny.vn/mise/pkg/detect"
 	"danny.vn/mise/pkg/ingest"
 	"danny.vn/mise/pkg/pipeline"
 	"danny.vn/mise/pkg/store"
@@ -53,9 +54,17 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	detectDeps, err := config.NewDetectDeps(ctx, pool)
+	if err != nil {
+		return fmt.Errorf("detect deps: %w", err)
+	}
+	detectActs := detect.NewActivities(detectDeps)
+
 	w := mise_temporal.NewWorkerWith(tc, cfg.TaskQueue, func(w worker.Worker) {
 		w.RegisterWorkflow(pipeline.IngestCorpusWorkflow)
 		w.RegisterActivity(acts)
+		w.RegisterWorkflow(detect.RelationDetectWorkflow)
+		w.RegisterActivity(detectActs)
 	})
 
 	slog.Info("worker started", "task_queue", cfg.TaskQueue)

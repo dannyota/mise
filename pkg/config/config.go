@@ -3,12 +3,14 @@ package config
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
 
 	"cloud.google.com/go/storage"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"danny.vn/mise/pkg/blob"
 	"danny.vn/mise/pkg/corpus"
@@ -208,6 +210,40 @@ func NewSources(_ context.Context) (map[corpus.ID][]ingest.Source, error) {
 			bnm.New(nil, log),
 			sc.New(nil, log),
 		},
+	}, nil
+}
+
+// NewDetectDeps returns the detect pipeline's dependency set from env config.
+func NewDetectDeps(ctx context.Context, pool *pgxpool.Pool) (detect.Deps, error) {
+	emb, err := NewEmbedder(ctx)
+	if err != nil {
+		return detect.Deps{}, fmt.Errorf("config: detect embedder: %w", err)
+	}
+	factEmb, ok := emb.(embed.FactEmbedder)
+	if !ok {
+		return detect.Deps{}, errors.New("config: embedder does not implement FactEmbedder")
+	}
+	judge, err := NewJudge(ctx)
+	if err != nil {
+		return detect.Deps{}, fmt.Errorf("config: detect judge: %w", err)
+	}
+	grounder, err := NewGrounder(ctx)
+	if err != nil {
+		return detect.Deps{}, fmt.Errorf("config: detect grounder: %w", err)
+	}
+	ranker, err := NewRanker(ctx)
+	if err != nil {
+		return detect.Deps{}, fmt.Errorf("config: detect ranker: %w", err)
+	}
+
+	return detect.Deps{
+		Pool:       pool,
+		Embedder:   factEmb,
+		Judge:      judge,
+		Grounder:   grounder,
+		Ranker:     ranker,
+		Graph:      store.NewGraphStore(pool),
+		Thresholds: NewThresholdConfig(),
 	}, nil
 }
 
