@@ -139,7 +139,7 @@ func newTestServer(t *testing.T, repo GraphRepoIface, role string) *httptest.Ser
 	t.Helper()
 	router := chi.NewRouter()
 	api := NewAPI(router)
-	Register(api, repo, role)
+	Register(api, repo, nil, nil, role)
 	srv := httptest.NewServer(router)
 	t.Cleanup(srv.Close)
 	return srv

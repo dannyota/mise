@@ -45,7 +45,7 @@ func NewAPI(r chi.Router) huma.API {
 func GenerateSpec(role string) ([]byte, error) {
 	router := chi.NewRouter()
 	api := NewAPI(router)
-	Register(api, nil, role)
+	Register(api, nil, nil, nil, role)
 
 	spec, err := api.OpenAPI().YAML()
 	if err != nil {
