@@ -95,6 +95,43 @@ func TestNewBlobDefaultsToFS(t *testing.T) {
 	}
 }
 
+func TestNewRankerFake(t *testing.T) {
+	t.Setenv("VERTEX", "fake")
+	r, err := config.NewRanker(context.Background())
+	if err != nil {
+		t.Fatalf("NewRanker() error = %v, want nil", err)
+	}
+	if r == nil {
+		t.Fatal("NewRanker() = nil, want the fake ranker")
+	}
+}
+
+func TestNewRankerDefaultsToFakeWhenUnset(t *testing.T) {
+	t.Setenv("VERTEX", "")
+	r, err := config.NewRanker(context.Background())
+	if err != nil {
+		t.Fatalf("NewRanker() error = %v, want the fake default", err)
+	}
+	if r == nil {
+		t.Fatal("NewRanker() = nil, want the fake ranker")
+	}
+}
+
+func TestNewRankerRejectsUnknownValue(t *testing.T) {
+	t.Setenv("VERTEX", "bogus")
+	if _, err := config.NewRanker(context.Background()); err == nil {
+		t.Fatal("NewRanker() error = nil, want error for unknown VERTEX value")
+	}
+}
+
+func TestNewRankerRealRequiresProject(t *testing.T) {
+	t.Setenv("VERTEX", "real")
+	t.Setenv("GCP_PROJECT", "")
+	if _, err := config.NewRanker(context.Background()); err == nil {
+		t.Fatal("NewRanker() error = nil, want error when GCP_PROJECT is unset")
+	}
+}
+
 func TestNewParserFake(t *testing.T) {
 	t.Setenv("VERTEX", "fake")
 	p, err := config.NewParser(context.Background())

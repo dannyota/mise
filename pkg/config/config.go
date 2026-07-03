@@ -83,6 +83,25 @@ func NewBlob(ctx context.Context) (blob.Store, error) {
 	return blob.NewFS(envOr("BLOB_DIR", "./data/raw")), nil
 }
 
+// NewRanker returns the Ranker VERTEX selects: "fake" (the default) for the
+// offline deterministic ranker (LOCAL-DEV §4 Mode B), "real" for the Discovery
+// Engine Ranking API via GCP_PROJECT/GCP_REGION. Any other VERTEX value is an
+// error.
+func NewRanker(ctx context.Context) (vertex.Ranker, error) {
+	switch v := envOr("VERTEX", "fake"); v {
+	case "fake":
+		return vertex.NewFakeRanker(), nil
+	case "real":
+		r, err := vertex.NewVertexRanker(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "us-central1"))
+		if err != nil {
+			return nil, fmt.Errorf("config: creating vertex ranker: %w", err)
+		}
+		return r, nil
+	default:
+		return nil, fmt.Errorf("config: unknown VERTEX value %q, want \"fake\" or \"real\"", v)
+	}
+}
+
 // NewParser returns the document Parser VERTEX selects: "fake" (the default)
 // for the offline deterministic parser (LOCAL-DEV §4 Mode B), "real" for Doc
 // AI Layout Parser via GCP_PROJECT / DOCAI_LOCATION (default "us") /
