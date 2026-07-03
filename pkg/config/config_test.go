@@ -189,6 +189,51 @@ func TestNewSourcesWiresBothLawCorpora(t *testing.T) {
 	}
 }
 
+func TestNewJudgeFake(t *testing.T) {
+	t.Setenv("VERTEX", "fake")
+	j, err := config.NewJudge(context.Background())
+	if err != nil {
+		t.Fatalf("NewJudge() error = %v, want nil", err)
+	}
+	if j == nil {
+		t.Fatal("NewJudge() = nil, want the fake judge")
+	}
+	// The fake judge returns a deterministic result.
+	got, err := j.Judge(context.Background(), "a", "b")
+	if err != nil {
+		t.Fatalf("Judge() error = %v", err)
+	}
+	if got.EdgeType != "satisfies" {
+		t.Errorf("EdgeType = %q, want %q", got.EdgeType, "satisfies")
+	}
+}
+
+func TestNewJudgeDefaultsToFakeWhenUnset(t *testing.T) {
+	t.Setenv("VERTEX", "")
+	j, err := config.NewJudge(context.Background())
+	if err != nil {
+		t.Fatalf("NewJudge() error = %v, want the fake default", err)
+	}
+	if j == nil {
+		t.Fatal("NewJudge() = nil, want the fake judge")
+	}
+}
+
+func TestNewJudgeRejectsUnknownValue(t *testing.T) {
+	t.Setenv("VERTEX", "bogus")
+	if _, err := config.NewJudge(context.Background()); err == nil {
+		t.Fatal("NewJudge() error = nil, want error for unknown VERTEX value")
+	}
+}
+
+func TestNewJudgeRealRequiresProject(t *testing.T) {
+	t.Setenv("VERTEX", "real")
+	t.Setenv("GCP_PROJECT", "")
+	if _, err := config.NewJudge(context.Background()); err == nil {
+		t.Fatal("NewJudge() error = nil, want error when GCP_PROJECT is unset")
+	}
+}
+
 func TestRoleDefaultsToMisePublic(t *testing.T) {
 	t.Setenv("MISE_DB_ROLE", "")
 	if got := config.Role(); got != "mise_public" {

@@ -102,6 +102,29 @@ func NewRanker(ctx context.Context) (vertex.Ranker, error) {
 	}
 }
 
+// NewJudge returns the Judge VERTEX selects: "fake" (the default) for the
+// offline deterministic judge (LOCAL-DEV §4 Mode B), "real" for the Gemini
+// :generateContent API via GCP_PROJECT/GCP_REGION. JUDGE_MODEL overrides
+// the default model (gemini-3.5-flash). Any other VERTEX value is an error.
+func NewJudge(ctx context.Context) (vertex.Judge, error) {
+	switch v := envOr("VERTEX", "fake"); v {
+	case "fake":
+		return vertex.NewFakeJudge(), nil
+	case "real":
+		j, err := vertex.NewGeminiJudge(ctx,
+			os.Getenv("GCP_PROJECT"),
+			envOr("GCP_REGION", "us-central1"),
+			vertex.WithJudgeModel(envOr("JUDGE_MODEL", "gemini-3.5-flash")),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("config: creating gemini judge: %w", err)
+		}
+		return j, nil
+	default:
+		return nil, fmt.Errorf("config: unknown VERTEX value %q, want \"fake\" or \"real\"", v)
+	}
+}
+
 // NewParser returns the document Parser VERTEX selects: "fake" (the default)
 // for the offline deterministic parser (LOCAL-DEV §4 Mode B), "real" for Doc
 // AI Layout Parser via GCP_PROJECT / DOCAI_LOCATION (default "us") /
