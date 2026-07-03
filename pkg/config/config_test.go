@@ -198,7 +198,6 @@ func TestNewJudgeFake(t *testing.T) {
 	if j == nil {
 		t.Fatal("NewJudge() = nil, want the fake judge")
 	}
-	// The fake judge returns a deterministic result.
 	got, err := j.Judge(context.Background(), "a", "b")
 	if err != nil {
 		t.Fatalf("Judge() error = %v", err)
@@ -231,6 +230,98 @@ func TestNewJudgeRealRequiresProject(t *testing.T) {
 	t.Setenv("GCP_PROJECT", "")
 	if _, err := config.NewJudge(context.Background()); err == nil {
 		t.Fatal("NewJudge() error = nil, want error when GCP_PROJECT is unset")
+	}
+}
+
+func TestNewGrounderFake(t *testing.T) {
+	t.Setenv("VERTEX", "fake")
+	g, err := config.NewGrounder(context.Background())
+	if err != nil {
+		t.Fatalf("NewGrounder() error = %v, want nil", err)
+	}
+	if g == nil {
+		t.Fatal("NewGrounder() = nil, want the fake grounder")
+	}
+}
+
+func TestNewGrounderDefaultsToFakeWhenUnset(t *testing.T) {
+	t.Setenv("VERTEX", "")
+	g, err := config.NewGrounder(context.Background())
+	if err != nil {
+		t.Fatalf("NewGrounder() error = %v, want the fake default", err)
+	}
+	if g == nil {
+		t.Fatal("NewGrounder() = nil, want the fake grounder")
+	}
+}
+
+func TestNewGrounderRejectsUnknownValue(t *testing.T) {
+	t.Setenv("VERTEX", "bogus")
+	if _, err := config.NewGrounder(context.Background()); err == nil {
+		t.Fatal("NewGrounder() error = nil, want error for unknown VERTEX value")
+	}
+}
+
+func TestNewGrounderRealRequiresProject(t *testing.T) {
+	t.Setenv("VERTEX", "real")
+	t.Setenv("GCP_PROJECT", "")
+	if _, err := config.NewGrounder(context.Background()); err == nil {
+		t.Fatal("NewGrounder() error = nil, want error when GCP_PROJECT is unset")
+	}
+}
+
+func TestNewThresholdConfigDefaults(t *testing.T) {
+	t.Setenv("JUDGE_CONFIDENCE_MIN", "")
+	t.Setenv("JUDGE_GROUNDING_MIN", "")
+	t.Setenv("JUDGE_MODEL", "")
+	t.Setenv("JUDGE_ESCALATION_MODEL", "")
+
+	tc := config.NewThresholdConfig()
+	if tc.ConfidenceMin != 0.7 {
+		t.Errorf("ConfidenceMin = %f, want 0.7", tc.ConfidenceMin)
+	}
+	if tc.GroundingMin != 0.6 {
+		t.Errorf("GroundingMin = %f, want 0.6", tc.GroundingMin)
+	}
+	if tc.Model != "gemini-3.5-flash" {
+		t.Errorf("Model = %q, want %q", tc.Model, "gemini-3.5-flash")
+	}
+	if tc.EscalationModel != "" {
+		t.Errorf("EscalationModel = %q, want empty", tc.EscalationModel)
+	}
+}
+
+func TestNewThresholdConfigUsesEnvOverrides(t *testing.T) {
+	t.Setenv("JUDGE_CONFIDENCE_MIN", "0.85")
+	t.Setenv("JUDGE_GROUNDING_MIN", "0.75")
+	t.Setenv("JUDGE_MODEL", "gemini-2.5-pro")
+	t.Setenv("JUDGE_ESCALATION_MODEL", "gemini-2.5-pro")
+
+	tc := config.NewThresholdConfig()
+	if tc.ConfidenceMin != 0.85 {
+		t.Errorf("ConfidenceMin = %f, want 0.85", tc.ConfidenceMin)
+	}
+	if tc.GroundingMin != 0.75 {
+		t.Errorf("GroundingMin = %f, want 0.75", tc.GroundingMin)
+	}
+	if tc.Model != "gemini-2.5-pro" {
+		t.Errorf("Model = %q, want %q", tc.Model, "gemini-2.5-pro")
+	}
+	if tc.EscalationModel != "gemini-2.5-pro" {
+		t.Errorf("EscalationModel = %q, want %q", tc.EscalationModel, "gemini-2.5-pro")
+	}
+}
+
+func TestNewThresholdConfigFallsBackOnUnparseableFloat(t *testing.T) {
+	t.Setenv("JUDGE_CONFIDENCE_MIN", "not-a-float")
+	t.Setenv("JUDGE_GROUNDING_MIN", "also-bad")
+
+	tc := config.NewThresholdConfig()
+	if tc.ConfidenceMin != 0.7 {
+		t.Errorf("ConfidenceMin = %f, want fallback 0.7", tc.ConfidenceMin)
+	}
+	if tc.GroundingMin != 0.6 {
+		t.Errorf("GroundingMin = %f, want fallback 0.6", tc.GroundingMin)
 	}
 }
 

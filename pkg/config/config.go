@@ -12,6 +12,7 @@ import (
 
 	"danny.vn/mise/pkg/blob"
 	"danny.vn/mise/pkg/corpus"
+	"danny.vn/mise/pkg/detect"
 	"danny.vn/mise/pkg/ingest"
 	"danny.vn/mise/pkg/ingest/agclom"
 	"danny.vn/mise/pkg/ingest/bnm"
@@ -149,6 +150,36 @@ func NewParser(_ context.Context) (vertex.Parser, error) {
 	}
 }
 
+// NewGrounder returns the Grounder VERTEX selects: "fake" (the default) for
+// the offline deterministic grounder (LOCAL-DEV §4 Mode B), "real" for the
+// Discovery Engine Check Grounding API via GCP_PROJECT/GCP_REGION. Any other
+// VERTEX value is an error.
+func NewGrounder(ctx context.Context) (vertex.Grounder, error) {
+	switch v := envOr("VERTEX", "fake"); v {
+	case "fake":
+		return vertex.NewFakeGrounder(), nil
+	case "real":
+		g, err := vertex.NewCheckGrounder(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "us-central1"))
+		if err != nil {
+			return nil, fmt.Errorf("config: creating check grounder: %w", err)
+		}
+		return g, nil
+	default:
+		return nil, fmt.Errorf("config: unknown VERTEX value %q, want \"fake\" or \"real\"", v)
+	}
+}
+
+// NewThresholdConfig returns a ThresholdConfig from environment variables,
+// falling back to sensible defaults.
+func NewThresholdConfig() detect.ThresholdConfig {
+	return detect.ThresholdConfig{
+		ConfidenceMin:   envFloatOr("JUDGE_CONFIDENCE_MIN", 0.7),
+		GroundingMin:    envFloatOr("JUDGE_GROUNDING_MIN", 0.6),
+		Model:           envOr("JUDGE_MODEL", "gemini-3.5-flash"),
+		EscalationModel: os.Getenv("JUDGE_ESCALATION_MODEL"),
+	}
+}
+
 // vbpl agency-id defaults, mirroring banhmi's config.issuer_code seed
 // (deploy/seed/issuer_code.csv, source='vbpl'): the is_sbv set (62 current +
 // 908 legacy "Ngân hàng quốc gia") drives the keyword-less State Bank sweep;
@@ -200,4 +231,18 @@ func envIntOr(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+// envFloatOr returns the environment variable named key parsed as a float64,
+// or fallback if key is unset, empty, or not a valid float.
+func envFloatOr(key string, fallback float64) float64 {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return fallback
+	}
+	return f
 }
