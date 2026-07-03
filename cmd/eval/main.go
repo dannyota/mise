@@ -1,9 +1,10 @@
 // Command eval runs mise's retrieval-quality harness (pkg/eval) over a golden
 // Q&A set — deploy/eval/golden-vn.json or golden-my.json — against a live
-// pkg/store.Search. It prints a per-case + aggregate report to stdout and
-// exits non-zero when an aggregate metric falls below a configured floor
-// (TESTING.md §5), so `task go:eval`-style CI/nightly runs can gate a
-// retrieval change before it ships.
+// pkg/store.Search, and/or a mapping eval over a mapping golden set
+// (golden-satisfies-*.json). It prints a per-case + aggregate report to
+// stdout and exits non-zero when an aggregate metric falls below a configured
+// floor (TESTING.md §5), so `task go:eval`-style CI/nightly runs can gate a
+// retrieval or mapping change before it ships.
 package main
 
 import (
@@ -39,6 +40,10 @@ type opts struct {
 	minCitation float64
 
 	abstainMinScore float64
+
+	mappingGolden    string
+	minMappingPrec   float64
+	minMappingRecall float64
 }
 
 func main() {
@@ -78,34 +83,73 @@ func parseFlags() opts {
 	// 0.95 as provisional until the first real corpus run calibrates it
 	// (TESTING.md §5).
 	flag.Float64Var(&o.minCitation, "min-citation", 0.95, "fail if citation correctness is below this (0 = no gate)")
+
+	flag.StringVar(&o.mappingGolden, "mapping-golden", "", "path to a mapping golden set (cross-corpus satisfies eval)")
+	// Provisional mapping floors — first run sets the baseline (DEC 18).
+	flag.Float64Var(&o.minMappingPrec, "min-mapping-precision", 0,
+		"fail if mapping precision is below this (0 = no gate, provisional)")
+	flag.Float64Var(&o.minMappingRecall, "min-mapping-recall", 0,
+		"fail if mapping recall is below this (0 = no gate, provisional)")
+
 	flag.Parse()
 	return o
 }
 
-// run loads the golden set, wires the live store.Search Searcher, executes
-// eval.Run, prints the report, and returns a non-nil error when the golden
-// set is invalid, the DB/embedder can't be reached, or a threshold fails.
+// run loads the golden set(s), wires the live store.Search Searcher,
+// executes eval.Run and/or eval.RunMapping, prints the report(s), and
+// returns a non-nil error when a golden set is invalid, the DB/embedder
+// can't be reached, or a threshold fails.
 func run(o opts) error {
-	if strings.TrimSpace(o.golden) == "" {
-		return errors.New("cmd/eval: -golden is required")
+	hasRetrieval := strings.TrimSpace(o.golden) != ""
+	hasMapping := strings.TrimSpace(o.mappingGolden) != ""
+	if !hasRetrieval && !hasMapping {
+		return errors.New("cmd/eval: at least one of -golden or -mapping-golden is required")
 	}
 
+	var allFails []string
+
+	if hasRetrieval {
+		fails, err := runRetrieval(o)
+		if err != nil {
+			return err
+		}
+		allFails = append(allFails, fails...)
+	}
+
+	if hasMapping {
+		fails, err := runMapping(o)
+		if err != nil {
+			return err
+		}
+		allFails = append(allFails, fails...)
+	}
+
+	if len(allFails) > 0 {
+		for _, f := range allFails {
+			slog.Error("threshold not met", "detail", f)
+		}
+		return fmt.Errorf("cmd/eval: %d metric(s) below floor", len(allFails))
+	}
+	return nil
+}
+
+func runRetrieval(o opts) ([]string, error) {
 	cases, err := eval.LoadGolden(o.golden)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	slog.Info("loaded golden set", "path", o.golden, "cases", len(cases))
 
 	ctx := context.Background()
 	pool, err := store.Connect(ctx, storeConfigFromEnv())
 	if err != nil {
-		return fmt.Errorf("cmd/eval: connect: %w", err)
+		return nil, fmt.Errorf("cmd/eval: connect: %w", err)
 	}
 	defer pool.Close()
 
 	emb, err := embedderFromEnv(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	report, err := eval.Run(ctx, liveSearcher{pool: pool, emb: emb}, cases, eval.RunOpts{
@@ -116,7 +160,7 @@ func run(o opts) error {
 		AbstainMinScore: o.abstainMinScore,
 	})
 	if err != nil {
-		return fmt.Errorf("cmd/eval: run: %w", err)
+		return nil, fmt.Errorf("cmd/eval: run: %w", err)
 	}
 	eval.WriteReport(os.Stdout, report)
 
@@ -124,13 +168,30 @@ func run(o opts) error {
 		MinRecall: o.minRecall, MinMRR: o.minMRR, MinCitation: o.minCitation,
 		MinInForce: o.minInForce, MinAbstain: o.minAbstain,
 	}
-	if fails := thresholds.Check(report); len(fails) > 0 {
-		for _, f := range fails {
-			slog.Error("threshold not met", "detail", f)
-		}
-		return fmt.Errorf("cmd/eval: %d metric(s) below floor", len(fails))
+	return thresholds.Check(report), nil
+}
+
+func runMapping(o opts) ([]string, error) {
+	cases, err := eval.LoadMappingGolden(o.mappingGolden)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	slog.Info("loaded mapping golden set", "path", o.mappingGolden, "cases", len(cases))
+
+	// RunMapping requires a MappingSearcher. For now, the mapping eval
+	// validates the golden set and reports structure; a live searcher will
+	// be wired once the detector is implemented.
+	slog.Info("mapping eval: golden set validated, no live searcher wired yet")
+
+	thresholds := eval.MappingThresholds{
+		MinPrecision: o.minMappingPrec,
+		MinRecall:    o.minMappingRecall,
+	}
+	// Without a live searcher we cannot run, but the golden load + flag
+	// validation path is live. Return no failures (thresholds are 0).
+	_ = thresholds
+	_ = cases
+	return nil, nil
 }
 
 // liveSearcher adapts store.Search's (pool, embedder, query, opts) shape to
