@@ -169,6 +169,10 @@ See also:
     call. SOP reaches law only transitively via Policy (SOP→Policy→Group→law). DEC 7's constraint
     is enforced by `graph.EdgeTypeForPair` rejecting the `(local-sop, vn-reg)` pair. Locked
     2026-07.
+30. **Reasoning abstain/escalation thresholds (provisional).** Abstain threshold 0.3, escalation
+    threshold 0.5 — both env-configurable (`ABSTAIN_THRESHOLD`, `ESCALATION_THRESHOLD`).
+    Calibrated against the Q&A golden set (`deploy/eval/golden-qa-{vn,my}.json`). Haiku 4.5
+    default, Sonnet 4.6 escalation. Locked (provisional) 2026-07.
 
 <!-- prettier-ignore-end -->
 
