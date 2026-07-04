@@ -1,7 +1,4 @@
-import {
-  UserManager,
-  WebStorageStateStore,
-} from 'oidc-client-ts';
+import { UserManager, WebStorageStateStore } from 'oidc-client-ts';
 
 let manager: UserManager | null = null;
 
@@ -14,8 +11,7 @@ export function createUserManager(): UserManager | null {
 
   const clientId =
     typeof import.meta !== 'undefined'
-      ? (import.meta.env?.VITE_OIDC_CLIENT_ID ??
-        'mise-web')
+      ? (import.meta.env?.VITE_OIDC_CLIENT_ID ?? 'mise-web')
       : 'mise-web';
 
   manager = new UserManager({

@@ -138,7 +138,7 @@ func (c *Corpus) scanDocument(ctx context.Context, tx pgx.Tx, docID uuid.UUID) (
 // scanSections reads docID's sections, ordered by position, id.
 func (c *Corpus) scanSections(ctx context.Context, tx pgx.Tx, docID uuid.UUID) ([]Section, error) {
 	const cols = `id, document_id, corpus_id, citation_path, heading_path, position, body, embedding,
-		validity_status, access_tier, effective_date`
+		validity_status, access_tier, effective_date, image_ref`
 	q := `SELECT ` + cols + ` FROM ` + c.qualify("section") + ` WHERE document_id = $1 ORDER BY position, id`
 
 	rows, err := tx.Query(ctx, q, docID)
@@ -150,14 +150,15 @@ func (c *Corpus) scanSections(ctx context.Context, tx pgx.Tx, docID uuid.UUID) (
 	var out []Section
 	for rows.Next() {
 		var s Section
-		var citationPath, headingPath *string
+		var citationPath, headingPath, imageRef *string
 		var emb *pgvector.Vector
 		err := rows.Scan(&s.ID, &s.DocumentID, &s.CorpusID, &citationPath, &headingPath, &s.Position, &s.Body,
-			&emb, &s.ValidityStatus, &s.AccessTier, &s.EffectiveDate)
+			&emb, &s.ValidityStatus, &s.AccessTier, &s.EffectiveDate, &imageRef)
 		if err != nil {
 			return nil, fmt.Errorf("scanning section row for document %s: %w", docID, err)
 		}
 		s.CitationPath, s.HeadingPath = derefOr(citationPath), derefOr(headingPath)
+		s.ImageRef = derefOr(imageRef)
 		if emb != nil {
 			s.Embedding = emb.Slice()
 		}

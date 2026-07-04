@@ -226,15 +226,16 @@ func scanHits(ctx context.Context, tx pgx.Tx, id corpus.ID, q string, args []any
 	var hits []Hit
 	for rows.Next() {
 		var h Hit
-		var citationPath, headingPath, docNumber, sourceURL *string
+		var citationPath, headingPath, docNumber, sourceURL, imageRef *string
 		err := rows.Scan(&h.SectionID, &h.DocumentID, &citationPath, &headingPath, &h.Text,
-			&h.ValidityStatus, &docNumber, &h.Title, &sourceURL, &h.Score)
+			&h.ValidityStatus, &docNumber, &h.Title, &sourceURL, &imageRef, &h.Score)
 		if err != nil {
 			return nil, fmt.Errorf("scanning hybrid search row for corpus %s: %w", id, err)
 		}
 		h.CorpusID = string(id)
 		h.CitationPath, h.HeadingPath = derefOr(citationPath), derefOr(headingPath)
 		h.DocNumber, h.SourceURL = derefOr(docNumber), derefOr(sourceURL)
+		h.ImageRef = derefOr(imageRef)
 		hits = append(hits, h)
 	}
 	if err := rows.Err(); err != nil {
@@ -285,7 +286,7 @@ WITH v AS (
   FROM v FULL OUTER JOIN l ON v.id = l.id
 )
 SELECT s.id, s.document_id, s.citation_path, s.heading_path, s.body, s.validity_status,
-       d.doc_number, d.title, d.source_url, f.score
+       d.doc_number, d.title, d.source_url, s.image_ref, f.score
 FROM fused f JOIN ` + section + ` s ON s.id = f.id JOIN ` + document + ` d ON d.id = s.document_id
 ORDER BY f.score DESC LIMIT $2;`
 }

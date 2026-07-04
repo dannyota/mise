@@ -88,13 +88,13 @@ boundaries. Answers stream over SSE with 7 event types; the agent loop is bounde
 
 ## Risk mitigations
 
-| Risk | Mitigation |
-|------|-----------|
-| Confused deputy (R9) | Tier propagation test: denied row never reaches model |
-| Prompt injection (R11) | Read-only agent + permission allowlist + injection fixture test |
-| Contract drift (R8) | Generated types + contract test in CI |
-| Model policy drift (R1) | Config seam — model endpoint swap, not rebuild |
-| Over-abstain / under-abstain | Golden-set calibration before exit (M4-16) |
+| Risk                         | Mitigation                                                      |
+| ---------------------------- | --------------------------------------------------------------- |
+| Confused deputy (R9)         | Tier propagation test: denied row never reaches model           |
+| Prompt injection (R11)       | Read-only agent + permission allowlist + injection fixture test |
+| Contract drift (R8)          | Generated types + contract test in CI                           |
+| Model policy drift (R1)      | Config seam — model endpoint swap, not rebuild                  |
+| Over-abstain / under-abstain | Golden-set calibration before exit (M4-16)                      |
 
 ---
 

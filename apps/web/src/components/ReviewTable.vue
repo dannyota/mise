@@ -19,8 +19,12 @@ const col = createColumnHelper<ReviewCandidate>();
 const columns = [
   col.accessor('source_corpus_id', { header: 'Source' }),
   col.accessor('target_corpus_id', { header: 'Target' }),
-  col.accessor('similarity', {
-    header: 'Score',
+  col.accessor('confidence', {
+    header: 'Confidence',
+    cell: (info) => `${(info.getValue() * 100).toFixed(0)}%`,
+  }),
+  col.accessor('grounding_score', {
+    header: 'Grounding',
     cell: (info) => `${(info.getValue() * 100).toFixed(0)}%`,
   }),
   col.accessor('status', { header: 'Status' }),
@@ -44,9 +48,12 @@ const table = useVueTable({
   <div class="overflow-x-auto rounded border">
     <table class="w-full text-left text-sm">
       <thead class="border-b bg-gray-50">
-        <tr>
+        <tr
+          v-for="headerGroup in table.getHeaderGroups()"
+          :key="headerGroup.id"
+        >
           <th
-            v-for="header in table.getHeaderGroups()[0].headers"
+            v-for="header in headerGroup.headers"
             :key="header.id"
             class="px-4 py-2 font-medium text-gray-600"
           >

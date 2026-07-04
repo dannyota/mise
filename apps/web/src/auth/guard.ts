@@ -1,7 +1,4 @@
-import type {
-  NavigationGuardNext,
-  RouteLocationNormalized,
-} from 'vue-router';
+import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router';
 import { useAuthStore } from './store.js';
 
 const PUBLIC_ROUTES = ['/login', '/callback'];
@@ -20,10 +17,7 @@ export function authGuard(
     next('/login');
     return;
   }
-  if (
-    to.path === '/admin' &&
-    !store.capabilities.admin_allowed
-  ) {
+  if (to.path === '/admin' && !store.capabilities.admin_allowed) {
     next('/');
     return;
   }

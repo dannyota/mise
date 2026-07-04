@@ -2,7 +2,7 @@
 import { X } from 'lucide-vue-next';
 import type { ChainHop } from '@mise/contract';
 
-defineProps<{ hops: ChainHop[]; open: boolean }>();
+defineProps<{ hops: readonly ChainHop[]; open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 </script>
 
@@ -25,8 +25,11 @@ const emit = defineEmits<{ close: [] }>();
             :key="i"
             class="rounded border p-3 text-sm"
           >
-            <p class="font-medium">{{ hop.label }}</p>
-            <p class="mt-1 text-xs text-gray-500">{{ hop.relation }}</p>
+            <p class="font-medium">{{ hop.citation }}</p>
+            <p class="mt-1 text-xs text-gray-500">
+              {{ hop.corpus_id }} &middot; {{ hop.edge_type }} &middot;
+              {{ (hop.confidence * 100).toFixed(0) }}%
+            </p>
           </li>
         </ol>
       </div>

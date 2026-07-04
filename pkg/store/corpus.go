@@ -304,7 +304,7 @@ func nullIfEmpty(s string) any {
 // body_tsv (migration 006) is a generated column and never appears here.
 var sectionColumns = []string{
 	"document_id", "corpus_id", "citation_path", "heading_path", "position", "body",
-	"embedding", "validity_status", "access_tier", "effective_date",
+	"embedding", "validity_status", "access_tier", "effective_date", "image_ref",
 }
 
 // ReplaceSections atomically replaces every section of docID with secs: a
@@ -347,7 +347,7 @@ func (c *Corpus) ReplaceSections(ctx context.Context, docID uuid.UUID, secs []Se
 			}
 			return []any{
 				docID, s.CorpusID, nullIfEmpty(s.CitationPath), nullIfEmpty(s.HeadingPath), i, s.Body,
-				emb, s.ValidityStatus, s.AccessTier, s.EffectiveDate,
+				emb, s.ValidityStatus, s.AccessTier, s.EffectiveDate, nullIfEmpty(s.ImageRef),
 			}, nil
 		})
 		if _, err := tx.CopyFrom(ctx, pgx.Identifier{c.schema, "section"}, sectionColumns, src); err != nil {

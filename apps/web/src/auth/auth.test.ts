@@ -36,9 +36,7 @@ describe('auth store', () => {
       translate_allowed: false,
       admin_allowed: true,
     });
-    expect(store.capabilities.translate_allowed).toBe(
-      false,
-    );
+    expect(store.capabilities.translate_allowed).toBe(false);
     expect(store.capabilities.admin_allowed).toBe(true);
   });
 });

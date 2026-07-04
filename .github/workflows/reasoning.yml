@@ -16,6 +16,8 @@ jobs:
           node-version: '24'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      # contract's dist/ is gitignored — build it before anything imports it
+      - run: pnpm --filter @mise/contract build
       - run: pnpm exec prettier --check "apps/reasoning/**"
       - run: pnpm --filter @mise/reasoning lint
       - run: pnpm --filter @mise/reasoning test

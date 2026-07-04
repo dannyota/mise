@@ -7,8 +7,8 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 import type { RestGraphNode, RestGraphEdge } from '@mise/contract';
 
 const props = defineProps<{
-  nodes: RestGraphNode[];
-  edges: RestGraphEdge[];
+  nodes: readonly RestGraphNode[];
+  edges: readonly RestGraphEdge[];
 }>();
 
 const emit = defineEmits<{ selectNode: [id: string] }>();

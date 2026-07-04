@@ -14,9 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
     translate_allowed: true,
     admin_allowed: false,
   });
-  const isAuthenticated = computed(
-    () => token.value !== null,
-  );
+  const isAuthenticated = computed(() => token.value !== null);
 
   function setToken(t: string | null): void {
     token.value = t;

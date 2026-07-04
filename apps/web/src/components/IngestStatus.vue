@@ -2,7 +2,7 @@
 import type { CorpusStatus } from '@mise/contract';
 
 defineProps<{
-  corpora: CorpusStatus[];
+  corpora: readonly CorpusStatus[];
 }>();
 </script>
 

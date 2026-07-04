@@ -16,6 +16,8 @@ jobs:
           node-version: '24'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      # contract's dist/ is gitignored — build it before anything imports it
+      - run: pnpm --filter @mise/contract build
       - run: pnpm exec prettier --check "apps/web/**"
       - run: pnpm --filter @mise/web lint
       - run: pnpm --filter @mise/web build
