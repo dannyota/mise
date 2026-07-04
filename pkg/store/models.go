@@ -54,6 +54,7 @@ type Section struct {
 	AccessTier     string
 	Embedding      []float32
 	EffectiveDate  *time.Time
+	ImageRef       string
 }
 
 // AmendmentEvent is one dated act on TargetDocID's validity — amended,
