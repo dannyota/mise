@@ -3,6 +3,7 @@ import { onMounted } from 'vue';
 import { useNotificationsStore } from '@/stores/notifications.js';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import WebhookManager from '@/components/WebhookManager.vue';
 import { CheckCircle } from 'lucide-vue-next';
 
 const store = useNotificationsStore();
@@ -35,6 +36,9 @@ onMounted(() => store.fetch());
           <CheckCircle :size="16" />
         </button>
       </div>
+    </div>
+    <div class="mt-8 border-t pt-6">
+      <WebhookManager />
     </div>
   </div>
 </template>

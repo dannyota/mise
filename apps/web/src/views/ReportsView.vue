@@ -16,7 +16,9 @@ async function exportReport(format: string): Promise<void> {
   exporting.value = true;
   error.value = null;
   try {
-    const res = await apiPost<{ download_url: string }>('/reports/export', { format });
+    const res = await apiPost<{ download_url: string }>('/reports/export', {
+      format,
+    });
     window.open(res.download_url, '_blank');
   } catch (e) {
     error.value = e instanceof Error ? e : new Error(String(e));
