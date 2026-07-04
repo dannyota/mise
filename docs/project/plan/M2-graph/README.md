@@ -11,7 +11,7 @@ and ship the read-side graph API (the MCP `graph` tool + `GET /graph/nodes/{ref}
 findings, or promote any edge — those are M3.
 
 A **detailed, PR-sized milestone**, split across the three workstream files below; every milestone
-(M0–M6) is planned to this depth — see the [build-plan workspace](../README.md).
+(M0–M8) is planned to this depth — see the [build-plan workspace](../README.md).
 
 See also:
 

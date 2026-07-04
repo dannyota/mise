@@ -1,6 +1,6 @@
 # Mise — Roadmap
 
-The milestone view of the build: the seven phases as **milestones M0–M6**, the **critical path**
+The milestone view of the build: the nine phases as **milestones M0–M8**, the **critical path**
 that links them, the **exit gates** each milestone must satisfy, and the **review-load** shape
 that paces a solo part-time build. It owns _sequence + gating_; the per-milestone task detail is
 [plan/](./plan/README.md), the goals + delta are under [plan/](./plan/README.md), execution risk
@@ -21,6 +21,8 @@ See also:
 - [M4](./plan/M4-audit-qa/README.md)
 - [M5](./plan/M5-web-ui/README.md)
 - [M6](./plan/M6-scale/README.md)
+- [M7](./plan/M7-review/README.md)
+- [M8](./plan/M8-release/README.md)
 
 ---
 
@@ -38,6 +40,8 @@ Each phase reaches one milestone; the milestone _is_ the phase's demonstrable ou
 | **M4** ✅ | [M4-audit-qa](./plan/M4-audit-qa/README.md)   | cited, grounded answers over REST + MCP + SSE                                               | ask a question → cited answer / abstain               |
 | **M5** ✅ | [M5-web-ui](./plan/M5-web-ui/README.md)       | all screens live in the Vue SPA                                                             | the full product in a browser                         |
 | **M6** ✅ | [M6-scale](./plan/M6-scale/README.md)         | corpus registry GA + multimodal + new scope by descriptor only                              | add a corpus with zero core edits                     |
+| **M7**    | [M7-review](./plan/M7-review/README.md)       | design-doc set audited for consistency, completeness, and correctness                       | a clean, trustworthy spec                             |
+| **M8**    | [M8-release](./plan/M8-release/README.md)     | v0.1.0 open-source release under AGPL-3.0                                                   | tagged release on GitHub                              |
 
 ---
 
@@ -56,10 +60,14 @@ flowchart LR
     M3 --> M4["M4 — Audit Q&A"]
     M4 --> M5["M5 — Web UI"]
     M5 --> M6["M6 — scale"]
+    M6 --> M7["M7 — review"]
+    M7 --> M8["M8 — v0.1.0"]
     classDef gated fill:#6d28d9,stroke:#a78bfa,color:#fff,stroke-width:2px
     classDef public fill:#059669,stroke:#34d399,color:#fff,stroke-width:2px
+    classDef release fill:#b45309,stroke:#fbbf24,color:#fff,stroke-width:2px
     class M1b,M3,M4 gated
     class M1a public
+    class M8 release
 ```
 
 - **Green = runs entirely on public data** — M1a (law ingest: WS1 + WS4) delivers per-corpus
@@ -67,6 +75,7 @@ flowchart LR
 - **Violet = has non-code exit gates** (§3) — M3/M4 have open implementation-review
   decisions; M1b has real-adopter connector integration input. M0's own gate (DEC 14, embedding
   call site) is locked.
+- **Amber = release milestone** — M8 publishes v0.1.0 on GitHub under AGPL-3.0.
 - **M1a/M1b split:** M1a (public law corpora) is ungated and exits independently; M1b (internal
   connectors: WS2 + WS3) runs when SharePoint access materializes. M2's graph schema,
   extraction, and API are complete; live Method-A wiring into an internal-corpus ingest run
@@ -76,6 +85,8 @@ flowchart LR
   linearly because one builder runs them in order, but each later phase depends on _all_ prior.
 - **Earliest value lands at M1a** (evidence search) and again at **M4** (Q&A); M5 makes it a
   product. If priorities force a cut, M1a→M4 is the spine; M5/M6 are surface + scale.
+- **M7 is review-only** — no new design surface; audits M0–M6 for consistency and correctness.
+  **M8 is release-only** — license headers, changelog, tag, GitHub release.
 
 ---
 
@@ -116,6 +127,8 @@ concentrates — the real pacing signal (RISKS R4).
 | M4        |    23 | **mostly Heavy** — tier propagation, abstain, injection | governance-critical; the new TS service                  |
 | M5        |    20 | mixed — Heavy on tier-gated screens                     | review-load eases on static screens                      |
 | M6        |    13 | Heavy on reports/multimodal (gated)                     | proves extensibility; low core-change risk               |
+| M7        |     9 | mostly **Light/Medium** (Heavy: schema consistency)     | review-only — no new design surface                      |
+| M8        |     8 | mostly **Light** (Medium: dep audit, README)            | release prep — license, changelog, tag                   |
 
 - **Heavy-review density peaks at M3–M4.** Budget the most direction/review time there; don't
   bunch other Heavy work alongside.

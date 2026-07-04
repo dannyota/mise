@@ -10,7 +10,7 @@ chunk is embedded @1536-d, tier-tagged at write (RLS), and queryable **per-corpu
 retrievable**. It does **not** build any cross-corpus graph edge or detector (→ M2/M3), ship the
 reasoning endpoint (→ M4), or the Web UI (→ M5).
 
-The work is split across the four workstream files below; every milestone (M0–M6) is planned to
+The work is split across the four workstream files below; every milestone (M0–M8) is planned to
 this depth — see the [build-plan workspace](../README.md).
 
 See also:

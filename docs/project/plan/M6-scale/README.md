@@ -1,6 +1,6 @@
 # Mise — Milestone M6: Scale & multimodal
 
-The **final milestone, planned in detail.** Make the corpus registry **GA** — a new corpus or
+The **final feature milestone.** Make the corpus registry **GA** — a new corpus or
 scope ships as a **descriptor + source plugin + scope seed with no core change** — and prove it by
 landing two new corpus kinds: a **reports** corpus (audit/risk) whose finding-nodes map into the
 graph (a living audit map), and a **multimodal `diagram`** path that verbalizes figures/images
@@ -8,7 +8,7 @@ graph (a living audit map), and a **multimodal `diagram`** path that verbalizes 
 under the one hard constraint — the **single embedding space** (DECISIONS 1), enforced fail-closed
 at registration. It adds **no new subsystem**: everything rides the M0–M5 spine.
 
-This is the **last milestone — no successor.** The breakdown is split across the three workstream
+The breakdown is split across the three workstream
 files below; tasks are PR-sized and dependency-ordered (`M6-1 … M6-13`). Each task: **Size** XS–L ·
 **Review** Light/Medium/Heavy · **Risk** Low/Med/High.
 
@@ -23,6 +23,7 @@ See also:
 - [DELIVERY-MODEL](../../../engineering/DELIVERY-MODEL.md)
 - [DECISIONS](../../DECISIONS.md) 1/8/10/17
 - Previous: [Milestone M5](../M5-web-ui/README.md)
+- Next: [Milestone M7](../M7-review/README.md)
 
 ---
 

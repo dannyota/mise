@@ -1,7 +1,7 @@
 # Mise — Build Plan Workspace
 
 The build-plan workspace. It owns the focused plan docs plus the detailed milestone plans, one
-subfolder per milestone (M0-M6, matching [ROADMAP](../ROADMAP.md)).
+subfolder per milestone (M0–M8, matching [ROADMAP](../ROADMAP.md)).
 
 See also:
 
@@ -25,18 +25,20 @@ See also:
 
 ## 2. Milestone Layout
 
-All seven milestones are detailed to the same depth — an overview `README.md` plus workstream files
+All nine milestones are detailed to the same depth — an overview `README.md` plus workstream files
 with PR-sized tasks.
 
-| Milestone | Folder                                    | State                                                               |
-| --------- | ----------------------------------------- | ------------------------------------------------------------------- |
-| **M0**    | [M0-skeleton/](./M0-skeleton/README.md)   | **detailed** — overview + 4 workstreams, 19 tasks                   |
-| **M1**    | [M1-ingest/](./M1-ingest/README.md)       | **detailed** — overview + 4 workstreams, 24 tasks                   |
-| **M2**    | [M2-graph/](./M2-graph/README.md)         | **detailed** — overview + 3 workstreams, 15 tasks                   |
-| **M3**    | [M3-detectors/](./M3-detectors/README.md) | **detailed** — overview + 4 workstreams, 18 tasks (crown-jewel)     |
-| **M4**    | [M4-audit-qa/](./M4-audit-qa/README.md)   | **detailed** — overview + 4 workstreams, 23 tasks                   |
-| **M5**    | [M5-web-ui/](./M5-web-ui/README.md)       | **detailed** — overview + 4 workstreams, 20 tasks                   |
-| **M6**    | [M6-scale/](./M6-scale/README.md)         | **detailed** — overview + 3 workstreams, 13 tasks (final milestone) |
+| Milestone | Folder                                    | State                                                           |
+| --------- | ----------------------------------------- | --------------------------------------------------------------- |
+| **M0**    | [M0-skeleton/](./M0-skeleton/README.md)   | **detailed** — overview + 4 workstreams, 19 tasks               |
+| **M1**    | [M1-ingest/](./M1-ingest/README.md)       | **detailed** — overview + 4 workstreams, 24 tasks               |
+| **M2**    | [M2-graph/](./M2-graph/README.md)         | **detailed** — overview + 3 workstreams, 15 tasks               |
+| **M3**    | [M3-detectors/](./M3-detectors/README.md) | **detailed** — overview + 4 workstreams, 18 tasks (crown-jewel) |
+| **M4**    | [M4-audit-qa/](./M4-audit-qa/README.md)   | **detailed** — overview + 4 workstreams, 23 tasks               |
+| **M5**    | [M5-web-ui/](./M5-web-ui/README.md)       | **detailed** — overview + 4 workstreams, 20 tasks               |
+| **M6**    | [M6-scale/](./M6-scale/README.md)         | **detailed** — overview + 3 workstreams, 13 tasks               |
+| **M7**    | [M7-review/](./M7-review/README.md)       | **detailed** — overview + 2 workstreams, 9 tasks (review-only)  |
+| **M8**    | [M8-release/](./M8-release/README.md)     | **detailed** — overview + 2 workstreams, 8 tasks (v0.1.0)       |
 
 ---
 

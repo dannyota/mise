@@ -8,7 +8,7 @@ behind the embedder seam, provision **AlloyDB Omni** (one DB, schema-per-corpus 
 compose** with the `VERTEX=fake` seam — reaching **M0: the stack stands up (locally)**. It does
 **not** ingest any real corpus, build any graph edge/detector, or ship the UI.
 
-The work is split across the four workstream files below; every milestone (M0–M6) is planned to
+The work is split across the four workstream files below; every milestone (M0–M8) is planned to
 this depth — see the [build-plan workspace](../README.md).
 
 See also:
