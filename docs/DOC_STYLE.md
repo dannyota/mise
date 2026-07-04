@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Doc Style
 
 The contract every mise doc follows: **clear, single-purpose, non-overlapping**, at the bar of

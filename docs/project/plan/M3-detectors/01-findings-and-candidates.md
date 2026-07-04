@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M3 · Workstream 1: Findings & candidate pipeline
 
 The data foundation for M3: the findings/resolution schema + migration that the detectors write

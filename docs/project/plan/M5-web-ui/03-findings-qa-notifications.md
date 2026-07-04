@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M5 · Workstream 3: Findings · Q&A · notifications
 
 Build the operational screens around findings and Audit Q&A: Findings register, Resolution board,

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Observability
 
 How mise is **traced, measured, logged, and alerted** across its four services, and the

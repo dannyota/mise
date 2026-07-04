@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — UI Design
 
 The mise Web UI — a **Vue 3.5 SPA** (Vite). This

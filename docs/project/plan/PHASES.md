@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Phase Map
 
 The nine build phases and the milestone each phase reaches. This file owns traceability from

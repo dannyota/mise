@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M6 · Workstream 1: Registry GA
 
 Make the corpus registry **GA**: formalize the descriptor as the single registration surface,

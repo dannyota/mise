@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Cost Model
 
 Cost estimate driven by **data volume**, scoped to **all banking regulation** (not

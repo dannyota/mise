@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M5 · Workstream 4: Reports · corpus admin · verify
 
 Finish the web milestone with exportable reports, Corpus Admin, and the browser test gates that

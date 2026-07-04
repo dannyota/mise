@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Build Plan Workspace
 
 The build-plan workspace. It owns the focused plan docs plus the detailed milestone plans, one

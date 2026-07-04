@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M3 · Workstream 3: Detectors
 
 Build the four cross-corpus detectors on top of the graph spine: transitive `covers`,

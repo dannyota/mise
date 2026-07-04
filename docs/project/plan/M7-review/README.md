@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Milestone M7: Design Review
 
 A **quality gate before release.** The design-doc set (M0–M6) is feature-complete; this milestone

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Folder Structure (scaffolding plan)
 
 Plan the repo layout **before** scaffolding code. mise is **one product, three runtimes**

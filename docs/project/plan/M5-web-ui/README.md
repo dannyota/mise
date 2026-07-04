@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Milestone M5: Web UI
 
 A **detailed, PR-sized milestone.** Bring the whole product into the browser: every UI-DESIGN §2

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Local Development
 
 How to run the **whole stack on a laptop**, deliberately **separated from the GKE

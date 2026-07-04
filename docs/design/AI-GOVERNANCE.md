@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — AI Governance
 
 How mise governs the **AI models and the user-facing AI agent** — distinct from

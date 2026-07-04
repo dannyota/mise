@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M4 · Workstream 1: Serving MCP surface
 
 Finalize the read-only evidence tools the reasoning endpoint will call: `search`, `document`, and

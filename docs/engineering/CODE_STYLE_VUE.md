@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Vue Code Style (frontend)
 
 For the **Vue 3.5 SPA** (Vite 8). **Google publishes no Vue

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M5 · Workstream 1: Shell & shared
 
 The SPA foundation: app shell + OIDC, the **typed client generated from `packages/contract`**, the

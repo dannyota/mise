@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M0 · Workstream 2: Corpus registry
 
 Generalize the engine's single-jurisdiction assumption into a **corpus registry** — a typed

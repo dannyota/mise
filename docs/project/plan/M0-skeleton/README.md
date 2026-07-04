@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Milestone M0: Skeleton
 
 The **first milestone, planned in detail.** Stand mise up by reusing and improving the

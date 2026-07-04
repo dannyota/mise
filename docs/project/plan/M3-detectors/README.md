@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Milestone M3: Cross-corpus detectors
 
 The **crown-jewel milestone, planned in detail.** The 4 cross-corpus detectors run as Temporal

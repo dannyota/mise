@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Delivery & Operating Model
 
 mise is **open source (AGPL-3.0) on GitHub**, deployed as a **single-tenant instance per

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Milestone M2: Graph spine
 
 Build the **cross-corpus compliance graph** — the only place the five evidence-only corpora

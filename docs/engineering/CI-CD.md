@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — CI/CD & Supply Chain
 
 How mise **builds, gates, scans, and ships**. One CI pipeline per service (Go serving ·

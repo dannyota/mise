@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # M8 WS2 — Release Artifacts
 
 README, CHANGELOG, repo hygiene, and the v0.1.0 tag + GitHub release.

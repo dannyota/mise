@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Docs
 
 Design-doc set for mise. Grouped by concern; each doc has **one responsibility**

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M2 · Workstream 3: Graph API
 
 Expose the graph spine as a tier-filtered read API: repository queries, bounded control-chain

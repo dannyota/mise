@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M4 · Workstream 4: Contract & verify
 
 Tie serving and reasoning together with generated contracts, E2E tests, eval gates, and operator

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M3 · Workstream 4: HITL & eval
 
 Expose the review queue and findings API, support promote/reject/relink with recomputation, seed

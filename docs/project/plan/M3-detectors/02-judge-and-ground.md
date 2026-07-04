@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M3 · Workstream 2: Judge & ground
 
 Turn Method-B candidate pairs into grounded, auditable `satisfies` candidates: Gemini judge,

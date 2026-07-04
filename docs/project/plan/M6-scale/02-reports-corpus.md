@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M6 · Workstream 2: Reports corpus
 
 Land the first new corpus **kind** through the GA registry: a `report` (audit/risk) corpus that

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # M7 WS1 — Cross-Reference & Structure
 
 Link integrity, doc ownership, terminology, customer-neutrality, and the README index. Every task

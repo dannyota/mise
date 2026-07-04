@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Data Governance
 
 How mise handles data: the **read** and **write** paths, the **access tiers** that

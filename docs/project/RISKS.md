@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Delivery Risk Register
 
 Execution / delivery risks for building mise — what could stall, rework, or derail the phased

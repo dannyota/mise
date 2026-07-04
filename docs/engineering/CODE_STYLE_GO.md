@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Go Code Style
 
 For the Go backend — **serving · worker (ingest/detectors) · MCP · store**. Base:

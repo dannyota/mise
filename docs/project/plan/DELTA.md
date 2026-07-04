@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Build Delta
 
 The reuse · change · new delta from the existing banhmi/laksa engine to mise. This file owns the

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M1 · Workstream 3: Metadata & ownership
 
 Turn parsed internal documents into the durable control envelope: signer, approver, current owner,

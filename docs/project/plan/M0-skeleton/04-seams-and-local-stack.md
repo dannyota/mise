@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M0 · Workstream 4: Seams & local stack
 
 Put every Vertex touchpoint behind a Go interface (so Mode B runs fully offline), stand up the

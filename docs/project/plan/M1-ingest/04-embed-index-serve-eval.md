@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M1 · Workstream 4: Embed · index · serve · eval
 
 Embed all normalized sections in the single locked 1536-d space, build per-corpus indexes, expose

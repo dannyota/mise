@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M2 · Workstream 1: Graph schema
 
 Fill the empty `graph` schema (M0-10) with the edge model — `relation_edge` + `relation_evidence`,

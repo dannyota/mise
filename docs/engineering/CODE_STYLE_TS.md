@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — TypeScript Code Style (backend / reasoning endpoint)
 
 For the **reasoning endpoint** — Node 24 LTS + Hono + the Claude Agent SDK. Base: the

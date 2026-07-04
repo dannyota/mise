@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Roadmap
 
 The milestone view of the build: the nine phases as **milestones M0–M8**, the **critical path**

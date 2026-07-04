@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — API Contract
 
 The surfaces `serving` exposes: **REST** (for the Vue web app), **MCP tools** (for the

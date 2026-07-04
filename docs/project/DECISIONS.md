@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Decision Log
 
 The decisions that shape mise. Cited elsewhere as **`DECISIONS N`** (e.g. `DECISIONS 10`).

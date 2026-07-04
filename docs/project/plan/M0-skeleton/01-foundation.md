@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M0 · Workstream 1: Foundation
 
 Dev-environment foundation: bring the banhmi/laksa engine up under one `danny.vn/mise` Go module,

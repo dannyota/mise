@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M5 · Workstream 2: Graph & review
 
 Build the graph-facing analyst screens: Graph Explorer, control-chain drill-down, Review Workbench,

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # M7 WS2 — Content & Style
 
 Decision-log consistency, diagram audit, schema/interface consistency, and doc-style compliance.

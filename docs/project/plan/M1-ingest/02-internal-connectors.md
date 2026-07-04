@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M1 · Workstream 2: Internal connectors
 
 Build the internal-source side of the ingest pipeline behind the same `ingest.Source` interface:

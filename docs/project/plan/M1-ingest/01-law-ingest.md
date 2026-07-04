@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M1 · Workstream 1: Law ingest
 
 Re-home the banhmi/laksa public law crawlers into mise's medallion pipeline, put Doc AI Layout

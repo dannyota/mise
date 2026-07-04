@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M4 · Workstream 2: Endpoint core
 
 Stand up the separate TypeScript reasoning service, verify OIDC, propagate caller identity to MCP,

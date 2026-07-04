@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Architecture
 
 Evidence-only regulatory & policy intelligence for **banks**, spanning

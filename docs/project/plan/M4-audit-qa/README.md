@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Milestone M4: Audit Q&A
 
 Reaches **M4 — cited, grounded Audit Q&A over REST + MCP + SSE.** The **separate TypeScript

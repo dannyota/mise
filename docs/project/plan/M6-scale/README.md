@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Milestone M6: Scale & multimodal
 
 The **final feature milestone.** Make the corpus registry **GA** — a new corpus or

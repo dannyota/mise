@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Milestone M1: Ingest the five corpora
 
 The **ingest milestone, planned in detail.** Drive all five corpora through the medallion pipeline

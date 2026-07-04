@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Cross-Cutting Build Rules
 
 Rules every milestone follows. This file owns build-wide constraints; milestone-specific scope,

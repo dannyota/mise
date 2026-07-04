@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Tool & Dependency Licenses
 
 License posture for everything mise uses. **Bottom line:** every library we ship or link

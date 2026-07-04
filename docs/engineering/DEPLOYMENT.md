@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Deployment (GKE)
 
 How mise runs in production: **single-tenant — one instance per enterprise, in the bank's own

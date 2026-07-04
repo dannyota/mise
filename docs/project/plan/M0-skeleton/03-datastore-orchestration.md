@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M0 · Workstream 3: Datastore & orchestration
 
 Provision **AlloyDB Omni** (one DB, schema-per-corpus + an empty `graph` schema, RLS roles per

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — M4 · Workstream 3: Agent behavior
 
 Implement the guarded read-only agent loop: retrieve evidence, build the chain, compose a cited

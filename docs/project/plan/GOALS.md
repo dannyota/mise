@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-only
+Copyright (C) 2026 Danny Ota
+-->
+
 # Mise — Build Goals
 
 The outcome the build plan serves. This file owns the product goals and the explicit non-goal;
