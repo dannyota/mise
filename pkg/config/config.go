@@ -55,7 +55,7 @@ func NewEmbedder(ctx context.Context) (embed.Embedder, error) {
 	case "fake":
 		return embed.NewFake(), nil
 	case "real":
-		e, err := embed.NewVertex(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "us-central1"))
+		e, err := embed.NewVertex(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "asia-southeast1"))
 		if err != nil {
 			return nil, fmt.Errorf("config: creating vertex embedder: %w", err)
 		}
@@ -95,7 +95,7 @@ func NewRanker(ctx context.Context) (vertex.Ranker, error) {
 	case "fake":
 		return vertex.NewFakeRanker(), nil
 	case "real":
-		r, err := vertex.NewVertexRanker(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "us-central1"))
+		r, err := vertex.NewVertexRanker(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "asia-southeast1"))
 		if err != nil {
 			return nil, fmt.Errorf("config: creating vertex ranker: %w", err)
 		}
@@ -116,7 +116,7 @@ func NewJudge(ctx context.Context) (vertex.Judge, error) {
 	case "real":
 		j, err := vertex.NewGeminiJudge(ctx,
 			os.Getenv("GCP_PROJECT"),
-			envOr("GCP_REGION", "us-central1"),
+			envOr("GCP_REGION", "asia-southeast1"),
 			vertex.WithJudgeModel(envOr("JUDGE_MODEL", "gemini-3.5-flash")),
 		)
 		if err != nil {
@@ -161,7 +161,7 @@ func NewGrounder(ctx context.Context) (vertex.Grounder, error) {
 	case "fake":
 		return vertex.NewFakeGrounder(), nil
 	case "real":
-		g, err := vertex.NewCheckGrounder(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "us-central1"))
+		g, err := vertex.NewCheckGrounder(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "asia-southeast1"))
 		if err != nil {
 			return nil, fmt.Errorf("config: creating check grounder: %w", err)
 		}
@@ -181,7 +181,7 @@ func NewCaptioner(ctx context.Context) (vertex.Captioner, error) {
 	case "real":
 		c, err := vertex.NewGeminiCaptioner(ctx,
 			os.Getenv("GCP_PROJECT"),
-			envOr("GCP_REGION", "us-central1"),
+			envOr("GCP_REGION", "asia-southeast1"),
 			vertex.WithCaptionerModel(os.Getenv("CAPTION_MODEL")),
 		)
 		if err != nil {

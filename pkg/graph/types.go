@@ -18,6 +18,7 @@ const (
 	EdgeImplements EdgeType = "implements"
 	EdgeDerives    EdgeType = "derives"
 	EdgeCovers     EdgeType = "covers"
+	EdgeConcerns   EdgeType = "concerns"
 )
 
 // EvidenceKind classifies how an Evidence row was produced. Mirrors the

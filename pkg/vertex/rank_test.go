@@ -219,7 +219,7 @@ func TestNewVertexRankerRejectsEmptyArgs(t *testing.T) {
 		name            string
 		project, region string
 	}{
-		{name: "empty project", region: "us-central1"},
+		{name: "empty project", region: "asia-southeast1"},
 		{name: "empty region", project: "proj"},
 	}
 	for _, tt := range tests {
@@ -242,7 +242,7 @@ func TestVertexRankerLive(t *testing.T) {
 	if project == "" {
 		t.Skip("GCP_PROJECT not set; skipping live Ranking API test")
 	}
-	region := cmp.Or(os.Getenv("GCP_REGION"), "us-central1")
+	region := cmp.Or(os.Getenv("GCP_REGION"), "asia-southeast1")
 
 	r, err := NewVertexRanker(context.Background(), project, region)
 	if err != nil {

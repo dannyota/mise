@@ -12,6 +12,7 @@ const (
 	GroupStd    ID = "group-std"
 	LocalPolicy ID = "local-policy"
 	LocalSOP    ID = "local-sop"
+	Reports     ID = "reports"
 )
 
 // Kind classifies the corpus content.
@@ -134,6 +135,20 @@ var registry = map[ID]Descriptor{
 		GraphRole: GraphRole{
 			CanSource:    true,
 			DefaultEdges: []string{"derives"},
+		},
+	},
+	Reports: {
+		ID: Reports, Kind: KindReport, SchemaName: "reports",
+		CitationScheme: "finding-ref",
+		Embed:          SharedEmbed,
+		AccessTier:     TierLocalConfidential,
+		Tier:           TierLocal,
+		GraphRole: GraphRole{
+			CanSource:    true,
+			DefaultEdges: []string{"concerns"},
+		},
+		MetadataConfig: MetadataConfig{
+			Defaults: map[string]string{"report_type": "finding"},
 		},
 	},
 }

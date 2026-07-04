@@ -34,7 +34,7 @@ func TestNewCheckGrounderRejectsEmptyArgs(t *testing.T) {
 	tests := []struct {
 		name, project, region string
 	}{
-		{name: "empty project", region: "us-central1"},
+		{name: "empty project", region: "asia-southeast1"},
 		{name: "empty region", project: "proj"},
 	}
 	for _, tt := range tests {
@@ -52,15 +52,15 @@ func TestNewCheckGrounderRejectsEmptyArgs(t *testing.T) {
 
 func TestNewCheckGrounderEndpoint(t *testing.T) {
 	g, err := NewCheckGrounder(
-		context.Background(), "proj", "us-central1",
+		context.Background(), "proj", "asia-southeast1",
 		WithGrounderHTTPClient(&http.Client{}),
 	)
 	if err != nil {
 		t.Fatalf("NewCheckGrounder() error = %v", err)
 	}
 	cg := g.(*checkGrounder)
-	want := "https://us-central1-discoveryengine.googleapis.com/" +
-		"v1alpha/projects/proj/locations/us-central1/" +
+	want := "https://asia-southeast1-discoveryengine.googleapis.com/" +
+		"v1alpha/projects/proj/locations/asia-southeast1/" +
 		"groundingConfigs/default_grounding_config:check"
 	if cg.endpoint != want {
 		t.Errorf("endpoint = %q, want %q", cg.endpoint, want)
@@ -221,7 +221,7 @@ func TestCheckGrounderLive(t *testing.T) {
 	if project == "" {
 		t.Skip("GCP_PROJECT not set; skipping live Check Grounding test")
 	}
-	region := cmp.Or(os.Getenv("GCP_REGION"), "us-central1")
+	region := cmp.Or(os.Getenv("GCP_REGION"), "asia-southeast1")
 
 	g, err := NewCheckGrounder(context.Background(), project, region)
 	if err != nil {
