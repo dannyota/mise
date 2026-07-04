@@ -1,5 +1,20 @@
 components:
   schemas:
+    AmendmentWire:
+      additionalProperties: false
+      properties:
+        amending_doc_id:
+          type: string
+        clause:
+          type: string
+        event_date:
+          type: string
+        kind:
+          type: string
+      required:
+        - clause
+        - event_date
+      type: object
     ChainBody:
       additionalProperties: false
       properties:
@@ -18,6 +33,80 @@ components:
             - "null"
       required:
         - hops
+      type: object
+    CorpusAdminStatusWire:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/CorpusAdminStatusWire.json
+          format: uri
+          readOnly: true
+          type: string
+        corpus_id:
+          type: string
+        document_count:
+          format: int64
+          type: integer
+        error_message:
+          type:
+            - string
+            - "null"
+        last_ingest:
+          type: string
+        status:
+          type: string
+        workflow_id:
+          type:
+            - string
+            - "null"
+      required:
+        - corpus_id
+        - status
+        - last_ingest
+        - workflow_id
+        - document_count
+        - error_message
+      type: object
+    CorpusCreateInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/CorpusCreateInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        id:
+          description: Corpus identifier
+          examples:
+            - vn-reg
+          type: string
+        kind:
+          description: Corpus kind
+          examples:
+            - regulation
+          type: string
+      required:
+        - id
+        - kind
+      type: object
+    CorpusCreateOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/CorpusCreateOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        message:
+          type: string
+      required:
+        - message
       type: object
     CorpusDescriptorWire:
       additionalProperties: false
@@ -64,6 +153,21 @@ components:
         - can_source
         - can_target
       type: object
+    CorpusIngestOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/CorpusIngestOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        workflow_id:
+          type: string
+      required:
+        - workflow_id
+      type: object
     CorpusStatusWire:
       additionalProperties: false
       properties:
@@ -84,6 +188,39 @@ components:
         - status
         - last_ingest
         - document_count
+      type: object
+    CoverageReportInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/CoverageReportInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        corpora:
+          description: Corpus IDs to include (empty = all)
+          items:
+            type: string
+          type:
+            - array
+            - "null"
+      type: object
+    CoverageReportOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/CoverageReportOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        message:
+          type: string
+      required:
+        - message
       type: object
     DashboardSummaryOutputBody:
       additionalProperties: false
@@ -119,6 +256,123 @@ components:
         - staleness_alerts
         - review_queue_depth
         - corpora
+      type: object
+    DocSectionWire:
+      additionalProperties: false
+      properties:
+        citation_path:
+          type: string
+        heading_path:
+          type: string
+        id:
+          type: string
+        image_ref:
+          type: string
+        position:
+          format: int64
+          type: integer
+        text:
+          type: string
+        validity_status:
+          type: string
+      required:
+        - id
+        - citation_path
+        - heading_path
+        - text
+        - validity_status
+        - position
+      type: object
+    DocumentDetailWire:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/DocumentDetailWire.json
+          format: uri
+          readOnly: true
+          type: string
+        amendments:
+          items:
+            $ref: "#/components/schemas/AmendmentWire"
+          type:
+            - array
+            - "null"
+        document:
+          $ref: "#/components/schemas/DocumentEnvelopeWire"
+        sections:
+          items:
+            $ref: "#/components/schemas/DocSectionWire"
+          type:
+            - array
+            - "null"
+      required:
+        - document
+        - sections
+        - amendments
+      type: object
+    DocumentEnvelopeWire:
+      additionalProperties: false
+      properties:
+        access_tier:
+          type: string
+        citation_path:
+          type: string
+        citation_scheme:
+          type: string
+        content_type:
+          type: string
+        corpus_id:
+          type: string
+        doc_number:
+          type: string
+        effective_date:
+          type: string
+        expiry_date:
+          type: string
+        id:
+          type: string
+        ingest_run_id:
+          type: string
+        issued_date:
+          type: string
+        issuing_authority:
+          type: string
+        language:
+          type: string
+        observed_at:
+          type: string
+        signer_name:
+          type: string
+        source_system:
+          type: string
+        source_url:
+          type: string
+        title:
+          type: string
+        validity_status:
+          type: string
+        version:
+          type: string
+      required:
+        - id
+        - corpus_id
+        - title
+        - doc_number
+        - citation_scheme
+        - citation_path
+        - language
+        - validity_status
+        - issuing_authority
+        - signer_name
+        - version
+        - source_url
+        - source_system
+        - content_type
+        - access_tier
+        - ingest_run_id
+        - observed_at
       type: object
     EdgeWire:
       additionalProperties: false
@@ -320,6 +574,21 @@ components:
         - access_tier
         - detected_at
         - dedup_key
+      type: object
+    FindingsExportOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/FindingsExportOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        message:
+          type: string
+      required:
+        - message
       type: object
     GraphCanvasOutputBody:
       additionalProperties: false
@@ -724,6 +993,66 @@ components:
       required:
         - items
       type: object
+    SearchOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/SearchOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        sections:
+          items:
+            $ref: "#/components/schemas/SectionHitWire"
+          type:
+            - array
+            - "null"
+      required:
+        - sections
+      type: object
+    SectionHitWire:
+      additionalProperties: false
+      properties:
+        citation_path:
+          type: string
+        corpus_id:
+          type: string
+        doc_number:
+          type: string
+        document_id:
+          type: string
+        heading_path:
+          type: string
+        image_ref:
+          type: string
+        score:
+          format: double
+          type: number
+        section_id:
+          type: string
+        source_url:
+          type: string
+        text:
+          type: string
+        title:
+          type: string
+        validity_status:
+          type: string
+      required:
+        - corpus_id
+        - document_id
+        - section_id
+        - doc_number
+        - title
+        - citation_path
+        - heading_path
+        - text
+        - validity_status
+        - score
+        - source_url
+      type: object
     TimelineEventWire:
       additionalProperties: false
       properties:
@@ -769,6 +1098,57 @@ components:
           type: string
       required:
         - items
+      type: object
+    TranslateInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/TranslateInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        source_lang:
+          description: BCP-47 source language code
+          examples:
+            - vi
+          type: string
+        target_lang:
+          description: BCP-47 target language code
+          examples:
+            - en
+          type: string
+        text:
+          description: Text to translate
+          examples:
+            - Requirement for IT system safety
+          type: string
+      required:
+        - text
+        - source_lang
+        - target_lang
+      type: object
+    TranslateOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/TranslateOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        source_lang:
+          type: string
+        target_lang:
+          type: string
+        translated_text:
+          type: string
+      required:
+        - translated_text
+        - source_lang
+        - target_lang
       type: object
     WebhookCreateInputBody:
       additionalProperties: false
@@ -877,6 +1257,131 @@ info:
   version: 0.1.0
 openapi: 3.1.0
 paths:
+  /corpora:
+    post:
+      operationId: create-corpus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorpusCreateInputBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpusCreateOutputBody"
+          description: OK
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Internal Server Error
+        "501":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Not Implemented
+      summary: Register a new corpus (not yet implemented)
+      tags:
+        - Corpus Admin
+  /corpora/{id}/ingest:
+    post:
+      operationId: trigger-corpus-ingest
+      parameters:
+        - description: Corpus ID
+          in: path
+          name: id
+          required: true
+          schema:
+            description: Corpus ID
+            examples:
+              - vn-reg
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpusIngestOutputBody"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Bad Request
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Not Found
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Internal Server Error
+      summary: Trigger the IngestCorpusWorkflow for a corpus
+      tags:
+        - Corpus Admin
+  /corpora/{id}/status:
+    get:
+      operationId: get-corpus-status
+      parameters:
+        - description: Corpus ID
+          in: path
+          name: id
+          required: true
+          schema:
+            description: Corpus ID
+            examples:
+              - vn-reg
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpusAdminStatusWire"
+          description: OK
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Not Found
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Internal Server Error
+      summary: Get latest ingest run status for a corpus
+      tags:
+        - Corpus Admin
   /dashboards/summary:
     get:
       operationId: get-dashboard-summary
@@ -896,6 +1401,62 @@ paths:
       summary: Get the dashboard summary (counts + corpus health)
       tags:
         - Dashboard
+  /documents/{corpus}/{id}:
+    get:
+      operationId: get-document
+      parameters:
+        - description: Corpus ID
+          in: path
+          name: corpus
+          required: true
+          schema:
+            description: Corpus ID
+            examples:
+              - vn-reg
+            type: string
+        - description: Document UUID
+          in: path
+          name: id
+          required: true
+          schema:
+            description: Document UUID
+            examples:
+              - 550e8400-e29b-41d4-a716-446655440000
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDetailWire"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Bad Request
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Not Found
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Internal Server Error
+      summary: Get full document envelope with sections and amendment timeline
+      tags:
+        - Documents
   /findings:
     get:
       operationId: list-findings
@@ -1349,6 +1910,93 @@ paths:
       summary: Get a corpus descriptor by ID
       tags:
         - Registry
+  /reports/coverage:
+    post:
+      operationId: generate-coverage-report
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoverageReportInputBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoverageReportOutputBody"
+          description: OK
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Internal Server Error
+        "501":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Not Implemented
+      summary: Generate coverage report from graph edges and findings
+      tags:
+        - Reports
+  /reports/findings.xlsx:
+    get:
+      operationId: export-findings-xlsx
+      parameters:
+        - description: Filter by finding kind
+          explode: false
+          in: query
+          name: kind
+          schema:
+            description: Filter by finding kind
+            examples:
+              - ""
+            type: string
+        - description: Filter by finding status
+          explode: false
+          in: query
+          name: status
+          schema:
+            description: Filter by finding status
+            examples:
+              - ""
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FindingsExportOutputBody"
+          description: OK
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Internal Server Error
+        "501":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Not Implemented
+      summary: Export findings register as Excel spreadsheet
+      tags:
+        - Reports
   /reviews:
     get:
       operationId: list-reviews
@@ -1583,6 +2231,84 @@ paths:
       summary: Update an edge's target (re-detection deferred to M5)
       tags:
         - Reviews
+  /search:
+    get:
+      operationId: search
+      parameters:
+        - description: Search query text
+          explode: false
+          in: query
+          name: q
+          schema:
+            description: Search query text
+            examples:
+              - IT system safety requirements
+            type: string
+        - description: Comma-separated corpus IDs to search (empty = all)
+          explode: false
+          in: query
+          name: corpora
+          schema:
+            description: Comma-separated corpus IDs to search (empty = all)
+            examples:
+              - vn-reg,my-reg
+            type: string
+        - description: Maximum results (1-100, default 10)
+          explode: false
+          in: query
+          name: top_k
+          schema:
+            description: Maximum results (1-100, default 10)
+            examples:
+              - 10
+            format: int64
+            type: integer
+        - description: "Restrict to in-force/amended: true (default) or false"
+          explode: false
+          in: query
+          name: in_force_only
+          schema:
+            description: "Restrict to in-force/amended: true (default) or false"
+            examples:
+              - "true"
+            type: string
+        - description: Point-in-time filter (YYYY-MM-DD)
+          explode: false
+          in: query
+          name: as_of_date
+          schema:
+            description: Point-in-time filter (YYYY-MM-DD)
+            examples:
+              - "2026-01-15"
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchOutputBody"
+          description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Bad Request
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Internal Server Error
+      summary: Hybrid search across evidence corpora (REST mirror of MCP search tool)
+      tags:
+        - Search
   /timeline:
     get:
       operationId: list-timeline
@@ -1661,6 +2387,43 @@ paths:
       summary: List timeline events (paginated, filterable by date/corpus)
       tags:
         - Timeline
+  /translate:
+    post:
+      operationId: translate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TranslateInputBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranslateOutputBody"
+          description: OK
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Internal Server Error
+        "501":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Not Implemented
+      summary: Translate evidence text via Google Cloud Translation API (gated per AI-GOVERNANCE section 7)
+      tags:
+        - Translation
   /webhooks:
     get:
       operationId: list-webhooks

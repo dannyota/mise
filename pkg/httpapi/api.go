@@ -45,6 +45,10 @@ type Deps struct {
 	GraphCanvas   GraphCanvasRepoIface
 	Timeline      TimelineRepoIface
 	Notifications NotificationRepoIface
+	Search        SearchRepoIface
+	Documents     DocumentRepoIface
+	CorpusAdmin   CorpusAdminRepoIface
+	Reports       ReportsRepoIface
 }
 
 // RegisterAll mounts the complete /api/v1 operation set onto api. It is the
@@ -62,6 +66,11 @@ func RegisterAll(api huma.API, d Deps, role string) {
 	RegisterGraphCanvas(api, d.GraphCanvas, role)
 	RegisterTimeline(api, d.Timeline, role)
 	RegisterNotifications(api, d.Notifications, role)
+	RegisterSearch(api, d.Search, role)
+	RegisterDocument(api, d.Documents, role)
+	RegisterCorpusAdmin(api, d.CorpusAdmin, role)
+	RegisterReports(api, d.Reports, role)
+	RegisterTranslate(api)
 }
 
 // GenerateSpec builds the same huma.API cmd/serving wires up (NewAPI +

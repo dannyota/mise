@@ -23,6 +23,7 @@ import (
 	"danny.vn/mise/pkg/ingest"
 	"danny.vn/mise/pkg/rag/embed"
 	"danny.vn/mise/pkg/store"
+	"danny.vn/mise/pkg/vertex"
 )
 
 // Ledger lifecycle states written by this pipeline (ingest.doc_ledger.state).
@@ -90,11 +91,12 @@ type DocRef struct {
 
 // Deps carries every side-effecting dependency the activities need.
 type Deps struct {
-	Pool     *pgxpool.Pool
-	Blob     blob.Store
-	Embedder embed.Embedder
-	Extract  *ingest.Extractor
-	Sources  map[corpus.ID][]ingest.Source
+	Pool      *pgxpool.Pool
+	Blob      blob.Store
+	Embedder  embed.Embedder
+	Extract   *ingest.Extractor
+	Captioner vertex.Captioner
+	Sources   map[corpus.ID][]ingest.Source
 	// PaceBetweenSources is the politeness delay Discover waits between
 	// sources within one corpus run (skipped after the last source). The
 	// zero value means "unset" — NewActivities fills in

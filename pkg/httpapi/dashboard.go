@@ -61,31 +61,47 @@ func newDashboardSummaryHandler(
 			}
 		}
 
-		corpora := buildCorporaStatus()
-
 		out := &DashboardSummaryOutput{}
-		out.Body.CoveragePct = 0.0
+		out.Body.CoveragePct = stats.CoveragePct
 		out.Body.OpenConflicts = stats.OpenConflicts
 		out.Body.StalenessAlerts = stats.StalenessAlerts
 		out.Body.ReviewQueueDepth = stats.ReviewQueueDepth
-		out.Body.Corpora = corpora
+		out.Body.Corpora = buildCorporaStatus(stats.Corpora)
 		return out, nil
 	}
 }
 
-// buildCorporaStatus derives corpus status from the static registry. Document
-// counts and real ingest timestamps require per-schema queries (deferred);
-// for now the shape is correct with healthy defaults.
-func buildCorporaStatus() []CorpusStatusWire {
+// buildCorporaStatus merges the static corpus registry with live per-corpus
+// stats from the store. When storeCorpora is nil (repo was nil), it falls back
+// to healthy defaults with zero counts.
+func buildCorporaStatus(storeCorpora []store.CorpusStats) []CorpusStatusWire {
 	all := corpus.All()
+
+	// Index store stats by corpus ID for O(1) lookup.
+	byID := make(map[string]store.CorpusStats, len(storeCorpora))
+	for _, cs := range storeCorpora {
+		byID[cs.CorpusID] = cs
+	}
+
 	out := make([]CorpusStatusWire, len(all))
 	for i, d := range all {
-		out[i] = CorpusStatusWire{
-			CorpusID:      string(d.ID),
-			Name:          string(d.ID),
-			Status:        "healthy",
-			LastIngest:    "",
-			DocumentCount: 0,
+		cs, ok := byID[string(d.ID)]
+		if ok {
+			out[i] = CorpusStatusWire{
+				CorpusID:      string(d.ID),
+				Name:          string(d.ID),
+				Status:        cs.Status,
+				LastIngest:    cs.LastIngest,
+				DocumentCount: cs.DocumentCount,
+			}
+		} else {
+			out[i] = CorpusStatusWire{
+				CorpusID:      string(d.ID),
+				Name:          string(d.ID),
+				Status:        "healthy",
+				LastIngest:    "",
+				DocumentCount: 0,
+			}
 		}
 	}
 	return out

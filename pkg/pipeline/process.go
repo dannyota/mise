@@ -99,6 +99,25 @@ func (a *Activities) processStages(
 		return "", uuid.UUID{}, err
 	}
 
+	// Diagram corpora bypass text extraction: the raw image is captioned by
+	// the Captioner seam, producing a textual description that becomes the
+	// section body (what gets embedded). The image itself is referenced via
+	// ImageRef on every section.
+	if desc.Kind == corpus.KindDiagram {
+		heartbeat(ctx, "caption "+ref.ExternalID)
+		text, err := a.captionImage(ctx, content.data, content.contentType)
+		if err != nil {
+			return "", uuid.UUID{}, fmt.Errorf("captioning diagram: %w", err)
+		}
+
+		heartbeat(ctx, "index "+ref.ExternalID)
+		docID, err := a.index(ctx, desc, *detail, nil, text, ref.RunID, content.blobKey)
+		if err != nil {
+			return "", uuid.UUID{}, err
+		}
+		return outcomeIndexed, docID, nil
+	}
+
 	heartbeat(ctx, "extract "+ref.ExternalID)
 	stopExtract := heartbeatLoop(ctx, "extracting "+ref.ExternalID)
 	text, err := a.deps.Extract.Text(ctx, content.data, content.contentType)
@@ -120,7 +139,7 @@ func (a *Activities) processStages(
 	}
 
 	heartbeat(ctx, "index "+ref.ExternalID)
-	docID, err := a.index(ctx, desc, *detail, tree, text, ref.RunID)
+	docID, err := a.index(ctx, desc, *detail, tree, text, ref.RunID, "")
 	if err != nil {
 		return "", uuid.UUID{}, err
 	}
@@ -194,6 +213,21 @@ func (a *Activities) fetchMainContent(
 		return mainContent{}, fmt.Errorf("storing raw file %s: %w", key, err)
 	}
 	return mainContent{data: buf.Bytes(), contentType: contentTypeFor(file), sha: sha, blobKey: key}, nil
+}
+
+// captionImage produces a text caption for a diagram image using the wired
+// Captioner. When no Captioner is configured (nil deps.Captioner — a
+// programming error for the diagram corpus but harmless), it returns a
+// placeholder so the pipeline never crashes on a missing optional dep.
+func (a *Activities) captionImage(ctx context.Context, data []byte, contentType string) (string, error) {
+	if a.deps.Captioner == nil {
+		return fmt.Sprintf("[no captioner configured for %d-byte image]", len(data)), nil
+	}
+	result, err := a.deps.Captioner.Caption(ctx, data, contentType)
+	if err != nil {
+		return "", err
+	}
+	return result.Text, nil
 }
 
 // pickMainFile returns the first file whose Kind is "main", falling back to
@@ -313,8 +347,9 @@ func parseRunID(runID string) (uuid.UUID, error) {
 // index normalizes the document, embeds its section bodies, and writes the
 // document, sections, and resolved amendment events to the corpus store.
 // runID is the DocRef.RunID the workflow stamped after Discover returned.
+// imageRef, when non-empty, is stamped onto every section (diagram corpora).
 func (a *Activities) index(
-	ctx context.Context, desc corpus.Descriptor, doc ingest.DiscoveredDoc, tree []*law.Node, text, runID string,
+	ctx context.Context, desc corpus.Descriptor, doc ingest.DiscoveredDoc, tree []*law.Node, text, runID, imageRef string,
 ) (uuid.UUID, error) {
 	parsedRunID, err := parseRunID(runID)
 	if err != nil {
@@ -325,6 +360,11 @@ func (a *Activities) index(
 	norm, err := ingest.Normalize(desc, doc, tree, text, parsedRunID, now)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("normalizing: %w", err)
+	}
+	if imageRef != "" {
+		for i := range norm.Sections {
+			norm.Sections[i].ImageRef = imageRef
+		}
 	}
 	if err := a.embedSections(ctx, norm.Sections); err != nil {
 		return uuid.UUID{}, err

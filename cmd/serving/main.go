@@ -110,62 +110,73 @@ func newRouter(ctx context.Context, log *slog.Logger) (*chi.Mux, *pgxpool.Pool, 
 	r.Use(middleware.RequestID)
 	r.Get("/healthz", healthzHandler)
 
-	pool, mcpOpts, err := wireEvidence(ctx, log)
+	ev, mcpOpts, err := wireEvidence(ctx, log)
 	if err != nil {
 		return nil, nil, err
 	}
-	if pool != nil {
-		r.Get("/readyz", readyzHandler(pool))
+	if ev.pool != nil {
+		r.Get("/readyz", readyzHandler(ev.pool))
 		// /api/v1 needs a real pool (GraphRepo is a pure DB read), so it stays
 		// gated behind the same ALLOYDB_HOST check as /readyz — without a pool,
 		// serving stays healthz-only, unchanged from before this endpoint set.
 		r.Route("/api/v1", func(v1 chi.Router) {
 			api := httpapi.NewAPI(v1)
-			graphRepo := store.NewGraphRepo(pool)
+			graphRepo := store.NewGraphRepo(ev.pool)
 			httpapi.RegisterAll(api, httpapi.Deps{
 				Graph:         graphRepo,
-				Reviews:       store.NewReviewStore(pool),
-				Findings:      store.NewFindingStore(pool),
-				Dashboard:     store.NewDashboardStore(pool),
+				Reviews:       store.NewReviewStore(ev.pool),
+				Findings:      store.NewFindingStore(ev.pool),
+				Dashboard:     store.NewDashboardStore(ev.pool),
 				GraphCanvas:   graphRepo,
-				Timeline:      store.NewTimelineStore(pool),
-				Notifications: store.NewNotificationStore(pool),
+				Timeline:      store.NewTimelineStore(ev.pool),
+				Notifications: store.NewNotificationStore(ev.pool),
+				Search:        ev.searcher,
+				Documents:     ev.docGetter,
+				CorpusAdmin:   storeCorpusAdmin{pool: ev.pool},
 			}, config.Role())
 		})
 	}
 
 	mcpServer := mcp.New(mcpOpts...)
 	r.Mount("/mcp", mcpServer.Handler())
-	return r, pool, nil
+	return r, ev.pool, nil
+}
+
+// evidence bundles the pool, searcher, and doc getter wired by wireEvidence
+// — shared between the MCP mount and the /api/v1 REST surface.
+type evidence struct {
+	pool      *pgxpool.Pool
+	searcher  storeSearcher
+	docGetter storeDocGetter
 }
 
 // wireEvidence builds the AlloyDB pool, embedder, and per-corpus store map
 // and returns the mcp.Option slice to construct the MCP server with, plus
-// the pool (nil when unused) so main can close it and mount /readyz. Without
-// ALLOYDB_HOST set, serving stays healthz-only — the zero-dependency path
-// mcp.New always supports — and pool is nil.
-func wireEvidence(ctx context.Context, log *slog.Logger) (*pgxpool.Pool, []mcp.Option, error) {
+// the evidence bundle (pool nil when unused) so the caller can close it and
+// mount /readyz. Without ALLOYDB_HOST set, serving stays healthz-only — the
+// zero-dependency path mcp.New always supports — and pool is nil.
+func wireEvidence(ctx context.Context, log *slog.Logger) (evidence, []mcp.Option, error) {
 	opts := make([]mcp.Option, 0, 3) // WithLogger, plus WithEvidence/WithGraph once wiring succeeds
 	opts = append(opts, mcp.WithLogger(log))
 	if os.Getenv("ALLOYDB_HOST") == "" {
-		return nil, opts, nil
+		return evidence{}, opts, nil
 	}
 
 	pool, err := store.Connect(ctx, config.DB())
 	if err != nil {
-		return nil, nil, fmt.Errorf("connecting to alloydb: %w", err)
+		return evidence{}, nil, fmt.Errorf("connecting to alloydb: %w", err)
 	}
 
 	emb, err := config.NewEmbedder(ctx)
 	if err != nil {
 		pool.Close()
-		return nil, nil, fmt.Errorf("creating embedder: %w", err)
+		return evidence{}, nil, fmt.Errorf("creating embedder: %w", err)
 	}
 
 	corpora, err := newCorporaMap(pool)
 	if err != nil {
 		pool.Close()
-		return nil, nil, fmt.Errorf("building corpus stores: %w", err)
+		return evidence{}, nil, fmt.Errorf("building corpus stores: %w", err)
 	}
 
 	searcher := storeSearcher{pool: pool, emb: emb}
@@ -173,7 +184,7 @@ func wireEvidence(ctx context.Context, log *slog.Logger) (*pgxpool.Pool, []mcp.O
 	graphRepo := storeGraphRepo{repo: store.NewGraphRepo(pool)}
 	role := config.Role()
 	opts = append(opts, mcp.WithEvidence(searcher, docGetter, role), mcp.WithGraph(graphRepo, role))
-	return pool, opts, nil
+	return evidence{pool: pool, searcher: searcher, docGetter: docGetter}, opts, nil
 }
 
 // newCorporaMap builds one store.Corpus per registered corpus, keyed by
@@ -238,6 +249,35 @@ func (g storeGraphRepo) Chain(
 	ctx context.Context, role string, start graph.NodeRef, maxDepth int,
 ) ([]store.Hop, error) {
 	return g.repo.Chain(ctx, role, start, maxDepth)
+}
+
+// storeCorpusAdmin adapts store.GetIngestStatus to httpapi.CorpusAdminRepoIface.
+// Ingest triggering requires a Temporal client; without TEMPORAL_HOST set,
+// TriggerIngest returns an error.
+type storeCorpusAdmin struct {
+	pool *pgxpool.Pool
+}
+
+// TriggerIngest implements httpapi.CorpusAdminRepoIface. Without a Temporal
+// client wired (TEMPORAL_HOST unset in serving), it returns an error — the
+// worker binary owns the Temporal connection.
+func (s storeCorpusAdmin) TriggerIngest(_ context.Context, _ string) (string, error) {
+	return "", errors.New("ingest trigger requires a Temporal client (TEMPORAL_HOST not configured in serving)")
+}
+
+// GetIngestStatus implements httpapi.CorpusAdminRepoIface.
+func (s storeCorpusAdmin) GetIngestStatus(ctx context.Context, corpusID string) (httpapi.IngestStatusInfo, error) {
+	info, err := store.GetIngestStatus(ctx, s.pool, corpusID)
+	if err != nil {
+		return httpapi.IngestStatusInfo{}, err
+	}
+	return httpapi.IngestStatusInfo{
+		CorpusID:      corpusID,
+		Status:        info.Status,
+		LastIngest:    info.LastIngest,
+		DocumentCount: info.DocumentCount,
+		ErrorMessage:  info.ErrorMessage,
+	}, nil
 }
 
 // envOr returns the environment variable named key, or fallback if unset or empty.

@@ -61,7 +61,7 @@ func TestIndexReappliesIncomingEventsAfterTargetReindex(t *testing.T) {
 		EffectiveAt: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), // past: MapValidity -> in_force
 	}
 
-	docID, err := a.index(ctx, desc, src, tree, "fallback", uuid.NewString())
+	docID, err := a.index(ctx, desc, src, tree, "fallback", uuid.NewString(), "")
 	if err != nil {
 		t.Fatalf("first index() error = %v", err)
 	}
@@ -93,7 +93,7 @@ func TestIndexReappliesIncomingEventsAfterTargetReindex(t *testing.T) {
 	// path. Without the C2 fix this overwrites validity_status back to
 	// "in_force" (MapValidity has no better signal from this fixture).
 	src.Title = "Updated Title"
-	reDocID, err := a.index(ctx, desc, src, tree, "fallback", uuid.NewString())
+	reDocID, err := a.index(ctx, desc, src, tree, "fallback", uuid.NewString(), "")
 	if err != nil {
 		t.Fatalf("second index() error = %v", err)
 	}

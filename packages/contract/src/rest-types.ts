@@ -178,3 +178,92 @@ export type CorpusDescriptor = {
 export type RegistryListResponse = {
   readonly items: readonly CorpusDescriptor[];
 };
+
+export type SectionHit = {
+  readonly corpus_id: string;
+  readonly document_id: string;
+  readonly section_id: string;
+  readonly doc_number: string;
+  readonly title: string;
+  readonly citation_path: string;
+  readonly heading_path: string;
+  readonly text: string;
+  readonly validity_status: string;
+  readonly score: number;
+  readonly source_url: string;
+  readonly image_ref?: string;
+};
+
+export type SearchResponse = {
+  readonly sections: readonly SectionHit[];
+};
+
+export type DocumentEnvelope = {
+  readonly id: string;
+  readonly corpus_id: string;
+  readonly title: string;
+  readonly doc_number: string;
+  readonly citation_scheme: string;
+  readonly citation_path: string;
+  readonly language: string;
+  readonly validity_status: string;
+  readonly issuing_authority: string;
+  readonly signer_name: string;
+  readonly version: string;
+  readonly source_url: string;
+  readonly source_system: string;
+  readonly content_type: string;
+  readonly access_tier: string;
+  readonly issued_date?: string;
+  readonly effective_date?: string;
+  readonly expiry_date?: string;
+  readonly ingest_run_id: string;
+  readonly observed_at: string;
+};
+
+export type DocSection = {
+  readonly id: string;
+  readonly citation_path: string;
+  readonly heading_path: string;
+  readonly text: string;
+  readonly validity_status: string;
+  readonly position: number;
+  readonly image_ref?: string;
+};
+
+export type Amendment = {
+  readonly amending_doc_id?: string;
+  readonly kind?: string;
+  readonly clause: string;
+  readonly event_date: string;
+};
+
+export type DocumentDetailResponse = {
+  readonly document: DocumentEnvelope;
+  readonly sections: readonly DocSection[];
+  readonly amendments: readonly Amendment[];
+};
+
+export type IngestTriggerResponse = {
+  readonly workflow_id: string;
+};
+
+export type CoverageGap = {
+  readonly corpus_id: string;
+  readonly document_id: string;
+  readonly citation: string;
+  readonly gap_type: string;
+};
+
+export type CoverageChain = {
+  readonly law_ref: string;
+  readonly policy_ref: string;
+  readonly sop_ref: string;
+};
+
+export type CoverageReport = {
+  readonly coverage_pct: number;
+  readonly gaps: readonly CoverageGap[];
+  readonly chains: readonly CoverageChain[];
+  readonly generated_at: string;
+};

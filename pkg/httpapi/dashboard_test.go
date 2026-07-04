@@ -37,9 +37,14 @@ func TestDashboardSummaryReturnsStats(t *testing.T) {
 	t.Parallel()
 	repo := &fakeDashboardRepo{
 		stats: store.DashboardStats{
+			CoveragePct:      42.5,
 			OpenConflicts:    3,
 			StalenessAlerts:  2,
 			ReviewQueueDepth: 15,
+			Corpora: []store.CorpusStats{
+				{CorpusID: "vn-reg", DocumentCount: 120, LastIngest: "2026-07-01T10:00:00Z", Status: "healthy"},
+				{CorpusID: "my-reg", DocumentCount: 80, LastIngest: "", Status: "ingesting"},
+			},
 		},
 	}
 
@@ -75,14 +80,34 @@ func TestDashboardSummaryReturnsStats(t *testing.T) {
 	if got.ReviewQueueDepth != 15 {
 		t.Errorf("review_queue_depth = %d, want 15", got.ReviewQueueDepth)
 	}
-	if got.CoveragePct != 0.0 {
-		t.Errorf("coverage_pct = %v, want 0.0", got.CoveragePct)
+	if got.CoveragePct != 42.5 {
+		t.Errorf("coverage_pct = %v, want 42.5", got.CoveragePct)
 	}
 	if got.Corpora == nil {
 		t.Error("corpora = nil, want non-nil slice")
 	}
 	if len(got.Corpora) == 0 {
 		t.Error("corpora is empty, want at least one corpus from registry")
+	}
+
+	// Verify per-corpus fields are wired from the store.
+	found := false
+	for _, c := range got.Corpora {
+		if c.CorpusID == "vn-reg" {
+			found = true
+			if c.DocumentCount != 120 {
+				t.Errorf("vn-reg document_count = %d, want 120", c.DocumentCount)
+			}
+			if c.LastIngest != "2026-07-01T10:00:00Z" {
+				t.Errorf("vn-reg last_ingest = %q, want 2026-07-01T10:00:00Z", c.LastIngest)
+			}
+			if c.Status != "healthy" {
+				t.Errorf("vn-reg status = %q, want healthy", c.Status)
+			}
+		}
+	}
+	if !found {
+		t.Error("vn-reg corpus not found in response corpora")
 	}
 }
 
@@ -103,5 +128,34 @@ func TestDashboardSummaryCorporaNonNil(t *testing.T) {
 	data, _ := json.Marshal(got.Corpora)
 	if string(data) == "null" {
 		t.Error("corpora marshaled to null, want []")
+	}
+}
+
+func TestDashboardSummaryNilRepo(t *testing.T) {
+	t.Parallel()
+	srv := newDashboardTestServer(t, nil, "mise_public")
+	status, _, body := getJSON(t, srv, "/dashboards/summary")
+
+	if status != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", status, body)
+	}
+
+	var got struct {
+		CoveragePct float64            `json:"coverage_pct"`
+		Corpora     []CorpusStatusWire `json:"corpora"`
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("unmarshaling: %v; body: %s", err, body)
+	}
+	if got.CoveragePct != 0 {
+		t.Errorf("coverage_pct = %v, want 0 when repo is nil", got.CoveragePct)
+	}
+	if len(got.Corpora) == 0 {
+		t.Error("corpora should still be populated from registry when repo is nil")
+	}
+	for _, c := range got.Corpora {
+		if c.Status != "healthy" {
+			t.Errorf("corpus %q status = %q, want healthy (nil repo fallback)", c.CorpusID, c.Status)
+		}
 	}
 }
