@@ -13,7 +13,7 @@ const error = ref<Error | null>(null);
 
 onMounted(async () => {
   try {
-    const page = await apiGet<CursorPage<ReviewCandidate>>('/review');
+    const page = await apiGet<CursorPage<ReviewCandidate>>('/reviews');
     items.value = [...page.items];
   } catch (e) {
     error.value = e instanceof Error ? e : new Error(String(e));
@@ -23,12 +23,12 @@ onMounted(async () => {
 });
 
 async function handleAccept(id: string): Promise<void> {
-  await apiPost(`/review/${id}/accept`);
+  await apiPost(`/reviews/${id}/accept`);
   items.value = items.value.filter((r) => r.edge_id !== id);
 }
 
 async function handleReject(id: string): Promise<void> {
-  await apiPost(`/review/${id}/reject`);
+  await apiPost(`/reviews/${id}/reject`);
   items.value = items.value.filter((r) => r.edge_id !== id);
 }
 </script>

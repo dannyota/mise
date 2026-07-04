@@ -45,6 +45,7 @@ with PR-sized tasks.
 | **M7**    | [M7-review/](./M7-review/README.md)                     | **detailed** — overview + 2 workstreams, 9 tasks (review-only)  |
 | **M8**    | [M8-release/](./M8-release/README.md)                   | **detailed** — overview + 2 workstreams, 8 tasks (v0.1.0)       |
 | **M9**    | [M9-internal-sources/](./M9-internal-sources/README.md) | **detailed** — single workstream, 4 tasks (library connector)   |
+| **M10**   | [M10-rest-completion/](./M10-rest-completion/README.md) | **detailed** — single workstream, 7 tasks (Web UI REST surface) |
 
 ---
 

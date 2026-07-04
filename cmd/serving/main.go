@@ -121,12 +121,16 @@ func newRouter(ctx context.Context, log *slog.Logger) (*chi.Mux, *pgxpool.Pool, 
 		// serving stays healthz-only, unchanged from before this endpoint set.
 		r.Route("/api/v1", func(v1 chi.Router) {
 			api := httpapi.NewAPI(v1)
-			httpapi.Register(api,
-				store.NewGraphRepo(pool),
-				store.NewReviewStore(pool),
-				store.NewFindingStore(pool),
-				config.Role(),
-			)
+			graphRepo := store.NewGraphRepo(pool)
+			httpapi.RegisterAll(api, httpapi.Deps{
+				Graph:         graphRepo,
+				Reviews:       store.NewReviewStore(pool),
+				Findings:      store.NewFindingStore(pool),
+				Dashboard:     store.NewDashboardStore(pool),
+				GraphCanvas:   graphRepo,
+				Timeline:      store.NewTimelineStore(pool),
+				Notifications: store.NewNotificationStore(pool),
+			}, config.Role())
 		})
 	}
 

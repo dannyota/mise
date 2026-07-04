@@ -32,21 +32,47 @@ func NewAPI(r chi.Router) huma.API {
 	return humachi.New(r, huma.DefaultConfig(name, version))
 }
 
-// GenerateSpec builds the same huma.API NewAPI + Register wire up in
-// cmd/serving and renders its OpenAPI 3.1 document as YAML. It opens no
-// pool/DB: Register's repo argument is only ever invoked per HTTP request,
-// and OpenAPI generation only inspects the Input/Output Go types via
-// reflection (huma.Register) — so a nil GraphRepoIface is safe here, and
-// role, while threaded through for parity with production's call shape, is
-// likewise never inspected at generation time. cmd/openapi-gen/main.go and
-// the anti-drift test (openapi_drift_test.go) both call this, so the
-// committed api/openapi.yaml and the test's expectation can never be built
-// two different ways.
+// Deps carries every repository the REST surface reads through, so
+// RegisterAll is the single place the endpoint set is enumerated. All fields
+// may be nil when the api only exists to generate the OpenAPI spec
+// (GenerateSpec): repos are only ever invoked per HTTP request, and spec
+// generation only inspects the Input/Output Go types via reflection.
+type Deps struct {
+	Graph         GraphRepoIface
+	Reviews       ReviewRepoIface
+	Findings      FindingRepoIface
+	Dashboard     DashboardRepoIface
+	GraphCanvas   GraphCanvasRepoIface
+	Timeline      TimelineRepoIface
+	Notifications NotificationRepoIface
+}
+
+// RegisterAll mounts the complete /api/v1 operation set onto api. It is the
+// ONLY registration entry point — cmd/serving's newRouter and GenerateSpec
+// both call it, so the served router and the generated contract can never
+// enumerate two different endpoint sets. (Exactly that drift shipped once:
+// M10's endpoints were added to spec generation but not to serving, so the
+// contract advertised routes that 404'd at runtime.) Every read runs under
+// role — the server-resolved RLS role (pkg/config.Role()), never derived
+// from request input.
+func RegisterAll(api huma.API, d Deps, role string) {
+	Register(api, d.Graph, d.Reviews, d.Findings, role)
+	RegisterRegistry(api)
+	RegisterDashboard(api, d.Dashboard, role)
+	RegisterGraphCanvas(api, d.GraphCanvas, role)
+	RegisterTimeline(api, d.Timeline, role)
+	RegisterNotifications(api, d.Notifications, role)
+}
+
+// GenerateSpec builds the same huma.API cmd/serving wires up (NewAPI +
+// RegisterAll, nil deps) and renders its OpenAPI 3.1 document as YAML.
+// cmd/openapi-gen/main.go and the anti-drift test (openapi_drift_test.go)
+// both call this, so the committed api/openapi.yaml and the test's
+// expectation can never be built two different ways.
 func GenerateSpec(role string) ([]byte, error) {
 	router := chi.NewRouter()
 	api := NewAPI(router)
-	Register(api, nil, nil, nil, role)
-	RegisterRegistry(api)
+	RegisterAll(api, Deps{}, role)
 
 	spec, err := api.OpenAPI().YAML()
 	if err != nil {

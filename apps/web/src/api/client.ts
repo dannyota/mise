@@ -38,13 +38,36 @@ async function request<T>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    const problem = (await res.json()) as ApiProblem;
+    const text = await res.text();
+    let problem: ApiProblem;
+    try {
+      problem = JSON.parse(text) as ApiProblem;
+    } catch {
+      problem = {
+        type: 'about:blank',
+        title: `HTTP ${res.status} for ${path}`,
+        status: res.status,
+        detail: text.slice(0, 200),
+      };
+    }
     throw new ApiClientError(problem);
   }
   if (res.status === 204) {
     return undefined as T;
   }
-  return (await res.json()) as T;
+  const ct = res.headers.get('content-type') ?? '';
+  if (ct.includes('text/html')) {
+    throw new Error(
+      `Expected JSON response for ${path} but got content-type: ${ct}`,
+    );
+  }
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new Error(
+      `Expected JSON response for ${path} but got content-type: ${ct || '(none)'}`,
+    );
+  }
 }
 
 export function apiGet<T>(

@@ -5,7 +5,7 @@ Copyright (C) 2026 Danny Ota
 
 # Mise — Roadmap
 
-The milestone view of the build: the phases as **milestones M0–M9**, the **critical path**
+The milestone view of the build: the phases as **milestones M0–M10**, the **critical path**
 that links them, the **exit gates** each milestone must satisfy, and the **review-load** shape
 that paces a solo part-time build. It owns _sequence + gating_; the per-milestone task detail is
 [plan/](./plan/README.md), the goals + delta are under [plan/](./plan/README.md), execution risk
@@ -29,6 +29,7 @@ See also:
 - [M7](./plan/M7-review/README.md)
 - [M8](./plan/M8-release/README.md)
 - [M9](./plan/M9-internal-sources/README.md)
+- [M10](./plan/M10-rest-completion/README.md)
 
 ---
 
@@ -36,19 +37,20 @@ See also:
 
 Each phase reaches one milestone; the milestone _is_ the phase's demonstrable outcome.
 
-| Milestone | Plan                                                        | Delivers                                                                                                          | First demoable value                                  |
-| --------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| **M0**    | [M0-skeleton](./plan/M0-skeleton/README.md)                 | the stack stands up locally — module, corpus registry, AlloyDB + Temporal, Vertex fake seam                       | `podman compose up` is green                          |
-| **M1a**   | [M1-ingest](./plan/M1-ingest/README.md) WS1+4               | law corpora ingested, embedded @1536-d, searchable per-corpus (public, ungated)                                   | per-corpus evidence search (MCP) on VN+MY law         |
-| **M1b**   | [M1-ingest](./plan/M1-ingest/README.md) WS2+3               | internal corpora ingested via SharePoint, metadata envelope + tier tagging complete                               | all 5 corpora tier-isolated and retrievable           |
-| **M2**    | [M2-graph](./plan/M2-graph/README.md)                       | the `graph` schema + explicit internal edges + graph API (done)                                                   | the SOP→Policy→Group chain query                      |
-| **M3** ✅ | [M3-detectors](./plan/M3-detectors/README.md)               | the 4 detectors + findings + the review queue                                                                     | a grounded `satisfies` candidate + a conflict finding |
-| **M4** ✅ | [M4-audit-qa](./plan/M4-audit-qa/README.md)                 | cited, grounded answers over REST + MCP + SSE                                                                     | ask a question → cited answer / abstain               |
-| **M5** ✅ | [M5-web-ui](./plan/M5-web-ui/README.md)                     | all screens live in the Vue SPA                                                                                   | the full product in a browser                         |
-| **M6** ✅ | [M6-scale](./plan/M6-scale/README.md)                       | corpus registry GA + multimodal + new scope by descriptor only                                                    | add a corpus with zero core edits                     |
-| **M7** ✅ | [M7-review](./plan/M7-review/README.md)                     | design-doc set audited for consistency, completeness, and correctness                                             | a clean, trustworthy spec                             |
-| **M8** ✅ | [M8-release](./plan/M8-release/README.md)                   | v0.1.0 open-source release under AGPL-3.0                                                                         | tagged release on GitHub                              |
-| **M9** ✅ | [M9-internal-sources](./plan/M9-internal-sources/README.md) | the document-library connector — internal corpora ingestable from a drop folder (SharePoint crawl stays deferred) | drop a Group standard → tier-gated search hit         |
+| Milestone  | Plan                                                        | Delivers                                                                                                                              | First demoable value                                  |
+| ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **M0**     | [M0-skeleton](./plan/M0-skeleton/README.md)                 | the stack stands up locally — module, corpus registry, AlloyDB + Temporal, Vertex fake seam                                           | `podman compose up` is green                          |
+| **M1a**    | [M1-ingest](./plan/M1-ingest/README.md) WS1+4               | law corpora ingested, embedded @1536-d, searchable per-corpus (public, ungated)                                                       | per-corpus evidence search (MCP) on VN+MY law         |
+| **M1b**    | [M1-ingest](./plan/M1-ingest/README.md) WS2+3               | internal corpora ingested via SharePoint, metadata envelope + tier tagging complete                                                   | all 5 corpora tier-isolated and retrievable           |
+| **M2**     | [M2-graph](./plan/M2-graph/README.md)                       | the `graph` schema + explicit internal edges + graph API (done)                                                                       | the SOP→Policy→Group chain query                      |
+| **M3** ✅  | [M3-detectors](./plan/M3-detectors/README.md)               | the 4 detectors + findings + the review queue                                                                                         | a grounded `satisfies` candidate + a conflict finding |
+| **M4** ✅  | [M4-audit-qa](./plan/M4-audit-qa/README.md)                 | cited, grounded answers over REST + MCP + SSE                                                                                         | ask a question → cited answer / abstain               |
+| **M5** ✅  | [M5-web-ui](./plan/M5-web-ui/README.md)                     | all screens live in the Vue SPA                                                                                                       | the full product in a browser                         |
+| **M6** ✅  | [M6-scale](./plan/M6-scale/README.md)                       | corpus registry GA + multimodal + new scope by descriptor only                                                                        | add a corpus with zero core edits                     |
+| **M7** ✅  | [M7-review](./plan/M7-review/README.md)                     | design-doc set audited for consistency, completeness, and correctness                                                                 | a clean, trustworthy spec                             |
+| **M8** ✅  | [M8-release](./plan/M8-release/README.md)                   | v0.1.0 open-source release under AGPL-3.0                                                                                             | tagged release on GitHub                              |
+| **M9** ✅  | [M9-internal-sources](./plan/M9-internal-sources/README.md) | the document-library connector — internal corpora ingestable from a drop folder (SharePoint crawl stays deferred)                     | drop a Group standard → tier-gated search hit         |
+| **M10** ✅ | [M10-rest-completion](./plan/M10-rest-completion/README.md) | the REST surface the Web UI needs — dashboard, graph canvas, timeline, notifications, webhooks; one RegisterAll for router + contract | every Web UI screen loads against the live stack      |
 
 ---
 
@@ -71,6 +73,7 @@ flowchart LR
     M7 --> M8["M8 — v0.1.0"]
     M8 --> M9["M9 — library connector"]
     M9 -.-> M1b
+    M9 --> M10["M10 — REST completion"]
     classDef gated fill:#6d28d9,stroke:#a78bfa,color:#fff,stroke-width:2px
     classDef public fill:#059669,stroke:#34d399,color:#fff,stroke-width:2px
     classDef release fill:#b45309,stroke:#fbbf24,color:#fff,stroke-width:2px

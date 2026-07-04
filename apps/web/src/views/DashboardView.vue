@@ -19,7 +19,7 @@ const loading = ref(true);
 
 onMounted(async () => {
   try {
-    data.value = await apiGet<DashboardSummary>('/dashboard');
+    data.value = await apiGet<DashboardSummary>('/dashboards/summary');
   } catch (e) {
     error.value = e instanceof Error ? e : new Error(String(e));
   } finally {
