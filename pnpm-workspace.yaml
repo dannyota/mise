@@ -5,3 +5,30 @@ allowBuilds:
   esbuild: true
   lefthook: true
   vue-demi: true
+
+# Supply-chain hardening (Semgrep pnpm pack): no git/URL sub-dependencies,
+# 7-day cooldown on newly published versions, and settings may never be
+# silently downgraded by a package update.
+blockExoticSubdeps: true
+minimumReleaseAge: 10080
+trustPolicy: no-downgrade
+# Packages locked before the cooldown policy landed (published <7d before
+# adoption on 2026-07-04). Remove at the next dependency-upgrade cycle.
+minimumReleaseAgeExclude:
+  - '@tailwindcss/*'
+  - '@tanstack/*'
+  - '@typescript-eslint/*'
+  - '@vue/language-core'
+  - 'brace-expansion'
+  - 'es-module-lexer'
+  - 'postcss'
+  - 'prettier'
+  - 'tailwindcss'
+  - 'typescript-eslint'
+  - 'vite'
+  - 'vue-component-type-helpers'
+  - 'vue-tsc'
+# slow-redact 0.3.2 dropped SLSA provenance that 0.3.1 carried (trustPolicy
+# flag) — hold the attested version until upstream re-attests.
+overrides:
+  slow-redact: 0.3.1

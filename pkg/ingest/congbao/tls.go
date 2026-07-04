@@ -178,11 +178,15 @@ func defaultHTTPClient(logger *slog.Logger) *http.Client {
 		return client
 	}
 	tr := http.DefaultTransport.(*http.Transport).Clone()
+	// VerifyConnection replaces the default chain verification with
+	// aiaResolver.verify, which still checks the leaf against system roots
+	// and the hostname — see the package comment above for why this is not
+	// a verification bypass.
+	// nosemgrep: problem-based-packs.insecure-transport.go-stdlib.bypass-tls-verification.bypass-tls-verification
 	tr.TLSClientConfig = &tls.Config{
-		// VerifyConnection (below) replaces the default chain verification with
-		// aiaResolver.verify, which still checks the leaf against system roots
-		// and the hostname — see the package comment above for why this is not
-		// a verification bypass.
+		// TLS 1.2 floor, not 1.3: congbao's gazette CDN is a government host
+		// that still negotiates 1.2; 1.3 would break the crawl.
+		MinVersion: tls.VersionTLS12,
 		//nolint:gosec
 		InsecureSkipVerify: true,
 		VerifyConnection:   resolver.verify,
