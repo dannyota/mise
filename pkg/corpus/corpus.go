@@ -23,6 +23,8 @@ const (
 	KindStandard Kind = "standard"
 	KindPolicy   Kind = "policy"
 	KindSOP      Kind = "sop"
+	KindReport   Kind = "report"
+	KindDiagram  Kind = "diagram"
 )
 
 // AccessTier controls RLS row visibility.
@@ -59,6 +61,12 @@ type GraphRole struct {
 	SatisfiesTarget ID
 }
 
+// MetadataConfig holds per-source metadata defaults and parse locations.
+type MetadataConfig struct {
+	Defaults       map[string]string
+	ParseLocations map[string]string
+}
+
 // Descriptor is the typed definition of a corpus.
 type Descriptor struct {
 	ID             ID
@@ -70,13 +78,14 @@ type Descriptor struct {
 	Tier           Tier
 	Jurisdiction   string
 	GraphRole      GraphRole
+	MetadataConfig MetadataConfig
 }
 
 var registry = map[ID]Descriptor{
 	VNReg: {
 		ID: VNReg, Kind: KindLaw, SchemaName: "vn_reg",
 		CitationScheme: "dieu-khoan-diem",
-		Embed:          sharedEmbed,
+		Embed:          SharedEmbed,
 		AccessTier:     TierPublic,
 		Jurisdiction:   "vn",
 		GraphRole:      GraphRole{CanTarget: true},
@@ -84,7 +93,7 @@ var registry = map[ID]Descriptor{
 	MYReg: {
 		ID: MYReg, Kind: KindLaw, SchemaName: "my_reg",
 		CitationScheme: "part-section-subsec",
-		Embed:          sharedEmbed,
+		Embed:          SharedEmbed,
 		AccessTier:     TierPublic,
 		Jurisdiction:   "my",
 		GraphRole:      GraphRole{CanTarget: true},
@@ -92,7 +101,7 @@ var registry = map[ID]Descriptor{
 	GroupStd: {
 		ID: GroupStd, Kind: KindStandard, SchemaName: "group_std",
 		CitationScheme: "standard-clause",
-		Embed:          sharedEmbed,
+		Embed:          SharedEmbed,
 		AccessTier:     TierGroupConfidential,
 		Tier:           TierGroup,
 		Jurisdiction:   "my",
@@ -105,7 +114,7 @@ var registry = map[ID]Descriptor{
 	LocalPolicy: {
 		ID: LocalPolicy, Kind: KindPolicy, SchemaName: "local_policy",
 		CitationScheme: "policy-section",
-		Embed:          sharedEmbed,
+		Embed:          SharedEmbed,
 		AccessTier:     TierLocalConfidential,
 		Tier:           TierLocal,
 		Jurisdiction:   "vn",
@@ -118,7 +127,7 @@ var registry = map[ID]Descriptor{
 	LocalSOP: {
 		ID: LocalSOP, Kind: KindSOP, SchemaName: "local_sop",
 		CitationScheme: "sop-step",
-		Embed:          sharedEmbed,
+		Embed:          SharedEmbed,
 		AccessTier:     TierLocalConfidential,
 		Tier:           TierLocal,
 		Jurisdiction:   "vn",
@@ -129,7 +138,8 @@ var registry = map[ID]Descriptor{
 	},
 }
 
-var sharedEmbed = EmbedConfig{
+// SharedEmbed is the locked embedding config all corpora must match.
+var SharedEmbed = EmbedConfig{
 	Model:    "gemini-embedding-001",
 	Dims:     1536,
 	TaskType: "RETRIEVAL_DOCUMENT",
