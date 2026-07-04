@@ -23,6 +23,7 @@ import (
 	"danny.vn/mise/pkg/ingest/library"
 	"danny.vn/mise/pkg/ingest/sbv"
 	"danny.vn/mise/pkg/ingest/sc"
+	"danny.vn/mise/pkg/ingest/sharepoint"
 	"danny.vn/mise/pkg/ingest/vanban"
 	"danny.vn/mise/pkg/ingest/vbpl"
 	"danny.vn/mise/pkg/rag/embed"
@@ -242,11 +243,53 @@ func NewSources(_ context.Context) (map[corpus.ID][]ingest.Source, error) {
 			if err != nil {
 				return nil, fmt.Errorf("config: wiring library source for corpus %s: %w", id, err)
 			}
-			m[id] = []ingest.Source{src}
+			m[id] = append(m[id], src)
+		}
+	}
+
+	if siteURL := os.Getenv("SHAREPOINT_SITE_URL"); siteURL != "" {
+		spAuth, err := newSharePointAuth()
+		if err != nil {
+			return nil, err
+		}
+		spLibEnvs := []struct {
+			env string
+			id  corpus.ID
+		}{
+			{"SHAREPOINT_LIB_GROUP_STD", corpus.GroupStd},
+			{"SHAREPOINT_LIB_LOCAL_POLICY", corpus.LocalPolicy},
+			{"SHAREPOINT_LIB_LOCAL_SOP", corpus.LocalSOP},
+		}
+		for _, lib := range spLibEnvs {
+			libPath := os.Getenv(lib.env)
+			if libPath == "" {
+				continue
+			}
+			src, err := sharepoint.New(siteURL, libPath, lib.id, spAuth, nil, log)
+			if err != nil {
+				return nil, fmt.Errorf("config: wiring sharepoint source for corpus %s: %w", lib.id, err)
+			}
+			m[lib.id] = append(m[lib.id], src)
 		}
 	}
 
 	return m, nil
+}
+
+// newSharePointAuth builds a SharePoint authenticator from environment
+// variables. At least one of SHAREPOINT_AUTH_COOKIE or SHAREPOINT_AUTH_BEARER
+// must be set when SHAREPOINT_SITE_URL is configured.
+func newSharePointAuth() (sharepoint.Authenticator, error) {
+	cookie := os.Getenv("SHAREPOINT_AUTH_COOKIE")
+	bearer := os.Getenv("SHAREPOINT_AUTH_BEARER")
+	if cookie == "" && bearer == "" {
+		return nil, errors.New(
+			"config: SHAREPOINT_SITE_URL is set but neither" +
+				" SHAREPOINT_AUTH_COOKIE nor SHAREPOINT_AUTH_BEARER" +
+				" is configured",
+		)
+	}
+	return &sharepoint.StaticAuth{Cookie: cookie, Bearer: bearer}, nil
 }
 
 // NewDetectDeps returns the detect pipeline's dependency set from env config.

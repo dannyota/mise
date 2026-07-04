@@ -114,6 +114,56 @@ Both land **local-confidential** (only `mise_local` sees them). The AI-side mapp
 `satisfies` candidates against `vn-reg` — is proposed by the detectors afterwards and waits
 for human review ([graph & detectors](graph-detectors.md)).
 
+## SharePoint web-crawl (alternative to drop folders)
+
+Instead of — or alongside — the drop folder, internal corpora can be crawled live from a
+SharePoint document library. The connector authenticates with a scoped account the adopter
+provides ([DEC 13](../project/DECISIONS.md)) and crawls the library's REST surface.
+
+### Environment variables
+
+| Variable                      | Purpose                                                              |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `SHAREPOINT_SITE_URL`         | Absolute site URL (e.g. `https://<tenant>.sharepoint.com/sites/...`) |
+| `SHAREPOINT_AUTH_COOKIE`      | FedAuth/rtFa cookie string (cookie-based auth)                       |
+| `SHAREPOINT_AUTH_BEARER`      | OAuth2 bearer token (token-based auth)                               |
+| `SHAREPOINT_LIB_GROUP_STD`    | Server-relative doc-library path for `group-std`                     |
+| `SHAREPOINT_LIB_LOCAL_POLICY` | Server-relative doc-library path for `local-policy`                  |
+| `SHAREPOINT_LIB_LOCAL_SOP`    | Server-relative doc-library path for `local-sop`                     |
+
+At least one auth variable is required when the site URL is set. Each corpus whose library
+path is set gets a SharePoint source; unset libraries are skipped. Both the drop-folder
+and SharePoint sources can feed the same corpus.
+
+### List-column metadata contract
+
+The crawler reads doc-control metadata from well-known list columns (case-insensitive):
+
+| Column name       | Maps to                                         |
+| ----------------- | ----------------------------------------------- |
+| `Title`           | document title                                  |
+| `DocumentNumber`  | citation number                                 |
+| `SignerRole`      | signer role                                     |
+| `OwnerDepartment` | owner department                                |
+| `OwnerRole`       | owner role                                      |
+| `Version0`        | version (avoids the built-in `UIVersionString`) |
+| `Language`        | document language                               |
+| `IssuedDate`      | issued date (ISO 8601)                          |
+| `EffectiveDate`   | effective date                                  |
+
+Absent columns are silently skipped. Add these columns to the library's default view — no
+custom SharePoint configuration beyond the columns and the scoped account is needed.
+
+### Behaviour
+
+- **Watermark:** `TimeLastModified` (strictly-after, same as other sources).
+- **Change detection:** SharePoint's ETag; an in-place edit re-indexes without re-downloading
+  at discovery.
+- **Pagination:** large libraries are crawled page by page (`odata.nextLink`).
+- **Auth failure:** fails closed with a named error — never silently succeeds without credentials.
+- **Retry:** 429/5xx retried with bounded backoff; downloads are not retried at the source
+  level (Temporal's activity retry handles it with a fresh writer).
+
 ## Order matters (once)
 
 Ingest law **before** internal docs — the detectors map controls onto whatever law is

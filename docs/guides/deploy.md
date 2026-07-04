@@ -119,6 +119,9 @@ go run ./cmd/eval -golden eval/golden-vn.json -corpora vn-reg -min-recall 0.7
 | `GCS_BUCKET` / `BLOB_DIR`                                                 | local dir                                    | Raw-file blob store (GCS in prod, dir locally)                |
 | `LIBRARY_ROOT`                                                            | (unset)                                      | Internal-corpora drop folder; unset = internal ingest off     |
 | `SERVING_PORT`                                                            | `8080`                                       | Serving HTTP port                                             |
+| `SHAREPOINT_SITE_URL`                                                     | (unset)                                      | SharePoint site URL; unset = SharePoint crawl off             |
+| `SHAREPOINT_AUTH_COOKIE` / `SHAREPOINT_AUTH_BEARER`                       | (required if site set)                       | Scoped-account credentials for the SharePoint crawl           |
+| `SHAREPOINT_LIB_GROUP_STD` / `_LOCAL_POLICY` / `_LOCAL_SOP`               | (per-corpus)                                 | Server-relative doc-library paths                             |
 
 ## What's next
 

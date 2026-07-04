@@ -41,7 +41,7 @@ Each phase reaches one milestone; the milestone _is_ the phase's demonstrable ou
 | ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **M0**     | [M0-skeleton](./plan/M0-skeleton/README.md)                 | the stack stands up locally — module, corpus registry, AlloyDB + Temporal, Vertex fake seam                                           | `podman compose up` is green                          |
 | **M1a**    | [M1-ingest](./plan/M1-ingest/README.md) WS1+4               | law corpora ingested, embedded @1536-d, searchable per-corpus (public, ungated)                                                       | per-corpus evidence search (MCP) on VN+MY law         |
-| **M1b**    | [M1-ingest](./plan/M1-ingest/README.md) WS2+3               | internal corpora ingested via SharePoint, metadata envelope + tier tagging complete                                                   | all 5 corpora tier-isolated and retrievable           |
+| **M1b** ✅ | [M1-ingest](./plan/M1-ingest/README.md) WS2+3               | internal corpora ingested via SharePoint, metadata envelope + tier tagging complete                                                   | all 5 corpora tier-isolated and retrievable           |
 | **M2**     | [M2-graph](./plan/M2-graph/README.md)                       | the `graph` schema + explicit internal edges + graph API (done)                                                                       | the SOP→Policy→Group chain query                      |
 | **M3** ✅  | [M3-detectors](./plan/M3-detectors/README.md)               | the 4 detectors + findings + the review queue                                                                                         | a grounded `satisfies` candidate + a conflict finding |
 | **M4** ✅  | [M4-audit-qa](./plan/M4-audit-qa/README.md)                 | cited, grounded answers over REST + MCP + SSE                                                                                         | ask a question → cited answer / abstain               |
@@ -99,9 +99,10 @@ flowchart LR
   product. If priorities force a cut, M1a→M4 is the spine; M5/M6 are surface + scale.
 - **M7 is review-only** — no new design surface; audits M0–M6 for consistency and correctness.
   **M8 is release-only** — license headers, changelog, tag, GitHub release.
-- **M9 (post-release)** makes the internal corpora ingestable via the document-library
-  connector (drop folder); it partially satisfies M1b's outcome — the SharePoint web-crawl
-  (dotted edge) remains the M1b remainder, gated on adopter access (DEC 13).
+- **M9 (post-release)** added the drop-folder library connector for internal corpora.
+  **M1b is now complete** — the SharePoint web-crawl connector (the M1b remainder that was
+  gated on adopter access, DEC 13) ships alongside the library source; both can feed the
+  same corpus.
 
 ---
 

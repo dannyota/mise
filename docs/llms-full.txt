@@ -4,7 +4,6 @@
 > Ingest public law + internal controls, build a compliance graph, detect gaps/conflicts/staleness, answer audit questions with cited evidence. Open source (AGPL-3.0), single-tenant, self-hosted.
 
 ---
-
 ---
 
 
@@ -183,6 +182,9 @@ go run ./cmd/eval -golden eval/golden-vn.json -corpora vn-reg -min-recall 0.7
 | `GCS_BUCKET` / `BLOB_DIR`                                                 | local dir                                    | Raw-file blob store (GCS in prod, dir locally)                |
 | `LIBRARY_ROOT`                                                            | (unset)                                      | Internal-corpora drop folder; unset = internal ingest off     |
 | `SERVING_PORT`                                                            | `8080`                                       | Serving HTTP port                                             |
+| `SHAREPOINT_SITE_URL`                                                     | (unset)                                      | SharePoint site URL; unset = SharePoint crawl off             |
+| `SHAREPOINT_AUTH_COOKIE` / `SHAREPOINT_AUTH_BEARER`                       | (required if site set)                       | Scoped-account credentials for the SharePoint crawl           |
+| `SHAREPOINT_LIB_GROUP_STD` / `_LOCAL_POLICY` / `_LOCAL_SOP`              | (per-corpus)                                 | Server-relative doc-library paths                             |
 
 ## What's next
 
@@ -206,13 +208,13 @@ In the reference deployment the banking **group** operates under **Malaysian** r
 and the **country subsidiary** under **Vietnamese** regulation. That pairing is wired into
 the corpus registry — each internal corpus knows which law it must _satisfy_:
 
-| Corpus         | What it holds                | Jurisdiction | Tier               | Maps to (satisfies)      |
-| -------------- | ---------------------------- | ------------ | ------------------ | ------------------------ |
-| `my-reg`       | Malaysian regulation (law)   | MY           | public             | — (target only)          |
-| `vn-reg`       | Vietnamese regulation (law)  | VN           | public             | — (target only)          |
-| `group-std`    | **Group** standards          | MY           | group-confidential | `my-reg`                 |
-| `local-policy` | **Country** policies         | VN           | local-confidential | `vn-reg` + `group-std`   |
-| `local-sop`    | **Country** SOPs / runbooks  | VN           | local-confidential | derives < `local-policy` |
+| Corpus         | What it holds               | Jurisdiction | Tier               | Maps to (satisfies)      |
+| -------------- | --------------------------- | ------------ | ------------------ | ------------------------ |
+| `my-reg`       | Malaysian regulation (law)  | MY           | public             | — (target only)          |
+| `vn-reg`       | Vietnamese regulation (law) | VN           | public             | — (target only)          |
+| `group-std`    | **Group** standards         | MY           | group-confidential | `my-reg`                 |
+| `local-policy` | **Country** policies        | VN           | local-confidential | `vn-reg` + `group-std`   |
+| `local-sop`    | **Country** SOPs / runbooks | VN           | local-confidential | derives < `local-policy` |
 
 So: **Group source ⇒ `group-std` (MY side)** · **Country sources ⇒ `local-policy` +
 `local-sop` (VN side)**. The chain the graph builds is
@@ -226,10 +228,10 @@ So: **Group source ⇒ `group-std` (MY side)** · **Country sources ⇒ `local-p
 
 The crawlers are compiled in; each ingest run visits all of them for its corpus:
 
-| Corpus   | Crawlers                                                                      |
-| -------- | ----------------------------------------------------------------------------- |
-| `vn-reg` | vbpl.vn · vanban.chinhphu.vn · congbao.chinhphu.vn · SBV portal                |
-| `my-reg` | lom.agc.gov.my (Acts + P.U.) · bnm.gov.my (policy docs) · sc.com.my            |
+| Corpus   | Crawlers                                                            |
+| -------- | ------------------------------------------------------------------- |
+| `vn-reg` | vbpl.vn · vanban.chinhphu.vn · congbao.chinhphu.vn · SBV portal     |
+| `my-reg` | lom.agc.gov.my (Acts + P.U.) · bnm.gov.my (policy docs) · sc.com.my |
 
 Trigger one Temporal workflow per corpus (repeat weekly via a schedule —
 [operations](operations.md)):
@@ -304,6 +306,56 @@ Trigger each: `--input '{"Corpus":"local-policy"}'` · `--input '{"Corpus":"loca
 Both land **local-confidential** (only `mise_local` sees them). The AI-side mapping —
 `satisfies` candidates against `vn-reg` — is proposed by the detectors afterwards and waits
 for human review ([graph & detectors](graph-detectors.md)).
+
+## SharePoint web-crawl (alternative to drop folders)
+
+Instead of — or alongside — the drop folder, internal corpora can be crawled live from a
+SharePoint document library. The connector authenticates with a scoped account the adopter
+provides ([DEC 13](../project/DECISIONS.md)) and crawls the library's REST surface.
+
+### Environment variables
+
+| Variable                       | Purpose                                                             |
+| ------------------------------ | ------------------------------------------------------------------- |
+| `SHAREPOINT_SITE_URL`          | Absolute site URL (e.g. `https://<tenant>.sharepoint.com/sites/...`) |
+| `SHAREPOINT_AUTH_COOKIE`       | FedAuth/rtFa cookie string (cookie-based auth)                      |
+| `SHAREPOINT_AUTH_BEARER`       | OAuth2 bearer token (token-based auth)                              |
+| `SHAREPOINT_LIB_GROUP_STD`    | Server-relative doc-library path for `group-std`                    |
+| `SHAREPOINT_LIB_LOCAL_POLICY` | Server-relative doc-library path for `local-policy`                 |
+| `SHAREPOINT_LIB_LOCAL_SOP`    | Server-relative doc-library path for `local-sop`                    |
+
+At least one auth variable is required when the site URL is set. Each corpus whose library
+path is set gets a SharePoint source; unset libraries are skipped. Both the drop-folder
+and SharePoint sources can feed the same corpus.
+
+### List-column metadata contract
+
+The crawler reads doc-control metadata from well-known list columns (case-insensitive):
+
+| Column name       | Maps to               |
+| ------------------ | ---------------------- |
+| `Title`            | document title         |
+| `DocumentNumber`   | citation number        |
+| `SignerRole`       | signer role            |
+| `OwnerDepartment`  | owner department       |
+| `OwnerRole`        | owner role             |
+| `Version0`         | version (avoids the built-in `UIVersionString`) |
+| `Language`         | document language      |
+| `IssuedDate`       | issued date (ISO 8601) |
+| `EffectiveDate`    | effective date         |
+
+Absent columns are silently skipped. Add these columns to the library's default view — no
+custom SharePoint configuration beyond the columns and the scoped account is needed.
+
+### Behaviour
+
+- **Watermark:** `TimeLastModified` (strictly-after, same as other sources).
+- **Change detection:** SharePoint's ETag; an in-place edit re-indexes without re-downloading
+  at discovery.
+- **Pagination:** large libraries are crawled page by page (`odata.nextLink`).
+- **Auth failure:** fails closed with a named error — never silently succeeds without credentials.
+- **Retry:** 429/5xx retried with bounded backoff; downloads are not retried at the source
+  level (Temporal's activity retry handles it with a fresh writer).
 
 ## Order matters (once)
 
@@ -482,11 +534,11 @@ tool: `{ "corpus_id": "vn-reg", "document_id": "<uuid>" }`.
 The serving process reads as one RLS role (`MISE_DB_ROLE`); rows outside that tier are
 invisible **at the database**, not filtered in code:
 
-| Role          | Sees                                                    |
-| ------------- | ------------------------------------------------------- |
-| `mise_public` | `vn-reg`, `my-reg` only                                 |
-| `mise_group`  | law + `group-std`                                       |
-| `mise_local`  | everything (law + Group + Country corpora)              |
+| Role          | Sees                                       |
+| ------------- | ------------------------------------------ |
+| `mise_public` | `vn-reg`, `my-reg` only                    |
+| `mise_group`  | law + `group-std`                          |
+| `mise_local`  | everything (law + Group + Country corpora) |
 
 Quick check that tiering works: run the same search as `mise_public` and `mise_local` —
 internal hits must appear only in the second.

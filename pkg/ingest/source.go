@@ -95,9 +95,10 @@ type DiscoveredDoc struct {
 	Version         string
 	Language        string
 
-	// ContentFingerprint is the lowercase-hex SHA-256 of the document's raw
-	// content, set by sources that can fingerprint content cheaply at discovery
-	// (library hashes local files). Empty means content-change detection rides
+	// ContentFingerprint is a stable, content-derived fingerprint —
+	// lowercase-hex SHA-256 (library) or normalized ETag (SharePoint);
+	// used by discoveryHash to detect in-place edits at discovery without
+	// downloading file bytes. Empty means content-change detection rides
 	// the discovery metadata fields alone (pipeline.discoveryHash).
 	ContentFingerprint string
 
