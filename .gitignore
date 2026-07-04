@@ -32,3 +32,5 @@ dist/
 .idea/
 .vscode/
 *.swp
+/.playwright-mcp/
+/.mcp.json
