@@ -160,3 +160,21 @@ export type ChainHop = {
 export type ChainResponse = {
   readonly hops: readonly ChainHop[];
 };
+
+export type CorpusDescriptor = {
+  readonly id: string;
+  readonly kind: string;
+  readonly schema_name: string;
+  readonly citation_scheme: string;
+  readonly access_tier: string;
+  readonly tier?: string;
+  readonly jurisdiction: string;
+  readonly embed_model: string;
+  readonly embed_dims: number;
+  readonly can_source: boolean;
+  readonly can_target: boolean;
+};
+
+export type RegistryListResponse = {
+  readonly items: readonly CorpusDescriptor[];
+};

@@ -46,6 +46,7 @@ func GenerateSpec(role string) ([]byte, error) {
 	router := chi.NewRouter()
 	api := NewAPI(router)
 	Register(api, nil, nil, nil, role)
+	RegisterRegistry(api)
 
 	spec, err := api.OpenAPI().YAML()
 	if err != nil {

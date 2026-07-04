@@ -19,6 +19,51 @@ components:
       required:
         - hops
       type: object
+    CorpusDescriptorWire:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/CorpusDescriptorWire.json
+          format: uri
+          readOnly: true
+          type: string
+        access_tier:
+          type: string
+        can_source:
+          type: boolean
+        can_target:
+          type: boolean
+        citation_scheme:
+          type: string
+        embed_dims:
+          format: int64
+          type: integer
+        embed_model:
+          type: string
+        id:
+          type: string
+        jurisdiction:
+          type: string
+        kind:
+          type: string
+        schema_name:
+          type: string
+        tier:
+          type: string
+      required:
+        - id
+        - kind
+        - schema_name
+        - citation_scheme
+        - access_tier
+        - jurisdiction
+        - embed_model
+        - embed_dims
+        - can_source
+        - can_target
+      type: object
     EdgeWire:
       additionalProperties: false
       properties:
@@ -317,6 +362,25 @@ components:
           type: boolean
       required:
         - ok
+      type: object
+    RegistryListOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - https://example.com/schemas/RegistryListOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        items:
+          items:
+            $ref: "#/components/schemas/CorpusDescriptorWire"
+          type:
+            - array
+            - "null"
+      required:
+        - items
       type: object
     RejectOutputBody:
       additionalProperties: false
@@ -752,6 +816,62 @@ paths:
       summary: Get a graph node's outgoing edges
       tags:
         - Graph
+  /registry:
+    get:
+      operationId: list-registry
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistryListOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      summary: List all registered corpus descriptors
+      tags:
+        - Registry
+  /registry/{id}:
+    get:
+      operationId: get-registry-corpus
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpusDescriptorWire"
+          description: OK
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Not Found
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Internal Server Error
+      summary: Get a corpus descriptor by ID
+      tags:
+        - Registry
   /reviews:
     get:
       operationId: list-reviews
