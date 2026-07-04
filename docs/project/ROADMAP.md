@@ -46,7 +46,7 @@ Each phase reaches one milestone; the milestone _is_ the phase's demonstrable ou
 | **M5** ✅ | [M5-web-ui](./plan/M5-web-ui/README.md)       | all screens live in the Vue SPA                                                             | the full product in a browser                         |
 | **M6** ✅ | [M6-scale](./plan/M6-scale/README.md)         | corpus registry GA + multimodal + new scope by descriptor only                              | add a corpus with zero core edits                     |
 | **M7** ✅ | [M7-review](./plan/M7-review/README.md)       | design-doc set audited for consistency, completeness, and correctness                       | a clean, trustworthy spec                             |
-| **M8**    | [M8-release](./plan/M8-release/README.md)     | v0.1.0 open-source release under AGPL-3.0                                                   | tagged release on GitHub                              |
+| **M8** ✅ | [M8-release](./plan/M8-release/README.md)     | v0.1.0 open-source release under AGPL-3.0                                                   | tagged release on GitHub                              |
 
 ---
 
