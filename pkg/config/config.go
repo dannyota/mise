@@ -171,6 +171,28 @@ func NewGrounder(ctx context.Context) (vertex.Grounder, error) {
 	}
 }
 
+// NewCaptioner returns the Captioner VERTEX selects: "fake" (the default) for
+// the offline deterministic captioner, "real" for the Gemini vision API via
+// GCP_PROJECT/GCP_REGION. CAPTION_MODEL overrides the default model.
+func NewCaptioner(ctx context.Context) (vertex.Captioner, error) {
+	switch v := envOr("VERTEX", "fake"); v {
+	case "fake":
+		return vertex.NewFakeCaptioner(), nil
+	case "real":
+		c, err := vertex.NewGeminiCaptioner(ctx,
+			os.Getenv("GCP_PROJECT"),
+			envOr("GCP_REGION", "us-central1"),
+			vertex.WithCaptionerModel(os.Getenv("CAPTION_MODEL")),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("config: creating gemini captioner: %w", err)
+		}
+		return c, nil
+	default:
+		return nil, fmt.Errorf("config: unknown VERTEX value %q, want \"fake\" or \"real\"", v)
+	}
+}
+
 // NewThresholdConfig returns a ThresholdConfig from environment variables,
 // falling back to sensible defaults.
 func NewThresholdConfig() detect.ThresholdConfig {
