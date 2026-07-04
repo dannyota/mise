@@ -31,7 +31,8 @@ const translatedTarget = ref<string | null>(null);
             v-if="props.validityStatus"
             class="rounded px-1.5 py-0.5 text-xs"
             :class="{
-              'bg-green-100 text-green-700': props.validityStatus === 'in_force',
+              'bg-green-100 text-green-700':
+                props.validityStatus === 'in_force',
               'bg-red-100 text-red-700': props.validityStatus === 'repealed',
             }"
           >
