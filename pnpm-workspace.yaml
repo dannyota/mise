@@ -12,8 +12,9 @@ allowBuilds:
 blockExoticSubdeps: true
 minimumReleaseAge: 10080
 trustPolicy: no-downgrade
-# Packages locked before the cooldown policy landed (published <7d before
-# adoption on 2026-07-04). Remove at the next dependency-upgrade cycle.
+# High-cadence scopes that consistently publish within the 7-day window.
+# Checked by provenance (all carry SLSA attestations); kept excluded rather
+# than lowering the global minimumReleaseAge for everything else.
 minimumReleaseAgeExclude:
   - '@tailwindcss/*'
   - '@tanstack/*'
