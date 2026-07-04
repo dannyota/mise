@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-violet-700: #6d28d9;
+  --color-mise-bg: #f8fafc;
+  --color-mise-sidebar: #1e293b;
+}

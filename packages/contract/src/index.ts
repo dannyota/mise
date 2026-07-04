@@ -1,4 +1,4 @@
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 
 export type {
   SseEvent,
@@ -22,3 +22,25 @@ export type {
   GraphInput,
   GraphOutput,
 } from './mcp-schemas.js';
+
+export type {
+  ApiProblem,
+  BootstrapResponse,
+  CorpusStatus,
+  DashboardSummary,
+  CursorPage,
+  ReviewCandidate,
+  Finding,
+  FindingDetail,
+  Resolution,
+  TimelineEvent,
+  Notification,
+  Webhook,
+  TranslateResponse,
+  CorpusAdmin,
+  RestGraphNode,
+  RestGraphEdge,
+  GraphResponse,
+  ChainHop,
+  ChainResponse,
+} from './rest-types.js';

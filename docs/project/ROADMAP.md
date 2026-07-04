@@ -36,7 +36,7 @@ Each phase reaches one milestone; the milestone _is_ the phase's demonstrable ou
 | **M2**    | [M2-graph](./plan/M2-graph/README.md)         | the `graph` schema + explicit internal edges + graph API (done)                             | the SOP→Policy→Group chain query                      |
 | **M3** ✅ | [M3-detectors](./plan/M3-detectors/README.md) | the 4 detectors + findings + the review queue                                               | a grounded `satisfies` candidate + a conflict finding |
 | **M4** ✅ | [M4-audit-qa](./plan/M4-audit-qa/README.md)   | cited, grounded answers over REST + MCP + SSE                                               | ask a question → cited answer / abstain               |
-| **M5**    | [M5-web-ui](./plan/M5-web-ui/README.md)       | all screens live in the Vue SPA                                                             | the full product in a browser                         |
+| **M5** ✅ | [M5-web-ui](./plan/M5-web-ui/README.md)       | all screens live in the Vue SPA                                                             | the full product in a browser                         |
 | **M6**    | [M6-scale](./plan/M6-scale/README.md)         | corpus registry GA + multimodal + new scope by descriptor only                              | add a corpus with zero core edits                     |
 
 ---
@@ -58,13 +58,13 @@ flowchart LR
     M5 --> M6["M6 — scale"]
     classDef gated fill:#6d28d9,stroke:#a78bfa,color:#fff,stroke-width:2px
     classDef public fill:#059669,stroke:#34d399,color:#fff,stroke-width:2px
-    class M1b,M3,M4,M5 gated
+    class M1b,M3,M4 gated
     class M1a public
 ```
 
 - **Green = runs entirely on public data** — M1a (law ingest: WS1 + WS4) delivers per-corpus
   evidence search over `vn-reg` + `my-reg` without any internal doc access.
-- **Violet = has non-code exit gates** (§3) — M3/M4/M5 have open implementation-review
+- **Violet = has non-code exit gates** (§3) — M3/M4 have open implementation-review
   decisions; M1b has real-adopter connector integration input. M0's own gate (DEC 14, embedding
   call site) is locked.
 - **M1a/M1b split:** M1a (public law corpora) is ungated and exits independently; M1b (internal

@@ -52,8 +52,9 @@ See also:
 
 - **Vitest**; mock the **model + MCP at the seam** and assert the **cite/abstain** path and
   tool calls (CODE_STYLE_TS). Assert refusals and iteration-cap handling explicitly.
-- Vue: **Vue Test Utils** for components; assert the browser **never calls a model**
-  (no model client in `web`) and that tier-gated screens hide what RLS would deny.
+- Vue: **Vue Test Utils** + happy-dom for components; assert the browser **never calls a model**
+  (ESLint `no-restricted-imports` gate in `apps/web/eslint.config.js`) and that tier-gated
+  screens hide what RLS would deny (capability-based visibility composable).
 
 ---
 

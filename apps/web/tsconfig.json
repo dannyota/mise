@@ -9,9 +9,10 @@
     "outDir": "dist",
     "rootDir": "src",
     "skipLibCheck": true,
+    "types": ["vite/client"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/env.d.ts"]
 }
