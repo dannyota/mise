@@ -9,7 +9,9 @@
 
 - [Overview](https://mise.danny.vn/#/guides/overview): What mise does — 5 corpora, compliance graph, 4 detectors, evidence-only Q&A.
 - [Deploy](https://mise.danny.vn/#/guides/deploy): Local dev with Podman + VERTEX=fake, or production GKE deployment.
+- [Configure sources](https://mise.danny.vn/#/guides/sources): Group (group-std, MY) vs Country (local-policy/local-sop, VN) — law crawlers built in, internal drop folders via LIBRARY_ROOT.
 - [First corpus](https://mise.danny.vn/#/guides/first-corpus): Ingest Vietnamese banking law (vn-reg) — no credentials needed.
+- [Check & query](https://mise.danny.vn/#/guides/check-query): Verify ingest runs, search per tier via MCP, walk the graph via REST, gate with eval.
 - [Graph & detectors](https://mise.danny.vn/#/guides/graph-detectors): Add internal docs, build the compliance graph, review proposed edges.
 - [Audit Q&A](https://mise.danny.vn/#/guides/audit-qa): Ask audit questions — Claude agent answers with cited, grounded evidence via SSE.
 - [Web UI](https://mise.danny.vn/#/guides/web-ui): Vue 3.5 SPA — graph explorer, review workbench, findings, Q&A chat.

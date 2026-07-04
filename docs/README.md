@@ -57,15 +57,17 @@ anything is served as a mapping. The read path serves verbatim, tier-gated evide
 1. **[Deploy](guides/deploy.md)** — `podman compose up -d` locally (zero GCP cost with
    `VERTEX=fake`), or GKE for production. All configuration is environment variables —
    the [table](guides/deploy.md#environment-variables) lists every one.
-2. **[Ingest public law](guides/first-corpus.md)** — VN + MY crawlers are built in; trigger
-   one Temporal workflow per corpus, nothing to configure.
-3. **[Add internal documents](guides/graph-detectors.md)** — set `LIBRARY_ROOT`, drop files
-   under `group-std/` · `local-policy/` · `local-sop/`, optional `.meta.json` sidecars for
-   doc-control metadata. The graph and detectors run from there.
-4. **[Ask audit questions](guides/audit-qa.md)** — cited, grounded answers over SSE; the
-   agent abstains when evidence is insufficient.
-5. **[Use the Web UI](guides/web-ui.md)** and **[operate it](guides/operations.md)** —
-   review workbench, findings, dashboards; monitoring, backup, upgrades.
+2. **[Configure sources](guides/sources.md)** — who is who: VN + MY law crawlers are built
+   in; the **Group** source (`group-std`, MY side) and **Country** sources (`local-policy` +
+   `local-sop`, VN side) are drop folders under `LIBRARY_ROOT` with `.meta.json` sidecars.
+3. **[Ingest your first corpus](guides/first-corpus.md)** — the public-law walkthrough,
+   end to end.
+4. **[Check & query](guides/check-query.md)** — verify the run landed, search per tier
+   (MCP), walk the compliance chain (REST), gate quality with the eval harness.
+5. **[Review the graph](guides/graph-detectors.md)** — promote/reject AI-proposed mappings;
+   **[ask audit questions](guides/audit-qa.md)** — cited answers, abstains when unsure.
+6. **[Use the Web UI](guides/web-ui.md)** and **[operate it](guides/operations.md)** —
+   review workbench, findings, dashboards; schedules, monitoring, backup.
 
 The [Overview](guides/overview.md) explains the product in five minutes.
 

@@ -16,7 +16,17 @@
     <changefreq>weekly</changefreq>
   </url>
   <url>
+    <loc>https://mise.danny.vn/#/guides/sources</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
     <loc>https://mise.danny.vn/#/guides/first-corpus</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
+    <loc>https://mise.danny.vn/#/guides/check-query</loc>
     <lastmod>2026-07-04</lastmod>
     <changefreq>weekly</changefreq>
   </url>

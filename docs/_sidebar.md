@@ -3,7 +3,9 @@
 - **Getting started**
   - [Overview](guides/overview.md)
   - [Deploy](guides/deploy.md)
+  - [Configure sources](guides/sources.md)
   - [First corpus](guides/first-corpus.md)
+  - [Check & query](guides/check-query.md)
   - [Graph & detectors](guides/graph-detectors.md)
   - [Audit Q&A](guides/audit-qa.md)
   - [Web UI](guides/web-ui.md)

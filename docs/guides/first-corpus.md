@@ -104,6 +104,7 @@ temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
 
 ## What's next
 
+- [Check & query](check-query.md) — verify the run landed and search it per tier.
+- [Configure sources](sources.md) — add the Group and Country drop folders.
 - [Graph & detectors](graph-detectors.md) — internal corpora and the compliance graph.
-- [DATA-MODEL §1](/design/DATA-MODEL.md) — corpus schema reference.
 - [LOCAL-DEV](/engineering/LOCAL-DEV.md) — the full local walkthrough.

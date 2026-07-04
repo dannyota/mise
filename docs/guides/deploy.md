@@ -122,6 +122,7 @@ go run ./cmd/eval -golden eval/golden-vn.json -corpora vn-reg -min-recall 0.7
 
 ## What's next
 
+- [Configure sources](sources.md) — the Group/Country corpus map and how each source is set up.
 - [Ingest your first corpus](first-corpus.md) — start with public law, no internal docs needed.
 - [DEPLOYMENT](/engineering/DEPLOYMENT.md) — full runtime topology reference.
 - [DELIVERY-MODEL](/engineering/DELIVERY-MODEL.md) — tenancy, upstream/adopter split.

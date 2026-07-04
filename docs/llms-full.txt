@@ -186,9 +186,135 @@ go run ./cmd/eval -golden eval/golden-vn.json -corpora vn-reg -min-recall 0.7
 
 ## What's next
 
+- [Configure sources](sources.md) — the Group/Country corpus map and how each source is set up.
 - [Ingest your first corpus](first-corpus.md) — start with public law, no internal docs needed.
 - [DEPLOYMENT](/engineering/DEPLOYMENT.md) — full runtime topology reference.
 - [DELIVERY-MODEL](/engineering/DELIVERY-MODEL.md) — tenancy, upstream/adopter split.
+
+---
+
+
+# Configure sources
+
+mise ships five core corpora in two families: **public law** (crawled, zero config) and
+**internal controls** (drop folder, one env var). This page maps who is who and how each is
+configured.
+
+## The corpus model — Group vs Country
+
+In the reference deployment the banking **group** operates under **Malaysian** regulation
+and the **country subsidiary** under **Vietnamese** regulation. That pairing is wired into
+the corpus registry — each internal corpus knows which law it must _satisfy_:
+
+| Corpus         | What it holds                | Jurisdiction | Tier               | Maps to (satisfies)      |
+| -------------- | ---------------------------- | ------------ | ------------------ | ------------------------ |
+| `my-reg`       | Malaysian regulation (law)   | MY           | public             | — (target only)          |
+| `vn-reg`       | Vietnamese regulation (law)  | VN           | public             | — (target only)          |
+| `group-std`    | **Group** standards          | MY           | group-confidential | `my-reg`                 |
+| `local-policy` | **Country** policies         | VN           | local-confidential | `vn-reg` + `group-std`   |
+| `local-sop`    | **Country** SOPs / runbooks  | VN           | local-confidential | derives < `local-policy` |
+
+So: **Group source ⇒ `group-std` (MY side)** · **Country sources ⇒ `local-policy` +
+`local-sop` (VN side)**. The chain the graph builds is
+`local-sop → local-policy → group-std → my-reg` and `local-policy → vn-reg`.
+
+> A different group/country pairing (or more countries) is an adopter deploy setting — the
+> registry descriptor per corpus carries jurisdiction and mapping target
+> ([DATA-MODEL §1](/design/DATA-MODEL.md)).
+
+## Law sources (VN + MY) — nothing to configure
+
+The crawlers are compiled in; each ingest run visits all of them for its corpus:
+
+| Corpus   | Crawlers                                                                      |
+| -------- | ----------------------------------------------------------------------------- |
+| `vn-reg` | vbpl.vn · vanban.chinhphu.vn · congbao.chinhphu.vn · SBV portal                |
+| `my-reg` | lom.agc.gov.my (Acts + P.U.) · bnm.gov.my (policy docs) · sc.com.my            |
+
+Trigger one Temporal workflow per corpus (repeat weekly via a schedule —
+[operations](operations.md)):
+
+```bash
+temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
+  --input '{"Corpus":"my-reg"}'
+temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
+  --input '{"Corpus":"vn-reg"}'
+```
+
+Optional input fields: `"Since": "2025-01-01T00:00:00Z"` (backfill past the stored
+watermark), `"Keyword": "cyber"` (server-side discovery filter).
+
+## Group source (`group-std`)
+
+1. Set `LIBRARY_ROOT` on the **worker** (e.g. `/data/library`, a mounted volume).
+2. Drop Group standards under `$LIBRARY_ROOT/group-std/` — one file per document
+   (`.pdf` / `.docx` / `.html` / `.md`).
+3. Add a sidecar per document for doc-control metadata (optional but recommended —
+   it powers explicit graph edges and ownership):
+
+```
+$LIBRARY_ROOT/group-std/GRP-STD-014 Information Security Standard.pdf
+$LIBRARY_ROOT/group-std/GRP-STD-014 Information Security Standard.pdf.meta.json
+```
+
+```json
+{
+  "number": "GRP-STD-014",
+  "title": "Group Information Security Standard",
+  "doc_type": "standard",
+  "language": "en",
+  "signer_name": "…",
+  "signer_role": "…",
+  "owner_department": "Group CISO Office",
+  "owner_role": "Head of Information Security",
+  "version": "3.2",
+  "issued_date": "2026-01-15",
+  "effective_date": "2026-02-01"
+}
+```
+
+4. Trigger: `--input '{"Corpus":"group-std"}'` (same workflow as law).
+
+Files land **group-confidential** — visible to the `mise_group` and `mise_local` roles,
+never to `mise_public`. Unknown sidecar keys are rejected at ingest (typo protection);
+editing a file in place re-indexes it.
+
+## Country sources (`local-policy`, `local-sop`)
+
+Same mechanics, different folders and one extra sidecar field — `relations` declares the
+explicit upward edge (Method A, confidence 1.0, no AI involved):
+
+```
+$LIBRARY_ROOT/local-policy/POL-IT-007 IT Risk Policy.docx
+$LIBRARY_ROOT/local-policy/POL-IT-007 IT Risk Policy.docx.meta.json
+$LIBRARY_ROOT/local-sop/SOP-IT-112 Patch Management.md
+```
+
+```json
+{
+  "number": "POL-IT-007",
+  "title": "IT Risk Management Policy",
+  "doc_type": "policy",
+  "owner_department": "IT Risk",
+  "relations": [{ "type": "implements", "target_number": "GRP-STD-014" }]
+}
+```
+
+Trigger each: `--input '{"Corpus":"local-policy"}'` · `--input '{"Corpus":"local-sop"}'`.
+Both land **local-confidential** (only `mise_local` sees them). The AI-side mapping —
+`satisfies` candidates against `vn-reg` — is proposed by the detectors afterwards and waits
+for human review ([graph & detectors](graph-detectors.md)).
+
+## Order matters (once)
+
+Ingest law **before** internal docs — the detectors map controls onto whatever law is
+already indexed. The steady state is: law on a weekly schedule, internal folders daily or on
+demand.
+
+## What's next
+
+- [Check & query](check-query.md) — verify what landed and search it per tier.
+- [Graph & detectors](graph-detectors.md) — review AI-proposed mappings.
 
 ---
 
@@ -294,9 +420,114 @@ temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
 
 ## What's next
 
+- [Check & query](check-query.md) — verify the run landed and search it per tier.
+- [Configure sources](sources.md) — add the Group and Country drop folders.
 - [Graph & detectors](graph-detectors.md) — internal corpora and the compliance graph.
-- [DATA-MODEL §1](/design/DATA-MODEL.md) — corpus schema reference.
 - [LOCAL-DEV](/engineering/LOCAL-DEV.md) — the full local walkthrough.
+
+---
+
+
+# Check & query
+
+After an ingest run: verify what landed, then query it — as the right tier.
+
+## 1. Did the run succeed?
+
+```bash
+# Temporal UI (local: http://localhost:8088) — workflow status, per-document activity retries
+
+# Or ask the database directly
+psql -c "SELECT corpus_id, status, started_at, discovered, indexed, failed
+         FROM ingest.run ORDER BY started_at DESC LIMIT 5"
+psql -c "SELECT corpus_id, state, count(*) FROM ingest.doc_ledger
+         GROUP BY corpus_id, state ORDER BY corpus_id"
+```
+
+A healthy run: `indexed` ≈ `discovered`, `failed` = 0. One failed document never fails the
+run — it shows up in `doc_ledger` as `failed` with its error, and the next run retries it.
+
+## 2. What corpora exist?
+
+```bash
+curl http://localhost:8080/api/v1/registry | jq '.[].id'
+curl http://localhost:8080/api/v1/registry/group-std | jq
+```
+
+The descriptor shows each corpus's jurisdiction, tier, and graph role — the
+[source pairing](sources.md) reflected back.
+
+## 3. Search the evidence (MCP)
+
+Search and document reads are **MCP tools** on the serving process (`/mcp`) — the same
+tools the reasoning agent uses. Quickest interactive client:
+
+```bash
+npx @modelcontextprotocol/inspector http://localhost:8080/mcp
+```
+
+Call `search`:
+
+```json
+{ "query": "patch management obligations", "corpora": ["vn-reg", "local-sop"], "top_k": 5 }
+```
+
+Optional: `"as_of_date": "2026-01-01"` (validity as of a date), `"in_force_only": false`
+(include repealed/superseded — default is in-force only). Each hit returns verbatim text,
+citation path, validity status, and source URL. Fetch a full document with the `document`
+tool: `{ "corpus_id": "vn-reg", "document_id": "<uuid>" }`.
+
+## 4. Tiers — who sees what
+
+The serving process reads as one RLS role (`MISE_DB_ROLE`); rows outside that tier are
+invisible **at the database**, not filtered in code:
+
+| Role          | Sees                                                    |
+| ------------- | ------------------------------------------------------- |
+| `mise_public` | `vn-reg`, `my-reg` only                                 |
+| `mise_group`  | law + `group-std`                                       |
+| `mise_local`  | everything (law + Group + Country corpora)              |
+
+Quick check that tiering works: run the same search as `mise_public` and `mise_local` —
+internal hits must appear only in the second.
+
+## 5. Walk the graph (REST)
+
+```bash
+# One node and its outgoing edges — ref is corpus_id/document_id[/section_id], / as %2F
+curl "http://localhost:8080/api/v1/graph/nodes/local-sop%2F<doc-uuid>"
+
+# The full compliance chain from a node (SOP → policy → standard → law)
+curl "http://localhost:8080/api/v1/graph/chain/local-sop%2F<doc-uuid>"
+```
+
+Pending AI-proposed edges and findings:
+
+```bash
+curl "http://localhost:8080/api/v1/reviews?status=pending"
+curl "http://localhost:8080/api/v1/findings?kind=gap"
+```
+
+## 6. Ask, don't query — Q&A and the Web UI
+
+- **[Audit Q&A](audit-qa.md)** — natural-language questions with cited answers (SSE); the
+  agent abstains when the evidence is insufficient.
+- **[Web UI](web-ui.md)** — dashboards, graph explorer, review workbench, coverage report.
+
+## 7. Gate the quality (eval)
+
+```bash
+go run ./cmd/eval -golden eval/golden-vn.json -corpora vn-reg -role mise_public
+```
+
+Gates recall@k / MRR@k / current-law / abstain / citation against a golden set — run it
+after every significant ingest to catch retrieval regressions
+([TESTING §4](/engineering/TESTING.md)).
+
+## What's next
+
+- [Graph & detectors](graph-detectors.md) — promote/reject the proposed mappings.
+- [Operations](operations.md) — schedules, monitoring, backup.
 
 ---
 
@@ -324,7 +555,7 @@ $LIBRARY_ROOT/
   doc-control metadata — `number`, `title`, `doc_type`, `language`, `signer_name`,
   `signer_role`, `owner_department`, `owner_role`, `version`, `issued_date`,
   `effective_date` (dates `YYYY-MM-DD`), and `relations` (`[{"type": "implements",
-  "target_number": "…"}]`). Unknown keys are **rejected** so typos surface at ingest.
+"target_number": "…"}]`). Unknown keys are **rejected** so typos surface at ingest.
   Without a sidecar, the filename becomes the title.
 - **Change detection:** editing a file in place re-indexes it (content hash), and re-running
   ingest is idempotent.
