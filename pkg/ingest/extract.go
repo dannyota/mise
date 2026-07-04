@@ -10,14 +10,15 @@ import (
 	"danny.vn/mise/pkg/vertex"
 )
 
-// MIME types the Extractor dispatches on. HTML and plain text are handled
-// locally; PDF and DOCX go through the vertex.Parser seam (Doc AI Layout
-// Parser in the real deployment, a fake/fixture offline).
+// MIME types the Extractor dispatches on. HTML, plain text, and markdown are
+// handled locally; PDF and DOCX go through the vertex.Parser seam (Doc AI
+// Layout Parser in the real deployment, a fake/fixture offline).
 const (
-	mimeHTML  = "text/html"
-	mimePlain = "text/plain"
-	mimePDF   = "application/pdf"
-	mimeDOCX  = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	mimeHTML     = "text/html"
+	mimePlain    = "text/plain"
+	mimeMarkdown = "text/markdown"
+	mimePDF      = "application/pdf"
+	mimeDOCX     = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
 
 // ErrUnsupportedContentType marks content types Extractor.Text cannot turn
@@ -36,16 +37,19 @@ func NewExtractor(p vertex.Parser) *Extractor {
 }
 
 // Text extracts plain text from content. text/html is extracted locally with
-// a stable one-line-per-block discipline (htmltext); text/plain passes
-// through; application/pdf and DOCX go through the parser seam, joining
-// section texts with a blank line. contentType may carry media-type
-// parameters ("text/html; charset=utf-8"); unknown types return
+// a stable one-line-per-block discipline (htmltext); text/plain and
+// text/markdown pass through; application/pdf and DOCX go through the parser
+// seam, joining section texts with a blank line. contentType may carry
+// media-type parameters ("text/html; charset=utf-8"); unknown types return
 // ErrUnsupportedContentType.
 func (e *Extractor) Text(ctx context.Context, content []byte, contentType string) (string, error) {
 	switch mt := mediaType(contentType); mt {
 	case mimeHTML:
 		return htmltext.Text(content), nil
-	case mimePlain:
+	case mimePlain, mimeMarkdown:
+		// Markdown ingests as-is: the downstream structure parsers are
+		// line-based state machines and markdown is already line-structured
+		// plain text — heading markers survive as literal heading lines.
 		return string(content), nil
 	case mimePDF, mimeDOCX:
 		// The parser gets the bare media type: Doc AI rejects parameters

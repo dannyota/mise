@@ -95,8 +95,9 @@ func (c *Corpus) GetValidity(ctx context.Context, docID uuid.UUID) (string, erro
 }
 
 const documentSelectCols = `id, corpus_id, title, doc_number, citation_scheme, citation_path, language,
-	validity_status, issuing_authority, signer_name, version, source_url, source_system,
-	content_type, access_tier, issued_date, effective_date, expiry_date, ingest_run_id, observed_at`
+	validity_status, issuing_authority, signer_name, signer_role, owner_department, owner_role,
+	version, source_url, source_system, content_type, access_tier, issued_date, effective_date,
+	expiry_date, ingest_run_id, observed_at`
 
 // scanDocument reads docID's document row. A missing or RLS-hidden row (see
 // ErrDocumentNotFound) is reported through that sentinel, not a bare
@@ -106,13 +107,15 @@ func (c *Corpus) scanDocument(ctx context.Context, tx pgx.Tx, docID uuid.UUID) (
 
 	var d Document
 	var docNumber, citationScheme, citationPath, issuingAuthority, signerName *string
+	var signerRole, ownerDepartment, ownerRole *string
 	var version, sourceURL, sourceSystem, contentType *string
 	var ingestRunID *uuid.UUID
 
 	err := tx.QueryRow(ctx, q, docID).Scan(
 		&d.ID, &d.CorpusID, &d.Title, &docNumber, &citationScheme, &citationPath, &d.Language,
-		&d.ValidityStatus, &issuingAuthority, &signerName, &version, &sourceURL, &sourceSystem,
-		&contentType, &d.AccessTier, &d.IssuedDate, &d.EffectiveDate, &d.ExpiryDate, &ingestRunID, &d.ObservedAt,
+		&d.ValidityStatus, &issuingAuthority, &signerName, &signerRole, &ownerDepartment, &ownerRole,
+		&version, &sourceURL, &sourceSystem, &contentType, &d.AccessTier,
+		&d.IssuedDate, &d.EffectiveDate, &d.ExpiryDate, &ingestRunID, &d.ObservedAt,
 	)
 	switch {
 	case isNotFound(err):
@@ -128,6 +131,7 @@ func (c *Corpus) scanDocument(ctx context.Context, tx pgx.Tx, docID uuid.UUID) (
 
 	d.DocNumber, d.CitationScheme, d.CitationPath = derefOr(docNumber), derefOr(citationScheme), derefOr(citationPath)
 	d.IssuingAuthority, d.SignerName, d.Version = derefOr(issuingAuthority), derefOr(signerName), derefOr(version)
+	d.SignerRole, d.OwnerDepartment, d.OwnerRole = derefOr(signerRole), derefOr(ownerDepartment), derefOr(ownerRole)
 	d.SourceURL, d.SourceSystem, d.ContentType = derefOr(sourceURL), derefOr(sourceSystem), derefOr(contentType)
 	if ingestRunID != nil {
 		d.IngestRunID = *ingestRunID

@@ -41,11 +41,12 @@ type NormalizedDoc struct {
 // into the validity-enveloped Document/Section rows for corpus desc, and
 // classifies each src.Relations edge into a pending RelationEvent.
 //
-// Language is "vi" for jurisdiction "vn" and "en" otherwise (matching the
-// document table's own "en" default — today the only other registered
-// jurisdiction is "my"). CitationScheme and AccessTier come from desc;
-// SourceURL/SourceSystem/ObservedAt/IngestRunID are ingest provenance.
-// ValidityStatus is MapValidity(src.Status, src.EffectiveAt, now).
+// Language prefers src.Language when the source declared one (library
+// sidecars); otherwise it is "vi" for jurisdiction "vn" and "en" for the
+// rest (matching the document table's own "en" default — today the only
+// other registered jurisdiction is "my"). CitationScheme and AccessTier come
+// from desc; SourceURL/SourceSystem/ObservedAt/IngestRunID are ingest
+// provenance. ValidityStatus is MapValidity(src.Status, src.EffectiveAt, now).
 //
 // The tree is flattened with law.Flatten; when that yields no sections (a
 // nil/empty tree, or a tree with no node carrying its own content),
@@ -53,9 +54,9 @@ type NormalizedDoc struct {
 // set to fallbackText. Every Section inherits the Document's ValidityStatus,
 // AccessTier, and EffectiveDate.
 //
-// CitationPath, Version, and ContentType have no corresponding field on
-// DiscoveredDoc yet and are left at their zero value rather than guessed;
-// a later task can populate them once the upstream data exists.
+// CitationPath and ContentType have no corresponding field on DiscoveredDoc
+// yet and are left at their zero value rather than guessed; a later task can
+// populate them once the upstream data exists.
 //
 // Normalize returns an error only for caller-side misuse: a zero-value desc
 // (ID empty — the caller likely forgot a corpus.Get lookup), a nil runID, or
@@ -87,10 +88,14 @@ func Normalize(
 		Title:            src.Title,
 		DocNumber:        src.Number,
 		CitationScheme:   desc.CitationScheme,
-		Language:         language(desc.Jurisdiction),
+		Language:         language(src.Language, desc.Jurisdiction),
 		ValidityStatus:   validity,
 		IssuingAuthority: src.Issuer,
 		SignerName:       src.Signer,
+		SignerRole:       src.SignerRole,
+		OwnerDepartment:  src.OwnerDepartment,
+		OwnerRole:        src.OwnerRole,
+		Version:          src.Version,
 		SourceURL:        src.DetailURL,
 		SourceSystem:     src.SourceID,
 		AccessTier:       string(desc.AccessTier),
@@ -108,8 +113,12 @@ func Normalize(
 	}, nil
 }
 
-// language derives store.Document.Language from a corpus jurisdiction.
-func language(jurisdiction string) string {
+// language returns the source-declared language when the source set one,
+// falling back to the corpus jurisdiction's default otherwise.
+func language(declared, jurisdiction string) string {
+	if declared != "" {
+		return declared
+	}
 	if jurisdiction == "vn" {
 		return "vi"
 	}

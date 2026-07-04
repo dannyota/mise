@@ -133,13 +133,15 @@ func (c *Corpus) TransitionValidity(
 // in UpsertDocument stay in sync by construction.
 const (
 	documentInsertCols = `corpus_id, title, doc_number, citation_scheme, citation_path, language,
-		validity_status, issuing_authority, signer_name, version, source_url, source_system,
-		content_type, access_tier, issued_date, effective_date, expiry_date, ingest_run_id, observed_at`
-	documentInsertPlaceholders = `$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19`
+		validity_status, issuing_authority, signer_name, signer_role, owner_department, owner_role,
+		version, source_url, source_system, content_type, access_tier, issued_date, effective_date,
+		expiry_date, ingest_run_id, observed_at`
+	documentInsertPlaceholders = `$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22`
 	documentUpdateSet          = `corpus_id=$2, title=$3, doc_number=$4, citation_scheme=$5, citation_path=$6,
-		language=$7, validity_status=$8, issuing_authority=$9, signer_name=$10, version=$11,
-		source_url=$12, source_system=$13, content_type=$14, access_tier=$15, issued_date=$16,
-		effective_date=$17, expiry_date=$18, ingest_run_id=$19, observed_at=$20, updated_at=now()`
+		language=$7, validity_status=$8, issuing_authority=$9, signer_name=$10, signer_role=$11,
+		owner_department=$12, owner_role=$13, version=$14, source_url=$15, source_system=$16,
+		content_type=$17, access_tier=$18, issued_date=$19, effective_date=$20, expiry_date=$21,
+		ingest_run_id=$22, observed_at=$23, updated_at=now()`
 )
 
 // UpsertDocument resolves d to an existing row (by doc_number, then by
@@ -285,7 +287,8 @@ func (c *Corpus) updateDocument(ctx context.Context, tx pgx.Tx, id uuid.UUID, d 
 func documentArgs(d Document) []any {
 	return []any{
 		d.CorpusID, d.Title, nullIfEmpty(d.DocNumber), nullIfEmpty(d.CitationScheme), nullIfEmpty(d.CitationPath),
-		d.Language, d.ValidityStatus, nullIfEmpty(d.IssuingAuthority), nullIfEmpty(d.SignerName), nullIfEmpty(d.Version),
+		d.Language, d.ValidityStatus, nullIfEmpty(d.IssuingAuthority), nullIfEmpty(d.SignerName),
+		nullIfEmpty(d.SignerRole), nullIfEmpty(d.OwnerDepartment), nullIfEmpty(d.OwnerRole), nullIfEmpty(d.Version),
 		nullIfEmpty(d.SourceURL), nullIfEmpty(d.SourceSystem), nullIfEmpty(d.ContentType), d.AccessTier,
 		d.IssuedDate, d.EffectiveDate, d.ExpiryDate, d.IngestRunID, d.ObservedAt,
 	}

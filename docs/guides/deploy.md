@@ -117,6 +117,7 @@ go run ./cmd/eval -golden eval/golden-vn.json -corpora vn-reg -min-recall 0.7
 | `DOCAI_PROCESSOR_ID` / `DOCAI_LOCATION`                                   | (required real)                              | Document AI parser seam                                       |
 | `JUDGE_MODEL` / `JUDGE_ESCALATION_MODEL`                                  | Gemini defaults                              | Judge model + escalation tier                                 |
 | `GCS_BUCKET` / `BLOB_DIR`                                                 | local dir                                    | Raw-file blob store (GCS in prod, dir locally)                |
+| `LIBRARY_ROOT`                                                            | (unset)                                      | Internal-corpora drop folder; unset = internal ingest off     |
 | `SERVING_PORT`                                                            | `8080`                                       | Serving HTTP port                                             |
 
 ## What's next

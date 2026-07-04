@@ -181,6 +181,7 @@ go run ./cmd/eval -golden eval/golden-vn.json -corpora vn-reg -min-recall 0.7
 | `DOCAI_PROCESSOR_ID` / `DOCAI_LOCATION`                                   | (required real)                              | Document AI parser seam                                       |
 | `JUDGE_MODEL` / `JUDGE_ESCALATION_MODEL`                                  | Gemini defaults                              | Judge model + escalation tier                                 |
 | `GCS_BUCKET` / `BLOB_DIR`                                                 | local dir                                    | Raw-file blob store (GCS in prod, dir locally)                |
+| `LIBRARY_ROOT`                                                            | (unset)                                      | Internal-corpora drop folder; unset = internal ingest off     |
 | `SERVING_PORT`                                                            | `8080`                                       | Serving HTTP port                                             |
 
 ## What's next
@@ -305,24 +306,39 @@ temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
 Once public law corpora are ingested, internal control documents build the compliance graph.
 The detectors propose mappings for human review.
 
-## Internal corpora — status
+## Internal corpora — the library connector
 
-The three internal corpora are **fully provisioned on the database side** and **registered**
-(`GET /api/v1/registry` lists them), but their **source connectors are deferred** — the
-public-first plan (M1b) ships SharePoint/document-library crawlers when internal doc access
-materializes:
+The three internal corpora ingest from a **document-library drop folder** (the `library`
+source, M9). Set `LIBRARY_ROOT` on the worker and lay documents out one file per document:
 
-| Corpus         | Tier               | Schema/RLS/graph role | Source connector |
-| -------------- | ------------------ | --------------------- | ---------------- |
-| `group-std`    | group-confidential | ✅ provisioned        | deferred (M1b)   |
-| `local-policy` | local-confidential | ✅ provisioned        | deferred (M1b)   |
-| `local-sop`    | local-confidential | ✅ provisioned        | deferred (M1b)   |
+```
+$LIBRARY_ROOT/
+  group-std/      Group standards          (tier: group-confidential)
+  local-policy/   Local policies           (tier: local-confidential)
+  local-sop/      SOPs and runbooks        (tier: local-confidential)
+```
 
-Until a connector lands, internal documents load **programmatically** through the Go store
-API (`store.Corpus` · `UpsertDocument` + `ReplaceSections`) — the same write path the
-pipeline uses; RLS, tier inheritance, and the graph all work identically. Internal docs
-additionally carry **doc-control headers** (signer, version, effective date) and resolve
-ownership to a durable `org_role`.
+- **Formats:** `.pdf` / `.docx` / `.html` / `.md`. The directory a file sits in **defines its
+  corpus and tier** — discovery logs every file with both, so misfiling is visible.
+- **Metadata sidecar (optional):** `<file>.meta.json` next to the document carries
+  doc-control metadata — `number`, `title`, `doc_type`, `language`, `signer_name`,
+  `signer_role`, `owner_department`, `owner_role`, `version`, `issued_date`,
+  `effective_date` (dates `YYYY-MM-DD`), and `relations` (`[{"type": "implements",
+  "target_number": "…"}]`). Unknown keys are **rejected** so typos surface at ingest.
+  Without a sidecar, the filename becomes the title.
+- **Change detection:** editing a file in place re-indexes it (content hash), and re-running
+  ingest is idempotent.
+- Trigger per corpus, same as public law:
+
+```bash
+temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
+  --input '{"Corpus":"group-std"}'
+```
+
+Locally, mount the folder into the worker container as a Podman volume; in the reference
+deployment, sync the bank's document library (SharePoint export, bucket, share) to the
+volume with standard tooling. A live SharePoint web-crawl remains deferred (M1b) and will
+plug the same source seam.
 
 ## How the graph builds
 

@@ -1,6 +1,8 @@
 package pipeline
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 
 	"danny.vn/mise/pkg/ingest"
@@ -20,10 +22,11 @@ func TestDiscoveryHashFingerprintsDiscoveryFields(t *testing.T) {
 		t.Errorf("discoveryHash length = %d, want 64 hex chars", len(discoveryHash(base)))
 	}
 	for name, mutate := range map[string]func(d *ingest.DiscoveredDoc){
-		"number":    func(d *ingest.DiscoveredDoc) { d.Number = "12/2026/TT-NHNN" },
-		"title":     func(d *ingest.DiscoveredDoc) { d.Title = "khác" },
-		"detailURL": func(d *ingest.DiscoveredDoc) { d.DetailURL = "https://vbpl.vn/van-ban/chi-tiet/2" },
-		"docType":   func(d *ingest.DiscoveredDoc) { d.DocType = "Nghị định" },
+		"number":             func(d *ingest.DiscoveredDoc) { d.Number = "12/2026/TT-NHNN" },
+		"title":              func(d *ingest.DiscoveredDoc) { d.Title = "khác" },
+		"detailURL":          func(d *ingest.DiscoveredDoc) { d.DetailURL = "https://vbpl.vn/van-ban/chi-tiet/2" },
+		"docType":            func(d *ingest.DiscoveredDoc) { d.DocType = "Nghị định" },
+		"contentFingerprint": func(d *ingest.DiscoveredDoc) { d.ContentFingerprint = "deadbeef" },
 	} {
 		changed := base
 		mutate(&changed)
@@ -36,6 +39,21 @@ func TestDiscoveryHashFingerprintsDiscoveryFields(t *testing.T) {
 	same.Status = "HHL"
 	if discoveryHash(same) != discoveryHash(base) {
 		t.Error("discoveryHash must ignore non-fingerprint fields")
+	}
+}
+
+// TestDiscoveryHashLegacyRecipeUnchanged pins the empty-fingerprint hash to
+// the original four-field recipe byte-for-byte: existing ledger rows were
+// written with it, and any drift would re-open every completed document of
+// every source that never sets ContentFingerprint.
+func TestDiscoveryHashLegacyRecipeUnchanged(t *testing.T) {
+	d := ingest.DiscoveredDoc{
+		Number: "11/2026/TT-NHNN", Title: "Quy định về an toàn hệ thống thông tin",
+		DetailURL: "https://vbpl.vn/van-ban/chi-tiet/1", DocType: "Thông tư",
+	}
+	sum := sha256.Sum256([]byte(d.Number + "|" + d.Title + "|" + d.DetailURL + "|" + string(d.DocType)))
+	if got, want := discoveryHash(d), hex.EncodeToString(sum[:]); got != want {
+		t.Fatalf("discoveryHash without fingerprint = %s, want legacy recipe %s", got, want)
 	}
 }
 

@@ -48,7 +48,7 @@ Each phase reaches one milestone; the milestone _is_ the phase's demonstrable ou
 | **M6** ✅ | [M6-scale](./plan/M6-scale/README.md)                       | corpus registry GA + multimodal + new scope by descriptor only                                                    | add a corpus with zero core edits                     |
 | **M7** ✅ | [M7-review](./plan/M7-review/README.md)                     | design-doc set audited for consistency, completeness, and correctness                                             | a clean, trustworthy spec                             |
 | **M8** ✅ | [M8-release](./plan/M8-release/README.md)                   | v0.1.0 open-source release under AGPL-3.0                                                                         | tagged release on GitHub                              |
-| **M9**    | [M9-internal-sources](./plan/M9-internal-sources/README.md) | the document-library connector — internal corpora ingestable from a drop folder (SharePoint crawl stays deferred) | drop a Group standard → tier-gated search hit         |
+| **M9** ✅ | [M9-internal-sources](./plan/M9-internal-sources/README.md) | the document-library connector — internal corpora ingestable from a drop folder (SharePoint crawl stays deferred) | drop a Group standard → tier-gated search hit         |
 
 ---
 

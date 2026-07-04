@@ -85,10 +85,10 @@ func TestNormalizeDocumentMapping(t *testing.T) {
 		{"SourceSystem", doc.SourceSystem, src.SourceID},
 		{"AccessTier", doc.AccessTier, string(desc.AccessTier)},
 		{"IngestRunID", doc.IngestRunID, runID},
+		{"Version", doc.Version, src.Version},
 		// Fields with no current DiscoveredDoc source stay at zero value —
 		// deliberate, not an oversight (see Normalize's doc comment).
 		{"CitationPath", doc.CitationPath, ""},
-		{"Version", doc.Version, ""},
 		{"ContentType", doc.ContentType, ""},
 	}
 	for _, c := range checks {
@@ -136,6 +136,44 @@ func TestNormalizeLanguageByJurisdiction(t *testing.T) {
 				t.Errorf("Doc.Language = %q, want %q", got.Doc.Language, tt.want)
 			}
 		})
+	}
+}
+
+// TestNormalizePropagatesDocControlMetadata covers the library sidecar
+// fields: they must survive into the store row, and a source-declared
+// language must win over the jurisdiction default.
+func TestNormalizePropagatesDocControlMetadata(t *testing.T) {
+	// group-std's jurisdiction ("my") defaults Language to "en", so a
+	// declared "vi" passing through proves the source declaration wins.
+	desc := descriptor(t, corpus.GroupStd)
+	src := baseSrc()
+	src.Language = "vi"
+	src.SignerRole = "Chief Risk Officer"
+	src.OwnerDepartment = "Information Security"
+	src.OwnerRole = "Head of InfoSec"
+	src.Version = "3.2"
+	now := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+
+	got, err := ingest.Normalize(desc, src, sampleTree(), "", uuid.New(), now)
+	if err != nil {
+		t.Fatalf("Normalize() error = %v, want nil", err)
+	}
+	doc := got.Doc
+	checks := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"Language", doc.Language, "vi"},
+		{"SignerRole", doc.SignerRole, src.SignerRole},
+		{"OwnerDepartment", doc.OwnerDepartment, src.OwnerDepartment},
+		{"OwnerRole", doc.OwnerRole, src.OwnerRole},
+		{"Version", doc.Version, src.Version},
+	}
+	for _, c := range checks {
+		if c.got != c.want {
+			t.Errorf("Doc.%s = %q, want %q", c.name, c.got, c.want)
+		}
 	}
 }
 

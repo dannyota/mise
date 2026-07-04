@@ -31,15 +31,15 @@ deployment-only ([DEPLOYMENT.md](./DEPLOYMENT.md)). The seam that makes both wor
 
 ## 2. The local stack (Podman)
 
-| Component                                                   | Local                                                                                               |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| AlloyDB (Omni)                                              | Podman container `google/alloydbomni` (ScaNN + pgvector + `ai.hybrid_search` offline; free for dev) |
-| Temporal                                                    | `temporal server start-dev`, or `podman compose`                                                    |
-| Go workers / serving / MCP                                  | run directly (`go run ./cmd/...`) or via `podman compose`                                           |
-| Web UI (Vue)                                                | `pnpm dev` (Vite)                                                                                   |
-| Reasoning endpoint (TS)                                     | `pnpm dev` (tsx + Hono); Claude via Vertex (ADC), or a stubbed model offline                        |
-| Internal sources                                            | **folder + manifest** loader (the `ingest.Source` fake); real connectors only to test them (§3)     |
-| Vertex APIs (embed · Gemini · Ranking · Grounding · Doc AI) | call real Vertex from localhost (ADC), or fake/fallback offline                                     |
+| Component                                                   | Local                                                                                                                    |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| AlloyDB (Omni)                                              | Podman container `google/alloydbomni` (ScaNN + pgvector + `ai.hybrid_search` offline; free for dev)                      |
+| Temporal                                                    | `temporal server start-dev`, or `podman compose`                                                                         |
+| Go workers / serving / MCP                                  | run directly (`go run ./cmd/...`) or via `podman compose`                                                                |
+| Web UI (Vue)                                                | `pnpm dev` (Vite)                                                                                                        |
+| Reasoning endpoint (TS)                                     | `pnpm dev` (tsx + Hono); Claude via Vertex (ADC), or a stubbed model offline                                             |
+| Internal sources                                            | the **`library` drop-folder source** (`pkg/ingest/library`, real code): `LIBRARY_ROOT/<corpus>/` + `.meta.json` sidecars |
+| Vertex APIs (embed · Gemini · Ranking · Grounding · Doc AI) | call real Vertex from localhost (ADC), or fake/fallback offline                                                          |
 
 Containers run **rootless** under Podman — the same `Containerfile`s CI builds with
 Buildah (CI-CD §3), so "works on my laptop" matches the image that ships.
@@ -109,6 +109,13 @@ not this CLI walkthrough.
    ```bash
    go run ./cmd/eval -golden deploy/eval/golden-vn.json -corpora vn-reg
    ```
+
+**Internal corpora** run the same walkthrough with the `library` drop-folder source: set
+`LIBRARY_ROOT` on the worker, put files under `$LIBRARY_ROOT/group-std/` (or
+`local-policy/`, `local-sop/`) with optional `<file>.meta.json` sidecars, and start the
+workflow with `{"Corpus":"group-std"}`. The
+[graph & detectors guide](../guides/graph-detectors.md) documents the layout and sidecar
+schema.
 
 DEPLOYMENT.md §6 has the same commands for the GKE reference deployment, plus the `VERTEX=real`
 prerequisites.

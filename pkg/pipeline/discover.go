@@ -183,8 +183,16 @@ func inScope(m *scope.Matcher, keyword string, doc ingest.DiscoveredDoc) (bool, 
 // discoveryHash fingerprints the discovery-time fields so re-discovery can
 // detect a genuine source change — it never re-opens a completed document
 // otherwise. Same recipe as banhmi's pipeline: sha256(Number|Title|DetailURL|
-// DocType), lowercase hex.
+// DocType), lowercase hex. A non-empty ContentFingerprint (sources that hash
+// raw content at discovery, e.g. library) is appended as a fifth component so
+// an in-place content edit re-opens the document; when it is empty the input
+// stays byte-identical to the four-field recipe — an invariant every existing
+// source/ledger row depends on, since none of them ever set the fingerprint.
 func discoveryHash(d ingest.DiscoveredDoc) string {
-	sum := sha256.Sum256([]byte(d.Number + "|" + d.Title + "|" + d.DetailURL + "|" + string(d.DocType)))
+	in := d.Number + "|" + d.Title + "|" + d.DetailURL + "|" + string(d.DocType)
+	if d.ContentFingerprint != "" {
+		in += "|" + d.ContentFingerprint
+	}
+	sum := sha256.Sum256([]byte(in))
 	return hex.EncodeToString(sum[:])
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"cloud.google.com/go/storage"
@@ -19,6 +20,7 @@ import (
 	"danny.vn/mise/pkg/ingest/agclom"
 	"danny.vn/mise/pkg/ingest/bnm"
 	"danny.vn/mise/pkg/ingest/congbao"
+	"danny.vn/mise/pkg/ingest/library"
 	"danny.vn/mise/pkg/ingest/sbv"
 	"danny.vn/mise/pkg/ingest/sc"
 	"danny.vn/mise/pkg/ingest/vanban"
@@ -214,13 +216,13 @@ var (
 	vbplNonSBVAgencyIDs = []string{"55", "56", "1", "57", "3", "14", "169", "2"}
 )
 
-// NewSources returns the wired crawler set per law corpus — vn-reg: vbpl,
-// vanban, congbao, sbv_hanoi; my-reg: agclom, bnm, sc — each with its default
-// HTTP client and the process logger. vbpl additionally gets the reference
-// agency-id sets and its built-in relation-type labels (nil map).
+// NewSources returns the wired crawler set per corpus — vn-reg: vbpl, vanban,
+// congbao, sbv_hanoi; my-reg: agclom, bnm, sc; internal (group-std,
+// local-policy, local-sop): library (when LIBRARY_ROOT is set). Each source
+// gets the process logger and default HTTP client where applicable.
 func NewSources(_ context.Context) (map[corpus.ID][]ingest.Source, error) {
 	log := slog.Default()
-	return map[corpus.ID][]ingest.Source{
+	m := map[corpus.ID][]ingest.Source{
 		corpus.VNReg: {
 			vbpl.New(nil, log, vbplSBVAgencyIDs, vbplNonSBVAgencyIDs, nil),
 			vanban.New(nil, log),
@@ -232,7 +234,19 @@ func NewSources(_ context.Context) (map[corpus.ID][]ingest.Source, error) {
 			bnm.New(nil, log),
 			sc.New(nil, log),
 		},
-	}, nil
+	}
+
+	if root := os.Getenv("LIBRARY_ROOT"); root != "" {
+		for _, id := range []corpus.ID{corpus.GroupStd, corpus.LocalPolicy, corpus.LocalSOP} {
+			src, err := library.New(filepath.Join(root, string(id)), id, log)
+			if err != nil {
+				return nil, fmt.Errorf("config: wiring library source for corpus %s: %w", id, err)
+			}
+			m[id] = []ingest.Source{src}
+		}
+	}
+
+	return m, nil
 }
 
 // NewDetectDeps returns the detect pipeline's dependency set from env config.

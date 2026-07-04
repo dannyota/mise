@@ -22,6 +22,9 @@ type Document struct {
 	ValidityStatus   string
 	IssuingAuthority string
 	SignerName       string
+	SignerRole       string
+	OwnerDepartment  string
+	OwnerRole        string
 	Version          string
 	SourceURL        string
 	SourceSystem     string

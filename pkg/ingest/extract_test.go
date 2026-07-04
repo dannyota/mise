@@ -86,6 +86,12 @@ func TestExtractorText(t *testing.T) {
 			want:        "nguyên văn",
 		},
 		{
+			name:        "markdown passes through as plain text",
+			content:     []byte("# Section 1\nbody line"),
+			contentType: "text/markdown",
+			want:        "# Section 1\nbody line",
+		},
+		{
 			name:        "pdf goes through the parser seam",
 			content:     pdfContent,
 			contentType: "application/pdf",

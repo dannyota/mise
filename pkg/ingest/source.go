@@ -49,7 +49,7 @@ type Relation struct {
 // others only as downloadable Files (congbao, AGC LoM, BNM, SC).
 type DiscoveredDoc struct {
 	// SourceID identifies the crawler package: "vbpl", "congbao", "sbv_hanoi",
-	// "vanban" (vn-reg); "agclom", "bnm", "sc" (my-reg); "sharepoint" (internal).
+	// "vanban" (vn-reg); "agclom", "bnm", "sc" (my-reg); "library" (internal).
 	SourceID    string
 	ExternalID  string     // site id or UUID
 	DocGUID     string     // cross-source opaque id when the source exposes one
@@ -83,6 +83,23 @@ type DiscoveredDoc struct {
 	// gazette number and its publish date.
 	GazetteNumber string
 	GazetteDate   time.Time
+
+	// Doc-control metadata carried by internal-corpus sources (the library
+	// sidecar contract): the signer's role/title, the owning department and
+	// role, the document's own version label, and its declared language code
+	// ("vi", "en"). All empty for sources without document control; an empty
+	// Language is derived from the corpus jurisdiction at normalize time.
+	SignerRole      string
+	OwnerDepartment string
+	OwnerRole       string
+	Version         string
+	Language        string
+
+	// ContentFingerprint is the lowercase-hex SHA-256 of the document's raw
+	// content, set by sources that can fingerprint content cheaply at discovery
+	// (library hashes local files). Empty means content-change detection rides
+	// the discovery metadata fields alone (pipeline.discoveryHash).
+	ContentFingerprint string
 
 	// RawMeta is the source's raw record for this document as returned by the
 	// feed, carried through ingest as provenance. It preserves fields not mapped
