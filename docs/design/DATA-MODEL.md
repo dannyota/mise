@@ -203,11 +203,11 @@ Out-of-corpus targets are stub refs (the engine's `doc_ref` stub mechanism).
 
 ```
 relation_edge(
-  id, from_node, to_node,
+  id, from_node, to_node,   -- conceptual: each decomposes to (corpus_id, document_id, section_id)
   edge_type,            -- satisfies | implements | derives | covers
   direction,
   promoted bool,        -- gate: false = machine candidate, true = human-attested
-  access_tier           -- stricter of the two endpoints
+  access_tier           -- GENERATED: stricter of the two endpoints (DEC 20)
 )
 
 relation_evidence(
@@ -259,6 +259,9 @@ flowchart TD
     judge --> cg{"Check Grounding<br/>rationale vs both verbatim texts"}
     cg -->|grounded| edge["relation_edge promoted=false → review queue"]
     cg -->|ungrounded| drop["discard"]
+
+    classDef ai fill:#6d28d9,stroke:#a78bfa,color:#fff
+    class emb,rr,judge,cg ai
 ```
 
 - **confidence** = the judge's self-scored certainty; **grounding_score** = Check

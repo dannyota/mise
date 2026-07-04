@@ -82,9 +82,9 @@ See also:
     already parsed + embedded at write time (AI-GOV §7). If an adopter later bars managed AI by
     policy, the serve model **swaps to the self-hosted variant behind the same read-only MCP loop**
     — config, not rearchitecture.
-  - **DECISIONS 11 (OPEN — Haiku/Sonnet escalation thresholds).** Model id is a **config seam**,
-    so this is **tuning, not rework**; gates the abstain/grounding **threshold** calibration
-    (**M4-16**), confirmed against the golden set before exit.
+  - **DECISIONS 11 (LOCKED provisional) / DEC 30 (serve-path thresholds).** Model id is a
+    **config seam**, so this is **tuning, not rework**; gates the abstain/grounding **threshold**
+    calibration (**M4-16**), confirmed against the golden set before exit.
   - **DECISIONS 5 (separate TS reasoning service — LOCKED).** Frames the whole milestone: no
     reasoning in Go, none in the browser; the polyglot cost is isolated behind the MCP/SSE
     boundary.

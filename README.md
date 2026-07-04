@@ -5,7 +5,7 @@
 Evidence-only **regulatory & policy intelligence** for **banks** — spanning
 Vietnamese & Malaysian banking regulation and an institution's own internal control documents
 (Group standards, Local policies, SOPs). mise serves **verbatim evidence and
-machine-proposed, human-verified mappings**; it **never asserts compliance**. It is **open
+machine-proposed, human-attested mappings**; it **never asserts compliance**. It is **open
 source** and deployed **single-tenant — one instance inside each bank's own GCP project**,
 bank-operated
 (see [docs/engineering/DELIVERY-MODEL.md](docs/engineering/DELIVERY-MODEL.md)).

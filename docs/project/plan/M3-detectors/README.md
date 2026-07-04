@@ -70,7 +70,7 @@ See also:
   - **Review-queue API** — `GET /reviews`, `POST /reviews/{edge}/promote|reject|relink` and `GET
 /findings` / `POST /findings/{id}/resolution` write `human_attested` evidence; a **relink
     re-triggers detection** (re-judge with the correction as constraint) and **recomputes** the
-    dependent findings; **no auto-promotion**; contract test green (API-CONTRACT §4).
+    dependent findings; **no auto-promotion**; contract test green (API-CONTRACT §3).
   - **Bootstrap golden set + eval** — a curated VN/Malay `satisfies` set (DEC 18) seeds the eval
     harness; the mapping precision/recall harness runs and **emits a baseline** (not a gate at
     first run — see §4; TESTING §5).
@@ -100,14 +100,15 @@ See also:
     If an adopter later bars managed AI by policy, the judge/ground/embed calls swap to
     the **self-hosted variant behind the same workflow shape** (AI-GOVERNANCE §7) — config, not
     rearchitecture.
-  - **DEC 11 (OPEN — judge model + thresholds).** Gemini 3.5 Flash is the default judge; hard
-    cases may route to Haiku/Sonnet when eval + cost justify it. Confidence + grounding thresholds
-    gate candidacy; they are logged, versioned, and **tuned against the golden set before exit**.
-    Gates the tuning in **M3-9** and **M3-18**.
+  - **DEC 11 (LOCKED provisional — judge model + thresholds).** Gemini 3.5 Flash is the default
+    judge; hard cases may route to Haiku/Sonnet when eval + cost justify it. Confidence + grounding
+    thresholds gate candidacy; they are logged, versioned, and **tuned against the golden set
+    before exit**. Gates the tuning in **M3-9** and **M3-18**.
   - **DEC 7 (SOP→law transitive-only — locked).** Constrains **M3-12**: `covers` is computed
     through the promoted chain, never a direct judge run.
-  - **DEC 18 (OPEN — eval golden-set bootstrap).** Before any human attestation exists there is no
-    set to score against; the curated VN/Malay seed gates the eval baseline in **M3-17/M3-18**.
+  - **DEC 18 (LOCKED provisional — eval golden-set bootstrap).** Before any human attestation
+    exists there is no set to score against; the curated VN/Malay seed gates the eval baseline in
+    **M3-17/M3-18**.
 - **External prerequisites:** for the **Mode A** (real Vertex) quality work — the dev GCP project
   with the Gemini judge + Check Grounding + Ranking APIs enabled in the configured region. The
   **Mode B** offline path (fake seams) gates CI with no GCP call (LOCAL-DEV §4).

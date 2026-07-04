@@ -37,7 +37,7 @@ See also:
   offline path (LOCAL-DEV §4 Mode B) **is** the unit-test path.
 - **RLS tests are mandatory**: a low-tier caller must not see `group-std`/`local-policy` rows
   even through a cross-corpus graph join (DATA-GOVERNANCE §2). Test against real AlloyDB
-  Omni via testcontainers, not a mock.
+  Omni via testcontainers, not a fake.
 - **Graph RLS/cross-tier-deny gate** (M2): the graph's compliance-chain surface has a dedicated
   deny suite (`pkg/store/graph_rls_test.go`, `pkg/httpapi/graph_deny_test.go`) that seeds
   local-confidential edges and asserts tier isolation across **every** read path — raw SQL
@@ -120,7 +120,7 @@ The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gat
   precision (= 1.0).
 - **Harness:** `apps/reasoning/src/eval/qa-eval.ts` — runs cases against the agent loop,
   computes metrics.
-- **Gate:** baseline-not-gate (thresholds are 0 until first calibration run, matching DEC 30).
+- **Gate:** baseline-not-gate (thresholds are 0 until first calibration run, matching DEC 18).
 
 ### Registry GA guard (M6)
 

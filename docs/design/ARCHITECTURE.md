@@ -263,6 +263,9 @@ flowchart TD
     edge --> conflict["ConflictDetect: local-policy with satisfies + implements<br/>→ Check Grounding contradiction → finding: CONFLICT"]
     gapcron["GapScan (cron)"] --> gap["obligation w/ 0 satisfies · std w/ 0 implements · policy w/ 0 sop<br/>→ finding: GAP"]
     amend["New amendment_event"] --> stale["StaleScan: amendment.date &gt; downstream effective_date<br/>→ finding: STALE (cascades to SOPs)"]
+
+    classDef ai fill:#6d28d9,stroke:#a78bfa,color:#fff
+    class emb,rr,judge,cg,conflict ai
 ```
 
 Internal edges (`implements`, `derives`) are **extracted during Normalize** from
@@ -301,6 +304,9 @@ flowchart TD
         rer --> ans["Claude composes answer + control chain (agent loop over MCP tools)"]
         ans --> gate["Claude citations → cited answer | abstain"]
     end
+
+    classDef ai fill:#6d28d9,stroke:#a78bfa,color:#fff
+    class emb,rer,ans,gate ai
 ```
 
 The endpoint may stop at evidence (evidence-only) or go on to compose a grounded
@@ -375,7 +381,7 @@ stack in **[LOCAL-DEV.md](../engineering/LOCAL-DEV.md)**, versions in [TOOLCHAIN
   the caller's OIDC token → tier propagated on every MCP call; **Zod** tool schemas;
   PreToolUse/PostToolUse **hooks → `pino` audit**; streams to the SPA over SSE. (Why a
   separate TS service / why the Agent SDK: DECISIONS 5.)
-- **API:** Go HTTP/gRPC (chi or connect-go); SSE for chat; MCP servers per corpus
+- **API:** Go HTTP via **huma v2 on chi** (DEC 23); SSE for chat; MCP servers per corpus
   ([API-CONTRACT.md](./API-CONTRACT.md)).
 - **Web:** **Vue 3.5 SPA (Vite)**
   ([UI-DESIGN.md](./UI-DESIGN.md)).

@@ -18,7 +18,7 @@ See also:
 ## 1. Governance posture (the three guarantees)
 
 1. **Evidence-only.** mise never _asserts_ compliance. It serves verbatim evidence,
-   machine-proposed relations, and human-verified findings. Any answer or edge that
+   machine-proposed edges, and human-attested findings. Any answer or edge that
    would go beyond the evidence is gated (Check Grounding) or left to a human.
 2. **Access-tiered.** Every corpus carries an access tier; every read is filtered by
    the caller's clearance at the database (RLS), not just in the UI.

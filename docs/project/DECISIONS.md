@@ -141,8 +141,9 @@ See also:
     model client, no store, no network. Method A extraction is a pure function over
     already-resolved data; any store or model call must happen in the caller (`pkg/store`),
     never inside `pkg/graph`. Locked 2026-07.
-25. **org_role forward-pull.** `graph.org_role` is seeded in M2 (migration 011) with the
-    resolver (`OrgRole.Resolve`) available for attestation-owner lookup at extraction time.
+25. **org_role forward-pull.** `org_role`/`org_role_history` tables and the resolver
+    (`OrgRole.Resolve`) are created in M1 (M1-18/M1-19); `graph.org_role` is wired into
+    the graph schema in M2 (migration 011) for attestation-owner lookup at extraction time.
     The full as-of-date history and UI surface are deferred to M4; M2 uses it as a simple
     current-holder lookup. Locked 2026-07.
 

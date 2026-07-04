@@ -18,8 +18,8 @@ See also:
 
 ## 1. Tasks
 
-Each row = one reviewable PR. DEC 11 remains open because model escalation and thresholds need
-evaluation against the golden set before they are locked.
+Each row = one reviewable PR. DEC 11 is locked (provisional) — model escalation and thresholds
+ship with defaults and are calibrated against the golden set before final lock.
 
 | ID    | Task                                                                                                                            | Deliverable / done-when                                                                                            | Design ref                   | Depends on | Size | Review | Risk |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------- | ---------- | ---- | ------ | ---- |
@@ -36,8 +36,8 @@ evaluation against the golden set before they are locked.
 
 - **AI proposes; grounding gates; humans attest.** This workstream writes candidates only
   (`promoted=false`). Nothing becomes accepted evidence without the review path in workstream 4.
-- **Thresholds are logged and versioned because DEC 11 is still open.** The implementation must
-  make calibration observable; the final values are locked only after eval.
+- **Thresholds are logged and versioned (DEC 11 provisional).** The implementation must make
+  calibration observable; the provisional values are confirmed only after eval.
 - **Managed AI is the reference deployment, not an upstream service.** Candidate texts are sent to
   the adopter's Vertex project by default (DEC 10/17), or to the self-hosted seam if policy selects
   that variant.
