@@ -60,6 +60,7 @@ type Hit struct {
 	SourceURL      string
 	Score          float64
 	AccessTier     string
+	ImageRef       string
 }
 
 // defaultTopK is Search's result cap when opts.TopK is unset (<=0).
