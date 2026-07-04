@@ -73,7 +73,10 @@ export function chatRoute(config: Config, modelCall: ModelCall): Hono {
   return app;
 }
 
-async function emitResult(stream: SSEWriter, result: AgentResult): Promise<void> {
+async function emitResult(
+  stream: SSEWriter,
+  result: AgentResult,
+): Promise<void> {
   for (const citation of result.citations) {
     await stream.writeSSE({
       event: 'evidence_checked',
@@ -117,7 +120,10 @@ async function emitResult(stream: SSEWriter, result: AgentResult): Promise<void>
 
   await stream.writeSSE({
     event: 'done',
-    data: JSON.stringify({ model: result.model, iterations: result.iterations }),
+    data: JSON.stringify({
+      model: result.model,
+      iterations: result.iterations,
+    }),
   });
 }
 

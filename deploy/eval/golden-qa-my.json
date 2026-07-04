@@ -1,0 +1,23 @@
+[
+  {
+    "question": "What are BNM's technology risk management requirements?",
+    "expected_kind": "answer",
+    "expected_corpus": "my-reg",
+    "expected_citation_contains": "RMiT",
+    "notes": "BNM RMiT policy document"
+  },
+  {
+    "question": "What are the data protection requirements for Malaysian banks?",
+    "expected_kind": "answer",
+    "expected_corpus": "my-reg",
+    "expected_citation_contains": "Section",
+    "notes": "PDPA 2010 or BNM guidelines"
+  },
+  {
+    "question": "What are the rules for AI-powered lending in Malaysian banks?",
+    "expected_kind": "abstain",
+    "expected_corpus": null,
+    "expected_citation_contains": null,
+    "notes": "No specific AI lending regulation — should abstain"
+  }
+]
