@@ -6,12 +6,7 @@ import SummaryTile from '@/components/SummaryTile.vue';
 import IngestStatus from '@/components/IngestStatus.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorBanner from '@/components/ErrorBanner.vue';
-import {
-  FileText,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-} from 'lucide-vue-next';
+import { ShieldCheck, AlertTriangle, Bell, ClipboardCheck } from 'lucide-vue-next';
 
 const data = ref<DashboardSummary | null>(null);
 const error = ref<Error | null>(null);
@@ -36,24 +31,24 @@ onMounted(async () => {
     <template v-else-if="data">
       <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <SummaryTile
-          label="Total Documents"
-          :value="data.total_documents"
-          :icon="FileText"
+          label="Coverage"
+          :value="`${data.coverage_pct}%`"
+          :icon="ShieldCheck"
         />
         <SummaryTile
-          label="Open Findings"
-          :value="data.open_findings"
+          label="Open Conflicts"
+          :value="data.open_conflicts"
           :icon="AlertTriangle"
         />
         <SummaryTile
-          label="Resolved"
-          :value="data.resolved_findings"
-          :icon="CheckCircle"
+          label="Staleness Alerts"
+          :value="data.staleness_alerts"
+          :icon="Bell"
         />
         <SummaryTile
-          label="Pending Reviews"
-          :value="data.pending_reviews"
-          :icon="Clock"
+          label="Review Queue"
+          :value="data.review_queue_depth"
+          :icon="ClipboardCheck"
         />
       </div>
       <IngestStatus :corpora="data.corpora" />

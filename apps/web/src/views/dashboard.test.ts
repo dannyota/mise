@@ -1,18 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { nextTick } from 'vue';
 import DashboardView from './DashboardView.vue';
 import type { DashboardSummary } from '@mise/contract';
 
 const summary: DashboardSummary = {
-  total_documents: 42,
-  open_findings: 5,
-  resolved_findings: 12,
-  pending_reviews: 3,
+  coverage_pct: 87,
+  open_conflicts: 5,
+  staleness_alerts: 2,
+  review_queue_depth: 3,
   corpora: [
     {
       corpus_id: 'vn-law',
-      status: 'ready',
+      name: 'Vietnam Law',
+      status: 'healthy',
       document_count: 30,
       last_ingest: '2026-07-01T00:00:00Z',
     },
@@ -31,15 +33,19 @@ describe('DashboardView', () => {
     );
     const w = mount(DashboardView);
     await flushPromises();
-    expect(w.text()).toContain('42');
-    expect(w.text()).toContain('Total Documents');
+    await nextTick();
+    await flushPromises();
+    expect(w.text()).toContain('87%');
+    expect(w.text()).toContain('Coverage');
     expect(w.text()).toContain('vn-law');
-    expect(w.text()).toContain('ready');
+    expect(w.text()).toContain('healthy');
   });
 
   it('renders error on failure', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network error'));
     const w = mount(DashboardView);
+    await flushPromises();
+    await nextTick();
     await flushPromises();
     expect(w.text()).toContain('Network error');
   });
