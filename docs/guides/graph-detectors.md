@@ -38,9 +38,10 @@ temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
 ```
 
 Locally, mount the folder into the worker container as a Podman volume; in the reference
-deployment, sync the bank's document library (SharePoint export, bucket, share) to the
-volume with standard tooling. A live SharePoint web-crawl remains deferred (M1b) and will
-plug the same source seam.
+deployment, sync from a bucket or mount a share. Alternatively, the **SharePoint web-crawl**
+connector crawls a document library live — see
+[Configure sources](sources.md#sharepoint-web-crawl-alternative-to-drop-folders). Both
+sources can feed the same corpus.
 
 ## How the graph builds
 
