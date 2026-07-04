@@ -31,6 +31,8 @@ type Aggregate struct {
 	InForceCases     int     // cases that contributed (returned >=1 hit)
 
 	AbstainAccuracy float64 // fraction of cases whose abstention matched expectation
+
+	CaptionHits int // total caption-bearing hits across all cases
 }
 
 // Summarize folds per-case results into corpus metrics. It micro-averages
@@ -66,6 +68,7 @@ func Summarize(results []CaseResult) Aggregate {
 		if r.AbstainCorrect {
 			abstainOK++
 		}
+		agg.CaptionHits += r.CaptionHits
 	}
 
 	agg.RecallAtK = ratio(recallFound, recallWant)
@@ -203,6 +206,7 @@ func WriteReport(w io.Writer, r Report) {
 	_, _ = fmt.Fprintf(w, "citation-correctness:  %s\n", pct(agg.CitationCorrectness, agg.CitationCases))
 	_, _ = fmt.Fprintf(w, "current-law-precision: %s\n", pct(agg.InForcePrecision, agg.InForceCases))
 	_, _ = fmt.Fprintf(w, "abstention-accuracy:   %s\n", pct(agg.AbstainAccuracy, agg.Cases))
+	_, _ = fmt.Fprintf(w, "caption-hits:          %d\n", agg.CaptionHits)
 }
 
 // pct formats a rate as a percentage, or "n/a (0 cases)" when no case fed the

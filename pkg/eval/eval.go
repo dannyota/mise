@@ -91,6 +91,10 @@ type CaseResult struct {
 
 	// AbstainCorrect: the run's Abstained matched the case's ExpectAbstain.
 	AbstainCorrect bool
+
+	// CaptionHits: count of hits with a non-empty ImageRef (diagram corpus
+	// results whose caption text was embedded and matched).
+	CaptionHits int
 }
 
 // Searcher is the retrieval seam Run scores — pkg/store.Search's shape minus
@@ -179,7 +183,18 @@ func Score(c Case, hits []store.Hit, abstained bool) CaseResult {
 	r.CitationCorrectness, r.CitationsGrounded, r.CitationsMade = CitationPrecision(c, hits)
 	r.InForcePrecision, r.HitsInForce, r.HitsTotal = InForcePrecision(hits)
 	r.AbstainCorrect = AbstainCorrect(c, abstained)
+	r.CaptionHits = countCaptionHits(hits)
 	return r
+}
+
+func countCaptionHits(hits []store.Hit) int {
+	n := 0
+	for _, h := range hits {
+		if h.ImageRef != "" {
+			n++
+		}
+	}
+	return n
 }
 
 // Recall computes recall@k for one case: the fraction of Expected citations
