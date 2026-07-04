@@ -25,12 +25,15 @@ const router = useRouter();
           @click="router.push(`/findings/${f.id}`)"
         >
           <td class="px-4 py-2 capitalize">{{ f.kind }}</td>
-          <td class="max-w-xs truncate px-4 py-2 text-gray-600">{{ f.description }}</td>
+          <td class="max-w-xs truncate px-4 py-2 text-gray-600">
+            {{ f.description }}
+          </td>
           <td class="px-4 py-2">
             <span
               class="rounded px-2 py-0.5 text-xs"
               :class="{
-                'bg-red-100 text-red-700': f.severity === 'critical' || f.severity === 'high',
+                'bg-red-100 text-red-700':
+                  f.severity === 'critical' || f.severity === 'high',
                 'bg-yellow-100 text-yellow-700': f.severity === 'medium',
                 'bg-blue-100 text-blue-700': f.severity === 'low',
               }"

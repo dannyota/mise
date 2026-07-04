@@ -13,8 +13,12 @@ defineProps<{ events: TimelineEvent[] }>();
     >
       <div>
         <p class="text-sm font-medium">{{ evt.action }}</p>
-        <p class="text-xs text-gray-500">{{ evt.actor }} &middot; {{ evt.timestamp }}</p>
-        <p v-if="evt.detail" class="mt-1 text-sm text-gray-600">{{ evt.detail }}</p>
+        <p class="text-xs text-gray-500">
+          {{ evt.actor }} &middot; {{ evt.timestamp }}
+        </p>
+        <p v-if="evt.detail" class="mt-1 text-sm text-gray-600">
+          {{ evt.detail }}
+        </p>
       </div>
     </div>
   </div>
