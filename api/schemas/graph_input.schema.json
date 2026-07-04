@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mise.dannyota.dev/schemas/graph_input.schema.json",
+  "title": "mise MCP graph tool input",
+  "description": "Input for mise's MCP `graph` tool (API-CONTRACT.md §2). Mirrors pkg/mcp.GraphInput.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["node_ref"],
+  "properties": {
+    "node_ref": {
+      "type": "string",
+      "description": "<corpus_id>/<document_id>[/<section_id>]"
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["up"],
+      "default": "up",
+      "description": "Only 'up' is supported."
+    },
+    "edge_types": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Filter edges by type; omit for all."
+    },
+    "depth": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Chain depth; default and max = 10."
+    }
+  }
+}
