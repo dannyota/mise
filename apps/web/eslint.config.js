@@ -1,9 +1,17 @@
 import pluginVue from 'eslint-plugin-vue';
 import tseslint from 'typescript-eslint';
 
-export default [
-  ...pluginVue.configs['flat/recommended'],
+export default tseslint.config(
   ...tseslint.configs.recommended,
+  ...pluginVue.configs['flat/recommended'],
+  {
+    files: ['**/*.vue'],
+    languageOptions: {
+      parserOptions: {
+        parser: tseslint.parser,
+      },
+    },
+  },
   {
     rules: {
       'no-restricted-imports': [
@@ -21,4 +29,4 @@ export default [
       ],
     },
   },
-];
+);
