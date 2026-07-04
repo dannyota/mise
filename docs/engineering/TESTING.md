@@ -122,6 +122,20 @@ The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gat
   computes metrics.
 - **Gate:** baseline-not-gate (thresholds are 0 until first calibration run, matching DEC 30).
 
+### Registry GA guard (M6)
+
+- **GA acceptance test** (`pkg/corpus/ga_guard_test.go`): register a fixture corpus by
+  descriptor alone, verify it appears in the registry, confirm zero core file changes needed.
+- **Graph role enforcement** (`pkg/store/graph_role_test.go`): `CheckGraphRole` rejects
+  edges where the source corpus lacks `CanSource` or the target lacks `CanTarget`.
+- **Vision caption seam** (`pkg/vertex/caption_test.go`): fake captioner returns
+  deterministic captions; fixture captioner replays sha256-keyed files. The real Gemini
+  captioner follows the same retry/backoff pattern as the judge.
+- **Eval caption metric** (`CaptionHits` in `pkg/eval`): counts diagram-corpus hits
+  with non-empty `ImageRef` — tracks whether caption embeddings surface in retrieval.
+- **Registry REST** (`pkg/httpapi/registry_test.go`): `GET /registry` returns all
+  descriptors; `GET /registry/{id}` returns one or 404.
+
 ---
 
 ## 6. Load test (prove the SLO)
