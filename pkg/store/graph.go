@@ -15,6 +15,30 @@ import (
 	"danny.vn/mise/pkg/graph"
 )
 
+// ErrGraphRoleViolation reports an edge between corpora whose graph_role
+// does not permit the relationship — CanSource on from or CanTarget on to.
+var ErrGraphRoleViolation = errors.New("graph role does not permit this edge")
+
+// CheckGraphRole validates that fromCorpusID can source edges and
+// toCorpusID can be targeted. Returns ErrGraphRoleViolation on failure.
+func CheckGraphRole(fromCorpusID, toCorpusID string) error {
+	fromDesc, ok := corpus.Get(corpus.ID(fromCorpusID))
+	if !ok {
+		return fmt.Errorf("graph: from_corpus_id %q: %w", fromCorpusID, ErrUnregisteredCorpus)
+	}
+	if !fromDesc.GraphRole.CanSource {
+		return fmt.Errorf("graph: corpus %q cannot source edges: %w", fromCorpusID, ErrGraphRoleViolation)
+	}
+	toDesc, ok := corpus.Get(corpus.ID(toCorpusID))
+	if !ok {
+		return fmt.Errorf("graph: to_corpus_id %q: %w", toCorpusID, ErrUnregisteredCorpus)
+	}
+	if !toDesc.GraphRole.CanTarget {
+		return fmt.Errorf("graph: corpus %q cannot be targeted: %w", toCorpusID, ErrGraphRoleViolation)
+	}
+	return nil
+}
+
 // ErrUnregisteredCorpus reports that a from_corpus_id given to
 // WriteExtractedEdge isn't a corpus.Get-registered corpus.Descriptor —
 // relation_edge.from_corpus_id has no schema-level guard of its own (unlike
@@ -150,6 +174,9 @@ func (g *GraphStore) WriteExtractedEdge(ctx context.Context, e graph.ExtractedEd
 	if _, ok := corpus.Get(corpus.ID(e.From.CorpusID)); !ok {
 		return uuid.UUID{}, fmt.Errorf("graph: from_corpus_id %q: %w", e.From.CorpusID, ErrUnregisteredCorpus)
 	}
+	if err := CheckGraphRole(e.From.CorpusID, e.Target.ToCorpusID); err != nil {
+		return uuid.UUID{}, err
+	}
 
 	var toDocID, toSecID *uuid.UUID
 	if !e.Target.IsStub {
@@ -280,6 +307,9 @@ type CandidateEdgeParams struct {
 func (g *GraphStore) WriteCandidateEdge(ctx context.Context, edge CandidateEdgeParams) (uuid.UUID, error) {
 	if _, ok := corpus.Get(corpus.ID(edge.FromCorpusID)); !ok {
 		return uuid.UUID{}, fmt.Errorf("graph: from_corpus_id %q: %w", edge.FromCorpusID, ErrUnregisteredCorpus)
+	}
+	if err := CheckGraphRole(edge.FromCorpusID, edge.ToCorpusID); err != nil {
+		return uuid.UUID{}, err
 	}
 
 	direction := edge.Direction
