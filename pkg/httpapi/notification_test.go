@@ -231,7 +231,7 @@ func TestListWebhooksReturnsItems(t *testing.T) {
 }
 
 func TestCreateWebhookReturnsID(t *testing.T) {
-	t.Parallel()
+	stubResolver(t) // mutates the package-level DNS seam — not t.Parallel-safe
 	whID := uuid.New()
 	repo := &fakeNotificationRepo{createID: whID}
 

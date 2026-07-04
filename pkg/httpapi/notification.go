@@ -219,7 +219,7 @@ func newCreateWebhookHandler(
 	repo NotificationRepoIface,
 ) func(context.Context, *WebhookCreateInput) (*WebhookCreateOutput, error) {
 	return func(ctx context.Context, in *WebhookCreateInput) (*WebhookCreateOutput, error) {
-		if err := ValidateWebhookURL(in.Body.URL); err != nil {
+		if err := ValidateWebhookURL(ctx, in.Body.URL); err != nil {
 			return nil, huma.Error400BadRequest("invalid webhook URL", err)
 		}
 
