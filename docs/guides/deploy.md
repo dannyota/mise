@@ -89,8 +89,8 @@ kubectl apply -f deploy/k8s/
 ### 4. Configure secrets
 
 ```bash
-# Store AD credentials for SharePoint crawl (if using internal connectors)
-gcloud secrets create mise-ad-credentials --data-file=./ad-creds.json
+# AlloyDB credentials for the serving/worker deployments
+gcloud secrets create mise-alloydb-password --data-file=./db-pass.txt
 
 # The Vertex AI connection uses Workload Identity (ADC) — no secret needed
 ```
@@ -102,19 +102,22 @@ gcloud secrets create mise-ad-credentials --data-file=./ad-creds.json
 curl https://<mise-endpoint>/healthz
 
 # Run the eval harness against the local stack
-go run ./cmd/eval -corpus vn-reg -min-recall 0.7
+go run ./cmd/eval -golden eval/golden-vn.json -corpora vn-reg -min-recall 0.7
 ```
 
 ## Environment variables
 
-| Variable               | Default            | Purpose                                                       |
-| ---------------------- | ------------------ | ------------------------------------------------------------- |
-| `VERTEX`               | `fake`             | `fake` = deterministic fakes (CI/local); `real` = live Vertex |
-| `DB_URL`               | (required)         | AlloyDB connection string                                     |
-| `TEMPORAL_HOST`        | `localhost:7233`   | Temporal frontend address                                     |
-| `JUDGE_MODEL`          | `gemini-3.5-flash` | Gemini model for the judge                                    |
-| `JUDGE_CONFIDENCE_MIN` | `0.7`              | Minimum confidence to write a candidate edge                  |
-| `JUDGE_GROUNDING_MIN`  | `0.6`              | Minimum grounding score to write a candidate edge             |
+| Variable                                                                  | Default                                      | Purpose                                                       |
+| ------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------- |
+| `VERTEX`                                                                  | `fake`                                       | `fake` = deterministic fakes (CI/local); `real` = live Vertex |
+| `ALLOYDB_HOST` / `ALLOYDB_USER` / `ALLOYDB_PASSWORD` / `ALLOYDB_DATABASE` | (unset)                                      | AlloyDB connection; serving stays healthz-only without a host |
+| `MISE_DB_ROLE`                                                            | `mise_public`                                | RLS role the serving process reads as                         |
+| `TEMPORAL_HOST` / `TEMPORAL_NAMESPACE` / `TEMPORAL_TASK_QUEUE`            | `localhost:7233` / `default` / `mise-ingest` | Temporal wiring for the worker                                |
+| `GCP_PROJECT` / `GCP_REGION`                                              | (required real)                              | Vertex project/region when `VERTEX=real`                      |
+| `DOCAI_PROCESSOR_ID` / `DOCAI_LOCATION`                                   | (required real)                              | Document AI parser seam                                       |
+| `JUDGE_MODEL` / `JUDGE_ESCALATION_MODEL`                                  | Gemini defaults                              | Judge model + escalation tier                                 |
+| `GCS_BUCKET` / `BLOB_DIR`                                                 | local dir                                    | Raw-file blob store (GCS in prod, dir locally)                |
+| `SERVING_PORT`                                                            | `8080`                                       | Serving HTTP port                                             |
 
 ## What's next
 

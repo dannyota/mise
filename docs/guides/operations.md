@@ -55,17 +55,20 @@ KEDA + cluster autoscaler handle scale-down to zero when idle (ingest workers, r
 
 ## Ingest scheduling
 
-Ingest runs on-demand or on a cron schedule (Temporal cron workflows):
+Ingest runs on-demand or on a Temporal schedule:
 
 ```bash
 # Trigger a one-off ingest
-curl -X POST http://localhost:8080/api/v1/ingest -d '{"corpus": "vn-reg"}'
+temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
+  --input '{"Corpus":"vn-reg"}'
 
-# Cron ingest is configured in deploy/temporal/schedules.yaml
+# Recurring ingest via a Temporal schedule
+temporal schedule create --schedule-id ingest-vn-reg --cron "0 2 * * 1" \
+  --task-queue mise-ingest --type IngestCorpusWorkflow --input '{"Corpus":"vn-reg"}'
 ```
 
 Public law corpora: weekly (regulations change slowly).
-Internal corpora: daily or on SharePoint webhook (detect doc updates).
+Internal corpora: daily, once their connector lands (M1b).
 
 ## Security operations
 

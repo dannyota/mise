@@ -5,96 +5,105 @@ Copyright (C) 2026 Danny Ota
 
 # First corpus
 
-Start with **public law** — no internal documents, no SharePoint credentials, no security
-sign-offs needed. This guide ingests the Vietnamese banking regulation corpus (`vn-reg`) and
-verifies search works.
+Start with **public law** — no internal documents, no credentials, no security sign-offs.
+The Vietnam and Malaysia regulation corpora ship **built in**: their source crawlers are
+compiled into the worker and need zero configuration.
 
-## Prerequisites
+## Built-in sources
 
-- mise running locally (`podman compose up -d` + `go run ./cmd/serving`)
-- Or a deployed instance with `VERTEX=real` for production-quality embeddings
+Sources are wired per corpus at build time (`pkg/config` · `NewSources`) — you don't
+configure them, you just trigger ingest:
 
-## 1. Register the corpus
+| Corpus   | Source    | What it crawls                                               |
+| -------- | --------- | ------------------------------------------------------------ |
+| `vn-reg` | `vbpl`    | vbpl.vn — MoJ national legal database (SBV + related bodies) |
+| `vn-reg` | `vanban`  | vanban.chinhphu.vn — government document portal              |
+| `vn-reg` | `congbao` | congbao.chinhphu.vn — the official gazette                   |
+| `vn-reg` | `sbv`     | State Bank of Vietnam portal (Hà Nội)                        |
+| `my-reg` | `agclom`  | lom.agc.gov.my — Laws of Malaysia (Acts + P.U. gazette)      |
+| `my-reg` | `bnm`     | bnm.gov.my — Bank Negara policy documents & guidelines       |
+| `my-reg` | `sc`      | sc.com.my — Securities Commission Malaysia                   |
 
-The corpus registry accepts a descriptor — no code change needed:
+The corpus registry itself is compile-time (`pkg/corpus`); the REST surface exposes it
+**read-only** for introspection:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/registry \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "id": "vn-reg",
-    "kind": "law",
-    "source_plugin": "vbpl_crawler",
-    "citation_scheme": "dieu_khoan_diem",
-    "embed": { "model": "gemini-embedding-001", "dims": 1536, "task_type": "RETRIEVAL_DOCUMENT" },
-    "access_tier": "public",
-    "jurisdiction": "vn",
-    "graph_role": { "can_source": false, "can_target": true, "default_edges": ["satisfies"] }
-  }'
+curl http://localhost:8080/api/v1/registry          # all corpus descriptors
+curl http://localhost:8080/api/v1/registry/vn-reg   # one descriptor
 ```
 
-## 2. Trigger ingest
+## 1. Trigger ingest
+
+Ingest runs as a Temporal workflow — start it with the `temporal` CLI:
 
 ```bash
-# Start the ingest workflow for vn-reg
-curl -X POST http://localhost:8080/api/v1/ingest \
-  -H 'Content-Type: application/json' \
-  -d '{"corpus": "vn-reg"}'
+temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
+  --input '{"Corpus":"vn-reg"}'
 ```
 
-The Temporal workflow runs: **Discover → Fetch → Parse → Normalize → Embed → Index**.
+Options in the input JSON:
 
-Monitor progress:
+- `Since` — RFC 3339 timestamp; overrides each source's stored discovery watermark
+  (operator backfill). Zero value = incremental from the stored cursor.
+- `Keyword` — per-source discovery query term; sources filtered server-side by keyword
+  bypass the scope matcher.
+
+The workflow runs **Discover → Fetch → Parse → Normalize → Embed → Index** with bounded
+parallelism; one failed document counts in the run's `Failed` tally without failing the run.
+
+> With `VERTEX=fake` (the local default) the crawlers still hit the **live public sources**
+> — only the embed/parse seams are faked — so expect real documents with deterministic
+> token-bag embeddings.
+
+## 2. Watch it run
 
 ```bash
-# Check workflow status
-temporal workflow list --query 'WorkflowType="IngestWorkflow" AND ExecutionStatus="Running"'
+# Temporal UI (local stack)
+open http://localhost:8088
+
+# Or query the ingest ledger directly
+psql -c "SELECT * FROM ingest.run ORDER BY started_at DESC LIMIT 5"
+psql -c "SELECT status, count(*) FROM ingest.doc_ledger GROUP BY status"
 ```
 
 ## 3. Verify search
 
-Once ingest completes, search the corpus:
+Search is an **MCP tool** on the serving process (mounted at `/mcp`), used by the reasoning
+agent and any MCP client:
 
 ```bash
-# Search for IT system safety requirements
-curl 'http://localhost:8080/api/v1/search?q=IT+system+safety+requirements&corpus=vn-reg'
+# Any MCP client works; with the MCP inspector:
+npx @modelcontextprotocol/inspector http://localhost:8080/mcp
+# → call the `search` tool: {"query": "IT system safety requirements", "corpora": ["vn-reg"]}
 ```
 
-Expected: ranked results with verbatim Vietnamese law text, citation references
-(Điều/Khoản/Điểm), and relevance scores.
+Expected: ranked hits with verbatim Vietnamese law text, citation paths (Điều/Khoản/Điểm),
+validity status, and source URLs.
 
 ## 4. Run the eval harness
 
 ```bash
 go run ./cmd/eval \
-  -corpus vn-reg \
-  -golden deploy/eval/golden-vn.json \
-  -min-recall 0 \
-  -min-mrr 0
+  -golden eval/golden-vn.json \
+  -corpora vn-reg \
+  -role mise_public \
+  -min-recall 0 -min-mrr 0
 ```
 
-The first run sets the baseline — metrics are logged but not gated (thresholds start at 0).
+The first run sets the baseline — gates at `0` log metrics without failing. Defaults gate at
+recall@k ≥ 0.90 and MRR@k ≥ 0.85.
 
-## Adding Malaysia regulation
+## Malaysia
 
-Same pattern — register `my-reg` with `jurisdiction: "my"` and `source_plugin: "agc_crawler"`:
+Identical — the sources are already wired:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/registry \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "id": "my-reg",
-    "kind": "law",
-    "source_plugin": "agc_crawler",
-    "citation_scheme": "part_section",
-    "embed": { "model": "gemini-embedding-001", "dims": 1536, "task_type": "RETRIEVAL_DOCUMENT" },
-    "access_tier": "public",
-    "jurisdiction": "my",
-    "graph_role": { "can_source": false, "can_target": true, "default_edges": ["satisfies"] }
-  }'
+temporal workflow start --task-queue mise-ingest --type IngestCorpusWorkflow \
+  --input '{"Corpus":"my-reg"}'
 ```
 
 ## What's next
 
-- [Graph & detectors](graph-detectors.md) — add internal docs and watch the compliance graph build.
-- [DATA-MODEL §1](/design/DATA-MODEL.md) — full corpus schema reference.
+- [Graph & detectors](graph-detectors.md) — internal corpora and the compliance graph.
+- [DATA-MODEL §1](/design/DATA-MODEL.md) — corpus schema reference.
+- [LOCAL-DEV](/engineering/LOCAL-DEV.md) — the full local walkthrough.

@@ -5,30 +5,27 @@ Copyright (C) 2026 Danny Ota
 
 # Graph & detectors
 
-Once public law corpora are ingested, add internal control documents to build the compliance
-graph. The detectors run automatically and propose mappings for human review.
+Once public law corpora are ingested, internal control documents build the compliance graph.
+The detectors propose mappings for human review.
 
-## Add internal corpora
+## Internal corpora — status
 
-Register internal corpora (Group standards, Local policies, SOPs) with their access tiers:
+The three internal corpora are **fully provisioned on the database side** and **registered**
+(`GET /api/v1/registry` lists them), but their **source connectors are deferred** — the
+public-first plan (M1b) ships SharePoint/document-library crawlers when internal doc access
+materializes:
 
-```bash
-# Group standards (visible to the whole group)
-curl -X POST http://localhost:8080/api/v1/registry \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "id": "group-std",
-    "kind": "standard",
-    "source_plugin": "sharepoint_crawl",
-    "access_tier": "group-confidential",
-    "tier": "group",
-    "jurisdiction": "my",
-    "graph_role": { "can_source": true, "can_target": true, "default_edges": ["satisfies","implements"] }
-  }'
-```
+| Corpus         | Tier               | Schema/RLS/graph role | Source connector |
+| -------------- | ------------------ | --------------------- | ---------------- |
+| `group-std`    | group-confidential | ✅ provisioned        | deferred (M1b)   |
+| `local-policy` | local-confidential | ✅ provisioned        | deferred (M1b)   |
+| `local-sop`    | local-confidential | ✅ provisioned        | deferred (M1b)   |
 
-Ingest runs the same medallion pipeline. Internal docs additionally extract **doc-control
-headers** (signer, version, effective date) and resolve ownership to a durable `org_role`.
+Until a connector lands, internal documents load **programmatically** through the Go store
+API (`store.Corpus` · `UpsertDocument` + `ReplaceSections`) — the same write path the
+pipeline uses; RLS, tier inheritance, and the graph all work identically. Internal docs
+additionally carry **doc-control headers** (signer, version, effective date) and resolve
+ownership to a durable `org_role`.
 
 ## How the graph builds
 
