@@ -25,8 +25,10 @@ shared vector space**, build a **compliance graph** with AI-proposed, **human-at
 edges, detect gaps/conflicts/staleness, and answer audit questions with **cited, grounded
 evidence**. mise **never asserts compliance** — it serves verbatim evidence only.
 
-> **Status: design stage.** This repo is the design-doc set — no application code yet.
-> The deliverable is a clear, consistent, non-overlapping set of docs under [`docs/`](docs/).
+> **Status: v0.1.0.** The full design-doc set under [`docs/`](docs/) plus the M0–M6
+> implementation: Go serving/worker, TypeScript reasoning endpoint, Vue web UI — all CI-green.
+> Runs locally on Podman with Vertex fakes; the GKE reference deployment is documented but
+> not yet exercised against a live tenant.
 
 ## At a glance
 

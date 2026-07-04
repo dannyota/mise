@@ -11,8 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.1.0] — 2026-07-04
 
-First public release — a **design-doc spec**, not running software. The version signals "this spec
-is stable enough to build from." Code scaffolding begins after this release.
+First public release — the complete design-doc set **and** the M0–M6 implementation built against
+it: Go serving/worker (13 goose migrations, RLS-gated hybrid search, graph + detectors), the
+TypeScript reasoning endpoint, and the Vue web UI, all behind four green CI workflows
+(Go · Web · Reasoning · Docs). Runs locally on the Podman stack with Vertex fakes; the GKE
+reference deployment is documented but not yet exercised against a live tenant.
 
 ### Added
 
