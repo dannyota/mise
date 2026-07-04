@@ -25,17 +25,14 @@ export function useChat() {
     error.value = null;
 
     const store = useAuthStore();
-    const base =
-      import.meta.env.VITE_REASONING_URL ?? '/reasoning';
+    const base = import.meta.env.VITE_REASONING_URL ?? '/reasoning';
 
     try {
       const res = await fetch(`${base}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(store.token
-            ? { Authorization: `Bearer ${store.token}` }
-            : {}),
+          ...(store.token ? { Authorization: `Bearer ${store.token}` } : {}),
         },
         body: JSON.stringify({ question }),
       });
@@ -52,8 +49,7 @@ export function useChat() {
         }
       }
     } catch (e) {
-      error.value =
-        e instanceof Error ? e.message : String(e);
+      error.value = e instanceof Error ? e.message : String(e);
     } finally {
       streaming.value = false;
     }

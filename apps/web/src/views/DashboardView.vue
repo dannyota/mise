@@ -6,7 +6,12 @@ import SummaryTile from '@/components/SummaryTile.vue';
 import IngestStatus from '@/components/IngestStatus.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorBanner from '@/components/ErrorBanner.vue';
-import { ShieldCheck, AlertTriangle, Bell, ClipboardCheck } from 'lucide-vue-next';
+import {
+  ShieldCheck,
+  AlertTriangle,
+  Bell,
+  ClipboardCheck,
+} from 'lucide-vue-next';
 
 const data = ref<DashboardSummary | null>(null);
 const error = ref<Error | null>(null);
