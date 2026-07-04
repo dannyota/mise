@@ -56,6 +56,7 @@ type SectionHit struct {
 	ValidityStatus string  `json:"validity_status"`
 	Score          float64 `json:"score"`
 	SourceURL      string  `json:"source_url"`
+	ImageRef       string  `json:"image_ref,omitempty"`
 }
 
 // DocumentInput is the document tool's input.
@@ -268,6 +269,7 @@ func mapSectionHits(hits []store.Hit) []SectionHit {
 			ValidityStatus: h.ValidityStatus,
 			Score:          h.Score,
 			SourceURL:      h.SourceURL,
+			ImageRef:       h.ImageRef,
 		}
 	}
 	return out

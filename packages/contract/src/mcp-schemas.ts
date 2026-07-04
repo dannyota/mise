@@ -18,6 +18,7 @@ export type SectionHit = {
   readonly validity_status: string;
   readonly score: number;
   readonly source_url: string;
+  readonly image_ref?: string;
 };
 
 export type SearchOutput = {

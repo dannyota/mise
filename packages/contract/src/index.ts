@@ -43,4 +43,6 @@ export type {
   GraphResponse,
   ChainHop,
   ChainResponse,
+  CorpusDescriptor,
+  RegistryListResponse,
 } from './rest-types.js';

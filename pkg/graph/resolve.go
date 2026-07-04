@@ -89,10 +89,25 @@ func EdgeTypeForPair(from, to corpus.ID) (string, bool) {
 		return string(edgeType), true
 	}
 	desc, ok := corpus.Get(from)
-	if !ok || desc.GraphRole.SatisfiesTarget == "" || desc.GraphRole.SatisfiesTarget != to {
+	if !ok {
 		return "", false
 	}
-	return string(EdgeSatisfies), true
+	if desc.GraphRole.SatisfiesTarget != "" && desc.GraphRole.SatisfiesTarget == to {
+		return string(EdgeSatisfies), true
+	}
+	toDesc, toOk := corpus.Get(to)
+	if !toOk {
+		return "", false
+	}
+	canLink := desc.GraphRole.CanSource && toDesc.GraphRole.CanTarget
+	if isOpenEdgeKind(desc.Kind) && canLink && len(desc.GraphRole.DefaultEdges) > 0 {
+		return desc.GraphRole.DefaultEdges[0], true
+	}
+	return "", false
+}
+
+func isOpenEdgeKind(k corpus.Kind) bool {
+	return k == corpus.KindReport || k == corpus.KindDiagram
 }
 
 // ResolveRef resolves one RawControlRef, read from a doc-control header in a

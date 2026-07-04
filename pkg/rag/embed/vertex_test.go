@@ -44,7 +44,7 @@ func TestNewVertexRejectsEmptyArgs(t *testing.T) {
 	tests := []struct {
 		name, project, region string
 	}{
-		{name: "empty project", region: "us-central1"},
+		{name: "empty project", region: "asia-southeast1"},
 		{name: "empty region", project: "proj"},
 	}
 	for _, tt := range tests {
@@ -57,11 +57,11 @@ func TestNewVertexRejectsEmptyArgs(t *testing.T) {
 }
 
 func TestNewVertexDefaultsAndEndpoint(t *testing.T) {
-	v, err := NewVertex(context.Background(), "proj", "us-central1", WithHTTPClient(&http.Client{}))
+	v, err := NewVertex(context.Background(), "proj", "asia-southeast1", WithHTTPClient(&http.Client{}))
 	if err != nil {
 		t.Fatalf("NewVertex() error = %v", err)
 	}
-	wantEndpoint := "https://us-central1-aiplatform.googleapis.com/v1/projects/proj/locations/us-central1/" +
+	wantEndpoint := "https://asia-southeast1-aiplatform.googleapis.com/v1/projects/proj/locations/asia-southeast1/" +
 		"publishers/google/models/gemini-embedding-001:predict"
 	if v.endpoint != wantEndpoint {
 		t.Errorf("endpoint = %q, want %q", v.endpoint, wantEndpoint)
@@ -73,7 +73,7 @@ func TestNewVertexDefaultsAndEndpoint(t *testing.T) {
 
 func TestNewVertexAppliesOptions(t *testing.T) {
 	hc := &http.Client{}
-	v, err := NewVertex(context.Background(), "proj", "us-central1", WithBatchSize(9), WithHTTPClient(hc))
+	v, err := NewVertex(context.Background(), "proj", "asia-southeast1", WithBatchSize(9), WithHTTPClient(hc))
 	if err != nil {
 		t.Fatalf("NewVertex() error = %v", err)
 	}
@@ -86,7 +86,7 @@ func TestNewVertexAppliesOptions(t *testing.T) {
 }
 
 func TestNewVertexIgnoresNonPositiveBatchSize(t *testing.T) {
-	v, err := NewVertex(context.Background(), "proj", "us-central1", WithBatchSize(0), WithHTTPClient(&http.Client{}))
+	v, err := NewVertex(context.Background(), "proj", "asia-southeast1", WithBatchSize(0), WithHTTPClient(&http.Client{}))
 	if err != nil {
 		t.Fatalf("NewVertex() error = %v", err)
 	}
@@ -377,7 +377,7 @@ func TestNewVertexEndToEndViaHTTPClient(t *testing.T) {
 	}
 	client := &http.Client{Transport: &hostRewriteTransport{base: base}}
 
-	v, err := NewVertex(context.Background(), "proj", "us-central1", WithHTTPClient(client))
+	v, err := NewVertex(context.Background(), "proj", "asia-southeast1", WithHTTPClient(client))
 	if err != nil {
 		t.Fatalf("NewVertex() error = %v", err)
 	}
@@ -397,7 +397,7 @@ func TestVertexLive(t *testing.T) {
 	if project == "" {
 		t.Skip("GCP_PROJECT not set; skipping live Vertex embed test")
 	}
-	region := cmp.Or(os.Getenv("GCP_REGION"), "us-central1")
+	region := cmp.Or(os.Getenv("GCP_REGION"), "asia-southeast1")
 
 	v, err := NewVertex(context.Background(), project, region)
 	if err != nil {

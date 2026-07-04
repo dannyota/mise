@@ -228,7 +228,7 @@ func embedderFromEnv(ctx context.Context) (embed.Embedder, error) {
 		return embed.NewFake(), nil
 	case "real":
 		project := os.Getenv("GCP_PROJECT")
-		region := envOr("GCP_REGION", "us-central1")
+		region := envOr("GCP_REGION", "asia-southeast1")
 		vx, err := embed.NewVertex(ctx, project, region)
 		if err != nil {
 			return nil, fmt.Errorf("cmd/eval: vertex embedder: %w", err)

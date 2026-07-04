@@ -349,6 +349,11 @@ corpus := { id, kind: law|standard|policy|sop|report|diagram,
   image vectors (e.g. `gemini-embedding-2`) are barred to preserve the single-space
   invariant (DECISIONS 1).
 - Same embedding model + dims for every corpus (the one hard rule).
+- **GA guard** (M6): `pkg/corpus/ga_guard_test.go` proves a fixture corpus registers by
+  descriptor alone with zero core file changes. `Register` validates embed-space match
+  (fail-closed) and rejects duplicates. `CheckGraphRole` enforces `CanSource`/`CanTarget`
+  at edge write time. The registry admin surface (`GET /registry`, `GET /registry/{id}`)
+  exposes all descriptors and the generated OpenAPI contract stays in sync.
 
 ---
 
