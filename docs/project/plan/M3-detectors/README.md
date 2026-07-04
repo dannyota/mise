@@ -109,6 +109,12 @@ See also:
   - **DEC 18 (LOCKED provisional — eval golden-set bootstrap).** Before any human attestation
     exists there is no set to score against; the curated VN/Malay seed gates the eval baseline in
     **M3-17/M3-18**.
+  - **DEC 24 (depguard — LOCKED).** `pkg/graph` stays pure/deterministic; import restrictions
+    enforced by depguard. Detectors live outside that fence.
+  - **DEC 26 (detectors in `pkg/detect` — LOCKED).** All detector workflows and the candidate
+    pipeline live in `pkg/detect`, separate from `pkg/graph`.
+  - **DEC 29 (transitive covers, DEC 7 enforced — LOCKED).** `covers` edges are computed
+    through promoted chains only; a test asserts no judge call on the SOP→law path.
 - **External prerequisites:** for the **Mode A** (real Vertex) quality work — the dev GCP project
   with the Gemini judge + Check Grounding + Ranking APIs enabled in the configured region. The
   **Mode B** offline path (fake seams) gates CI with no GCP call (LOCAL-DEV §4).

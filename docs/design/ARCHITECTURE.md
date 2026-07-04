@@ -63,13 +63,9 @@ reasoning LLM; a display aid, gated for confidential tiers (§3, AI-GOVERNANCE �
 
 ## 1. The 5 corpora (extensible)
 
-| id             | content                           | source                | citation scheme     | access tier        |
-| -------------- | --------------------------------- | --------------------- | ------------------- | ------------------ |
-| `vn-reg`       | Vietnam regulatory (all banking)  | VBPL · Công Báo · SBV | Điều/Khoản/Điểm     | public             |
-| `my-reg`       | Malaysia regulatory (all banking) | AGC LoM · BNM · SC    | Part/Section/Subsec | public             |
-| `group-std`    | Group Standards                   | SharePoint (web/SMB)  | Standard/Clause     | group-confidential |
-| `local-policy` | Local Policies                    | SharePoint (web/SMB)  | Policy §            | local-confidential |
-| `local-sop`    | Local Procedures / SOPs           | SharePoint (web/SMB)  | SOP step            | local-confidential |
+Five corpora spanning two public regulatory knowledge bases and three tiers of internal control
+documents — see [DATA-MODEL §1](./DATA-MODEL.md) for the full table (id, content, source, citation
+scheme, access tier).
 
 > Scope note: the law corpora cover **all banking regulation**, not just the
 > digital/technology subset that today's digital/technology indexes carry. See
@@ -336,17 +332,8 @@ model directly** ([AI-GOVERNANCE.md](./AI-GOVERNANCE.md) §5).
 ## 8. Scale — corpus registry & multimodal
 
 A corpus is a descriptor; adding one needs only a descriptor + source plugin +
-scope seed — no core change:
-
-```
-corpus := { id, kind: law|standard|policy|sop|report|diagram,
-            source_plugin, citation_scheme,
-            embed{ model, dims, task_type },
-            access_tier, graph_role{ can_source, can_target, default_edges },
-            tier,               -- group | local (internal corpora); regulators omit
-            jurisdiction,       -- vn | my | … ; group-std = home jurisdiction
-            metadata_config }   -- per-source metadata sourcing (DATA-MODEL §2/§9)
-```
+scope seed — no core change. See [DATA-MODEL §9](./DATA-MODEL.md) for the full descriptor
+shape (`corpus := { id, kind, source_plugin, embed{…}, access_tier, graph_role{…}, … }`).
 
 - **Reports** (audit/risk): a corpus whose nodes _map into_ the graph (finding →
   obligation/policy it concerns) — turns the graph into a living audit map.

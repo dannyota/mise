@@ -51,12 +51,8 @@ resolved** — it does **not** remediate. A human chooses a **disposition**; mis
 it, routes it to the durable owner, and **verifies closure by re-detection**. mise
 never asserts the bank is compliant — only that a _finding_ no longer fires.
 
-| Disposition  | When                                                 | Action                                      | Closes when                                                   |
-| ------------ | ---------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------- |
-| **Map**      | coverage exists, just unlinked                       | promote / relink an edge (Review Workbench) | a grounded, human-attested edge exists → finding stops firing |
-| **Document** | the paperwork is incomplete                          | draft/update the policy/SOP → re-ingest     | re-detection confirms it's gone                               |
-| **Accept**   | a human risk-accepts the gap                         | record rationale + owner                    | logged (no re-detection)                                      |
-| **Escalate** | a real control gap; the fix happens **outside** mise | record owner + due + link out               | a document change flows back and clears it                    |
+Four dispositions — Map · Document · Accept · Escalate — each with its own closure
+condition ([DATA-MODEL §7](./DATA-MODEL.md) owns the schema and semantics).
 
 - **Evidence-verified closure** (the differentiator): an item closes because **detection
   re-runs and the finding is gone** — not on a "done" click. `Accept` closes with a
