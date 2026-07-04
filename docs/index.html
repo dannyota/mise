@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>mise — regulatory intelligence for banks</title>
+  <meta name="description" content="Evidence-only regulatory & policy intelligence for banks. Open source, single-tenant, AGPL-3.0.">
+  <meta property="og:title" content="mise — regulatory intelligence for banks">
+  <meta property="og:description" content="Evidence-only regulatory & policy intelligence for banks.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mise.danny.vn">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='28' font-size='28'>🍱</text></svg>">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    :root {
+      --base-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --theme-color: #6d28d9;
+    }
+    .sidebar .app-name { font-weight: 700; }
+    .markdown-section code { font-size: 0.85em; }
+    /* dark mode */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --base-background-color: #1a1a2e;
+        --base-color: #e0e0e0;
+        --sidebar-background: #16213e;
+        --sidebar-nav-link-color: #cbd5e1;
+        --sidebar-nav-link-color--active: #a78bfa;
+        --cover-background-color: #1a1a2e;
+        --theme-color: #a78bfa;
+      }
+      body { background-color: #1a1a2e; color: #e0e0e0; }
+      .markdown-section { color: #e0e0e0; }
+      .markdown-section code { background: #2d2d44; color: #e0e0e0; }
+      .markdown-section pre { background: #1e1e30 !important; }
+      .sidebar { background: #16213e; border-right: 1px solid #2d2d44; }
+      .search input { background: #2d2d44; color: #e0e0e0; border-color: #3d3d5c; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">Loading…</div>
+  <script>
+    window.$docsify = {
+      name: '🍱 mise',
+      repo: 'https://github.com/dannyota/mise',
+      loadSidebar: true,
+      subMaxLevel: 2,
+      auto2top: true,
+      alias: {
+        '/CHANGELOG': '/CHANGELOG.md',
+      },
+      notFoundPage: true,
+      search: {
+        placeholder: 'Search docs',
+        noData: 'No results',
+        depth: 3,
+      },
+      copyCode: {
+        buttonText: 'Copy',
+        successText: 'Copied',
+      },
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-sql.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    // Render mermaid fences
+    const defined = txt => txt != null;
+    mermaid.initialize({ startOnLoad: false, theme: 'default' });
+    window.$docsify.markdown = {
+      renderer: {
+        code(code, lang) {
+          if (lang === 'mermaid') {
+            return '<div class="mermaid">' + code + '</div>';
+          }
+          return this.origin.code.apply(this, arguments);
+        },
+      },
+    };
+    // Re-render mermaid after page change
+    window.$docsify.plugins = [
+      function (hook) {
+        hook.doneEach(function () {
+          mermaid.run({ querySelector: '.mermaid' });
+        });
+      },
+    ];
+  </script>
+</body>
+</html>

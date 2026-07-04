@@ -15,5 +15,5 @@
   },
   "globs": ["docs/**/*.md", "*.md"],
   // PLAN.md is gitignored working state (implementation plans), not a shipped doc.
-  "ignores": ["PLAN.md", ".superpowers/**", "docs/superpowers/plans/**"]
+  "ignores": ["PLAN.md", ".superpowers/**", "docs/superpowers/plans/**", "docs/_sidebar.md"]
 }
