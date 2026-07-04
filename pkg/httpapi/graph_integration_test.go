@@ -136,7 +136,7 @@ func newTestAPI(t *testing.T, pool *pgxpool.Pool, role string) (huma.API, *httpt
 	t.Helper()
 	router := chi.NewRouter()
 	api := httpapi.NewAPI(router)
-	httpapi.Register(api, store.NewGraphRepo(pool), role)
+	httpapi.Register(api, store.NewGraphRepo(pool), store.NewReviewStore(pool), store.NewFindingStore(pool), role)
 	srv := httptest.NewServer(router)
 	t.Cleanup(srv.Close)
 	return api, srv

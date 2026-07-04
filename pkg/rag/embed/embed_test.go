@@ -102,6 +102,40 @@ func TestFakeEmbedderQueryEmbedderSameVectors(t *testing.T) {
 	}
 }
 
+// TestFakeEmbedderFactEmbedderSameVectors asserts the fake's FactEmbedder
+// returns the same vectors as Embed, since the fake has no task-type split.
+func TestFakeEmbedderFactEmbedderSameVectors(t *testing.T) {
+	e := embed.NewFake()
+	fe, ok := e.(embed.FactEmbedder)
+	if !ok {
+		t.Fatal("fake embedder does not implement FactEmbedder")
+	}
+	ctx := context.Background()
+	texts := []string{"vốn điều lệ ngân hàng", "kiểm toán nội bộ"}
+	docVecs, err := e.Embed(ctx, texts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	factVecs, err := fe.EmbedFact(ctx, texts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(docVecs) != len(factVecs) {
+		t.Fatalf("doc vecs = %d, fact vecs = %d", len(docVecs), len(factVecs))
+	}
+	for i := range docVecs {
+		if len(factVecs[i]) != 1536 {
+			t.Fatalf("EmbedFact vec[%d] dim = %d, want 1536", i, len(factVecs[i]))
+		}
+		for j := range docVecs[i] {
+			if docVecs[i][j] != factVecs[i][j] {
+				t.Fatalf("EmbedFact differs from Embed at vec[%d][%d]: %f != %f",
+					i, j, docVecs[i][j], factVecs[i][j])
+			}
+		}
+	}
+}
+
 // cosine returns the cosine similarity between two equal-length vectors.
 func cosine(a, b []float32) float64 {
 	var dot, na, nb float64

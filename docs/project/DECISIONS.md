@@ -146,22 +146,36 @@ See also:
     The full as-of-date history and UI surface are deferred to M4; M2 uses it as a simple
     current-holder lookup. Locked 2026-07.
 
+11. **Threshold defaults (provisional).** Confidence ≥ 0.7, grounding ≥ 0.6
+    (`detect.ThresholdConfig`). Both values are **env-configurable** and **provisional** — set
+    from the first real-corpus eval run, not a priori reasoning. Severity auto-set by kind:
+    conflict = critical, staleness = high, gap = medium. Locked (provisional) 2026-07.
+18. **Mapping eval baseline.** The first eval run sets the baseline; `min-precision=0`,
+    `min-recall=0` (provisional). The eval harness runs but does not gate until thresholds are
+    calibrated from real data. Human attestations append to the golden set over time
+    (TESTING §5, DATA-MODEL §8). Locked (provisional) 2026-07.
+26. **Detectors live in `pkg/detect` (outside depguard fence).** Method B (model-calling)
+    detectors import `pkg/vertex` (judge/grounder) and `pkg/rag/embed` (embedder) — imports
+    `pkg/graph`'s depguard rule forbids. `pkg/detect` is the clean boundary: it calls models,
+    `pkg/graph` never does. Locked 2026-07.
+27. **FactEmbedder optional interface pattern.** `detect.FactEmbedder` (single-fact embed) is a
+    separate interface from `embed.Embedder` (batch). Callers type-assert when they need the
+    single-fact path; the fake embedder satisfies both. Locked 2026-07.
+28. **ConflictDetect = two-stage (judge then grounder).** A candidate edge is judged first (Gemini
+    classify), then grounded (Check Grounding) — both must pass `ThresholdConfig.Gate` before the
+    edge is written. The two-stage pipeline avoids grounding calls on candidates the judge already
+    rejects. Locked 2026-07.
+29. **Transitive covers only (DEC 7 enforced).** `pkg/detect` never runs a direct SOP→law judge
+    call. SOP reaches law only transitively via Policy (SOP→Policy→Group→law). DEC 7's constraint
+    is enforced by `graph.EdgeTypeForPair` rejecting the `(local-sop, vn-reg)` pair. Locked
+    2026-07.
+
 <!-- prettier-ignore-end -->
 
 ## 🗺️ Open
 
 <!-- prettier-ignore-start -->
 
-11. **Model routing thresholds and escalation:** the model split is chosen, all under the bank's
-    Vertex boundary: **write path** = Gemini 3.5 Flash by default, with Haiku/Sonnet escalation
-    only if eval + cost justify it; **serve path** = Claude Haiku 4.5 default / Sonnet 4.6 hardest
-    via the Agent SDK (decisions 5/10). What remains open is the implementation-time calibration:
-    confidence, grounding, abstain, and escalation thresholds must be logged, versioned, tuned
-    against the golden set in M3/M4, and reviewed before lock.
-18. **Eval cold-start (golden-set bootstrap):** before any human attestation exists, seed a
-    small hand-labelled VN/Malay `satisfies` set so the eval harness produces a baseline at
-    first release. The first mapping precision/recall number is a baseline, not a pass/fail
-    product gate; human attestations append to the set over time (TESTING §5, DATA-MODEL §8).
 19. **Webhook egress policy:** before the M5 webhook surface ships, specify the SSRF-safe egress
     policy for `endpoint_url`: allowlist model, URL validation rules, private-address handling,
     DNS re-resolution behavior, timeout/retry limits, and audit fields. DATA-MODEL §10 owns the

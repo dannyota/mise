@@ -3,15 +3,18 @@ package config
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
 
 	"cloud.google.com/go/storage"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"danny.vn/mise/pkg/blob"
 	"danny.vn/mise/pkg/corpus"
+	"danny.vn/mise/pkg/detect"
 	"danny.vn/mise/pkg/ingest"
 	"danny.vn/mise/pkg/ingest/agclom"
 	"danny.vn/mise/pkg/ingest/bnm"
@@ -83,6 +86,48 @@ func NewBlob(ctx context.Context) (blob.Store, error) {
 	return blob.NewFS(envOr("BLOB_DIR", "./data/raw")), nil
 }
 
+// NewRanker returns the Ranker VERTEX selects: "fake" (the default) for the
+// offline deterministic ranker (LOCAL-DEV §4 Mode B), "real" for the Discovery
+// Engine Ranking API via GCP_PROJECT/GCP_REGION. Any other VERTEX value is an
+// error.
+func NewRanker(ctx context.Context) (vertex.Ranker, error) {
+	switch v := envOr("VERTEX", "fake"); v {
+	case "fake":
+		return vertex.NewFakeRanker(), nil
+	case "real":
+		r, err := vertex.NewVertexRanker(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "us-central1"))
+		if err != nil {
+			return nil, fmt.Errorf("config: creating vertex ranker: %w", err)
+		}
+		return r, nil
+	default:
+		return nil, fmt.Errorf("config: unknown VERTEX value %q, want \"fake\" or \"real\"", v)
+	}
+}
+
+// NewJudge returns the Judge VERTEX selects: "fake" (the default) for the
+// offline deterministic judge (LOCAL-DEV §4 Mode B), "real" for the Gemini
+// :generateContent API via GCP_PROJECT/GCP_REGION. JUDGE_MODEL overrides
+// the default model (gemini-3.5-flash). Any other VERTEX value is an error.
+func NewJudge(ctx context.Context) (vertex.Judge, error) {
+	switch v := envOr("VERTEX", "fake"); v {
+	case "fake":
+		return vertex.NewFakeJudge(), nil
+	case "real":
+		j, err := vertex.NewGeminiJudge(ctx,
+			os.Getenv("GCP_PROJECT"),
+			envOr("GCP_REGION", "us-central1"),
+			vertex.WithJudgeModel(envOr("JUDGE_MODEL", "gemini-3.5-flash")),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("config: creating gemini judge: %w", err)
+		}
+		return j, nil
+	default:
+		return nil, fmt.Errorf("config: unknown VERTEX value %q, want \"fake\" or \"real\"", v)
+	}
+}
+
 // NewParser returns the document Parser VERTEX selects: "fake" (the default)
 // for the offline deterministic parser (LOCAL-DEV §4 Mode B), "real" for Doc
 // AI Layout Parser via GCP_PROJECT / DOCAI_LOCATION (default "us") /
@@ -104,6 +149,36 @@ func NewParser(_ context.Context) (vertex.Parser, error) {
 		return p, nil
 	default:
 		return nil, fmt.Errorf("config: unknown VERTEX value %q, want \"fake\" or \"real\"", v)
+	}
+}
+
+// NewGrounder returns the Grounder VERTEX selects: "fake" (the default) for
+// the offline deterministic grounder (LOCAL-DEV §4 Mode B), "real" for the
+// Discovery Engine Check Grounding API via GCP_PROJECT/GCP_REGION. Any other
+// VERTEX value is an error.
+func NewGrounder(ctx context.Context) (vertex.Grounder, error) {
+	switch v := envOr("VERTEX", "fake"); v {
+	case "fake":
+		return vertex.NewFakeGrounder(), nil
+	case "real":
+		g, err := vertex.NewCheckGrounder(ctx, os.Getenv("GCP_PROJECT"), envOr("GCP_REGION", "us-central1"))
+		if err != nil {
+			return nil, fmt.Errorf("config: creating check grounder: %w", err)
+		}
+		return g, nil
+	default:
+		return nil, fmt.Errorf("config: unknown VERTEX value %q, want \"fake\" or \"real\"", v)
+	}
+}
+
+// NewThresholdConfig returns a ThresholdConfig from environment variables,
+// falling back to sensible defaults.
+func NewThresholdConfig() detect.ThresholdConfig {
+	return detect.ThresholdConfig{
+		ConfidenceMin:   envFloatOr("JUDGE_CONFIDENCE_MIN", 0.7),
+		GroundingMin:    envFloatOr("JUDGE_GROUNDING_MIN", 0.6),
+		Model:           envOr("JUDGE_MODEL", "gemini-3.5-flash"),
+		EscalationModel: os.Getenv("JUDGE_ESCALATION_MODEL"),
 	}
 }
 
@@ -138,6 +213,40 @@ func NewSources(_ context.Context) (map[corpus.ID][]ingest.Source, error) {
 	}, nil
 }
 
+// NewDetectDeps returns the detect pipeline's dependency set from env config.
+func NewDetectDeps(ctx context.Context, pool *pgxpool.Pool) (detect.Deps, error) {
+	emb, err := NewEmbedder(ctx)
+	if err != nil {
+		return detect.Deps{}, fmt.Errorf("config: detect embedder: %w", err)
+	}
+	factEmb, ok := emb.(embed.FactEmbedder)
+	if !ok {
+		return detect.Deps{}, errors.New("config: embedder does not implement FactEmbedder")
+	}
+	judge, err := NewJudge(ctx)
+	if err != nil {
+		return detect.Deps{}, fmt.Errorf("config: detect judge: %w", err)
+	}
+	grounder, err := NewGrounder(ctx)
+	if err != nil {
+		return detect.Deps{}, fmt.Errorf("config: detect grounder: %w", err)
+	}
+	ranker, err := NewRanker(ctx)
+	if err != nil {
+		return detect.Deps{}, fmt.Errorf("config: detect ranker: %w", err)
+	}
+
+	return detect.Deps{
+		Pool:       pool,
+		Embedder:   factEmb,
+		Judge:      judge,
+		Grounder:   grounder,
+		Ranker:     ranker,
+		Graph:      store.NewGraphStore(pool),
+		Thresholds: NewThresholdConfig(),
+	}, nil
+}
+
 // envOr returns the environment variable named key, or fallback if unset or empty.
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
@@ -158,4 +267,18 @@ func envIntOr(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+// envFloatOr returns the environment variable named key parsed as a float64,
+// or fallback if key is unset, empty, or not a valid float.
+func envFloatOr(key string, fallback float64) float64 {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return fallback
+	}
+	return f
 }

@@ -32,13 +32,15 @@ const (
 	// vertexMaxErrBody caps how much of an error response body is quoted.
 	vertexMaxErrBody = 512
 
-	taskTypeDocument = "RETRIEVAL_DOCUMENT"
-	taskTypeQuery    = "RETRIEVAL_QUERY"
+	taskTypeDocument         = "RETRIEVAL_DOCUMENT"
+	taskTypeQuery            = "RETRIEVAL_QUERY"
+	taskTypeFactVerification = "FACT_VERIFICATION"
 )
 
 // Vertex calls the Vertex AI gemini-embedding-001 REST :predict endpoint. It
-// implements Embedder (RETRIEVAL_DOCUMENT) and QueryEmbedder
-// (RETRIEVAL_QUERY) — the locked embed space (DECISIONS 1, DEC 14).
+// implements Embedder (RETRIEVAL_DOCUMENT), QueryEmbedder
+// (RETRIEVAL_QUERY), and FactEmbedder (FACT_VERIFICATION) — the locked
+// embed space (DECISIONS 1, DEC 14).
 type Vertex struct {
 	endpoint  string        // full …/models/gemini-embedding-001:predict URL
 	client    *http.Client  // OAuth2-wrapped HTTP client
@@ -65,7 +67,13 @@ func WithHTTPClient(c *http.Client) VertexOption {
 	return func(v *Vertex) { v.client = c }
 }
 
-// NewVertex returns an Embedder+QueryEmbedder backed by the Vertex AI
+// EmbedFact embeds texts for fact-verification scoring (task type
+// FACT_VERIFICATION); implements FactEmbedder.
+func (v *Vertex) EmbedFact(ctx context.Context, texts []string) ([][]float32, error) {
+	return v.embed(ctx, texts, taskTypeFactVerification)
+}
+
+// NewVertex returns an Embedder+QueryEmbedder+FactEmbedder backed by the Vertex AI
 // gemini-embedding-001 REST :predict endpoint. Credentials come from
 // Application Default Credentials unless WithHTTPClient overrides the
 // client.

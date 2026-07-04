@@ -104,6 +104,11 @@ The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gat
 
 - **Cold-start:** before any human attestation exists, seed a small hand-labelled set so
   the harness produces a baseline (this is the bootstrap gap flagged for discussion).
+- **Baseline-not-gate (DEC 18).** The first eval run establishes the baseline — it runs the
+  full harness and records precision/recall, but `min-precision=0` and `min-recall=0`
+  (provisional) so it **does not gate** CI. Thresholds are raised once the baseline is
+  calibrated from real data. The eval command always exits 0 on first run; subsequent runs
+  compare against the stored baseline and fail only when thresholds are set above 0.
 - Runs nightly on `master` against a fixed corpus snapshot so results are comparable.
 
 ---

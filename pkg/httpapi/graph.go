@@ -126,15 +126,16 @@ type ChainOutput struct {
 	Body ChainBody
 }
 
-// Register wires the graph REST operations onto api: GET /graph/nodes/{ref}
-// and GET /graph/chain/{ref} (API-CONTRACT.md §3, "Graph Explorer"). Every
-// read runs under role — the server-resolved RLS role (pkg/config.Role()),
-// never derived from request input (API-CONTRACT.md §1: "Clients never
-// assert their own tier") — exactly like the MCP evidence tools
-// (pkg/mcp.WithEvidence). repo may be nil when api only exists to generate
-// the OpenAPI spec (GenerateSpec): the handlers below run per HTTP request,
-// never during registration itself.
-func Register(api huma.API, repo GraphRepoIface, role string) {
+// Register wires all REST operations onto api: graph endpoints (GET
+// /graph/nodes/{ref}, GET /graph/chain/{ref}) and review/finding endpoints.
+// Every read runs under role — the server-resolved RLS role
+// (pkg/config.Role()), never derived from request input. Repo arguments may
+// be nil when api only exists to generate the OpenAPI spec (GenerateSpec).
+func Register(
+	api huma.API, graphRepo GraphRepoIface,
+	reviewRepo ReviewRepoIface, findingRepo FindingRepoIface,
+	role string,
+) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-graph-node",
 		Method:      http.MethodGet,
@@ -146,7 +147,7 @@ func Register(api huma.API, repo GraphRepoIface, role string) {
 			"reports 404: the two cases are deliberately indistinguishable (DATA-MODEL.md §4).",
 		Tags:   []string{"Graph"},
 		Errors: []int{http.StatusBadRequest, http.StatusNotFound},
-	}, newNodeHandler(repo, role))
+	}, newNodeHandler(graphRepo, role))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "get-graph-chain",
@@ -159,7 +160,9 @@ func Register(api huma.API, repo GraphRepoIface, role string) {
 			"walk cleanly (200 with fewer hops) — never a 404 by itself.",
 		Tags:   []string{"Graph"},
 		Errors: []int{http.StatusBadRequest, http.StatusNotFound},
-	}, newChainHandler(repo, role))
+	}, newChainHandler(graphRepo, role))
+
+	RegisterReviews(api, reviewRepo, findingRepo, role)
 }
 
 // newNodeHandler returns GET /graph/nodes/{ref}'s typed handler, closed over

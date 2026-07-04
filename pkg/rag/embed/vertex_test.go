@@ -184,6 +184,40 @@ func TestVertexEmbedQueriesUsesRetrievalQueryTaskType(t *testing.T) {
 	}
 }
 
+// TestVertexEmbedFactUsesFactVerificationTaskType asserts EmbedFact sends
+// task_type FACT_VERIFICATION (not RETRIEVAL_DOCUMENT or RETRIEVAL_QUERY).
+func TestVertexEmbedFactUsesFactVerificationTaskType(t *testing.T) {
+	var gotTaskTypes []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req predictRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decoding request: %v", err)
+		}
+		for _, inst := range req.Instances {
+			gotTaskTypes = append(gotTaskTypes, inst.TaskType)
+		}
+		_, _ = w.Write(cannedPredictions(t, len(req.Instances), 1536))
+	}))
+	defer srv.Close()
+
+	v := testVertex(srv)
+	ctx := context.Background()
+
+	// First call Embed to confirm baseline task type.
+	if _, err := v.Embed(ctx, []string{"doc text"}); err != nil {
+		t.Fatalf("Embed() error = %v", err)
+	}
+	// Then call EmbedFact.
+	if _, err := v.EmbedFact(ctx, []string{"candidate pair"}); err != nil {
+		t.Fatalf("EmbedFact() error = %v", err)
+	}
+
+	want := []string{"RETRIEVAL_DOCUMENT", "FACT_VERIFICATION"}
+	if len(gotTaskTypes) != len(want) || gotTaskTypes[0] != want[0] || gotTaskTypes[1] != want[1] {
+		t.Errorf("task types = %v, want %v", gotTaskTypes, want)
+	}
+}
+
 // TestVertexBatchesRequests asserts client-side chunking splits texts into
 // batchSize-sized :predict calls and reassembles the vectors in order.
 func TestVertexBatchesRequests(t *testing.T) {

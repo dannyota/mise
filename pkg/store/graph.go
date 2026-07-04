@@ -241,3 +241,91 @@ ON CONFLICT (edge_id, evidence_kind) DO NOTHING`
 	}
 	return nil
 }
+
+// CandidateEdgeParams carries everything WriteCandidateEdge needs to persist
+// one Method-B candidate edge: the from/to graph location plus the model
+// evidence audit fields. FromSectionID is optional (nil = document-level
+// edge). Evidence fields match relation_evidence's columns for
+// evidence_kind='model_classification' (migrations/009_graph_tables.sql).
+type CandidateEdgeParams struct {
+	FromCorpusID   string
+	FromDocumentID uuid.UUID
+	FromSectionID  *uuid.UUID
+	ToRefID        uuid.UUID
+	ToCorpusID     string
+	EdgeType       string
+	Direction      string
+
+	// Evidence audit fields.
+	Model          string
+	PromptHash     string
+	Confidence     float64
+	GroundingScore float64
+	Rationale      string
+	QuotedFromSpan string
+	QuotedToSpan   string
+	RunID          string
+	CreatedBy      string
+}
+
+// WriteCandidateEdge persists one Method-B (semantic) candidate edge: it
+// upserts the relation_edge row (reusing the same idempotent
+// upsertRelationEdge that Method A uses, promoted=false) and records a
+// model_classification evidence row with the full audit trail. Re-running
+// with the same candidate is a no-op: both relation_edge_uq and
+// relation_evidence_uq turn repeat inserts into DO NOTHING.
+//
+// FromCorpusID must name a registered corpus.Descriptor — the same
+// ErrUnregisteredCorpus guard WriteExtractedEdge applies (T1 R2).
+func (g *GraphStore) WriteCandidateEdge(ctx context.Context, edge CandidateEdgeParams) (uuid.UUID, error) {
+	if _, ok := corpus.Get(corpus.ID(edge.FromCorpusID)); !ok {
+		return uuid.UUID{}, fmt.Errorf("graph: from_corpus_id %q: %w", edge.FromCorpusID, ErrUnregisteredCorpus)
+	}
+
+	direction := edge.Direction
+	if direction == "" {
+		direction = "up"
+	}
+
+	edgeID, err := g.upsertRelationEdge(ctx, edge.FromCorpusID, edge.FromDocumentID, edge.FromSectionID,
+		edge.ToRefID, edge.ToCorpusID, edge.EdgeType, direction)
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("writing candidate relation_edge: %w", err)
+	}
+
+	if err := g.insertModelEvidence(ctx, edgeID, edge); err != nil {
+		return uuid.UUID{}, fmt.Errorf("writing model evidence for edge %s: %w", edgeID, err)
+	}
+	return edgeID, nil
+}
+
+// insertModelEvidence inserts edgeID's evidence_kind='model_classification'
+// row with all audit fields — model provenance (model, prompt_hash),
+// confidence/grounding scores, rationale, quoted spans, run_id, and
+// created_by. ON CONFLICT DO NOTHING makes re-runs idempotent via
+// relation_evidence_uq (edge_id, evidence_kind).
+func (g *GraphStore) insertModelEvidence(ctx context.Context, edgeID uuid.UUID, p CandidateEdgeParams) error {
+	var runID *uuid.UUID
+	if p.RunID != "" {
+		parsed, err := uuid.Parse(p.RunID)
+		if err != nil {
+			return fmt.Errorf("parsing run_id %q: %w", p.RunID, err)
+		}
+		runID = &parsed
+	}
+
+	const q = `
+INSERT INTO graph.relation_evidence
+	(edge_id, evidence_kind, confidence, model, prompt_hash, grounding_score,
+	 quoted_from_span, quoted_to_span, rationale, run_id, created_by)
+VALUES ($1, 'model_classification', $2, $3, $4, $5, $6, $7, $8, $9, $10)
+ON CONFLICT (edge_id, evidence_kind) DO NOTHING`
+
+	if _, err := g.pool.Exec(ctx, q,
+		edgeID, p.Confidence, p.Model, p.PromptHash, p.GroundingScore,
+		p.QuotedFromSpan, p.QuotedToSpan, p.Rationale, runID, p.CreatedBy,
+	); err != nil {
+		return fmt.Errorf("inserting model_classification evidence: %w", err)
+	}
+	return nil
+}
