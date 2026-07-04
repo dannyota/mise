@@ -1,9 +1,19 @@
 name: Reasoning
 on:
   push:
-    paths: ['apps/reasoning/**', 'packages/contract/**']
+    paths:
+      [
+        'apps/reasoning/**',
+        'packages/contract/**',
+        '.github/workflows/reasoning.yml',
+      ]
   pull_request:
-    paths: ['apps/reasoning/**', 'packages/contract/**']
+    paths:
+      [
+        'apps/reasoning/**',
+        'packages/contract/**',
+        '.github/workflows/reasoning.yml',
+      ]
 
 jobs:
   reasoning:

@@ -1,9 +1,11 @@
 name: Web
 on:
   push:
-    paths: ['apps/web/**', 'packages/contract/**']
+    paths:
+      ['apps/web/**', 'packages/contract/**', '.github/workflows/web.yml']
   pull_request:
-    paths: ['apps/web/**', 'packages/contract/**']
+    paths:
+      ['apps/web/**', 'packages/contract/**', '.github/workflows/web.yml']
 
 jobs:
   web:
