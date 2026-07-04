@@ -1,51 +1,403 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
   <title>mise — regulatory intelligence for banks</title>
-  <meta name="description" content="Evidence-only regulatory & policy intelligence for banks. Open source, single-tenant, AGPL-3.0.">
-  <meta property="og:title" content="mise — regulatory intelligence for banks">
-  <meta property="og:description" content="Evidence-only regulatory & policy intelligence for banks.">
+  <meta name="description" content="Evidence-only regulatory & policy intelligence for banks. Ingest law + controls, build a compliance graph, detect gaps, answer audit questions with cited evidence.">
+  <link rel="canonical" href="https://mise.danny.vn">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍱</text></svg>">
+
+  <!-- Open Graph -->
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="mise">
+  <meta property="og:title" content="mise — regulatory intelligence for banks">
+  <meta property="og:description" content="Evidence-only regulatory & policy intelligence for banks. Ingest law + controls, build a compliance graph, detect gaps, answer audit questions with cited evidence.">
   <meta property="og:url" content="https://mise.danny.vn">
   <meta property="og:image" content="https://mise.danny.vn/assets/og.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="300">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='28' font-size='28'>🍱</text></svg>">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="mise — regulatory intelligence for banks">
+  <meta name="twitter:description" content="Evidence-only regulatory & policy intelligence for banks. Compliance graph, gap detection, cited audit Q&A.">
+  <meta name="twitter:image" content="https://mise.danny.vn/assets/og.png">
+
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "mise",
+    "description": "Evidence-only regulatory & policy intelligence for banks",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Linux",
+    "programmingLanguage": ["Go", "TypeScript"],
+    "softwareRequirements": "Go 1.26+, Node 24 LTS, GKE",
+    "url": "https://mise.danny.vn",
+    "codeRepository": "https://github.com/dannyota/mise",
+    "license": "https://opensource.org/licenses/AGPL-3.0",
+    "author": { "@type": "Person", "name": "Danny", "url": "https://danny.vn" },
+    "offers": { "@type": "Offer", "price": "0" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "mise documentation",
+    "url": "https://mise.danny.vn"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+
+  <!-- docsify theme -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple-dark.css"
+        integrity="sha384-G+RAlt+LEfAH/nY+DZh3+XIhRboypMI32hiJ9BwnmjF41May5BWQKyrDrEkNdV/i"
+        crossorigin="anonymous">
+  <!-- right-sidebar TOC plugin -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-plugin-toc@1/dist/docsify-plugin-toc.min.css"
+        integrity="sha384-iUsEeG7K3AJxE8lMa4KjI6l9lZO31tdzvHxNbVRjRUOcd768cHrLK/ZR6Vsx3BGo"
+        crossorigin="anonymous">
+  <!-- Set theme before first paint to avoid flash -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') { document.documentElement.setAttribute('data-theme', t); }
+        else { document.documentElement.setAttribute('data-theme', window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }
+        var f = localStorage.getItem('font');
+        if (f !== 'mono') document.documentElement.setAttribute('data-font', 'readable');
+        var tc = localStorage.getItem('toc');
+        if (tc !== 'visible') document.documentElement.classList.add('toc-hidden');
+      } catch (e) {}
+    })();
+  </script>
   <style>
+    /* dark theme (default) */
     :root {
-      --base-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      --theme-color: #6d28d9;
+      --base-background-color: #0a0e14;
+      --cover-background-color: #0a0e14;
+      --sidebar-background: #0f141c;
+      --sidebar-border-color: #1f2933;
+      --sidebar-nav-link-color--active: #6d28d9;
+      --sidebar-nav-link-border-color--active: #6d28d9;
+      --sidebar-name-color: #6d28d9;
+      --heading-color: #c9d1d9;
+      --heading-h2-border-color: #1f2933;
+      --base-color: #c9d1d9;
+      --base-font-family: ui-monospace, "JetBrains Mono", "Fira Code", SFMono-Regular, Menlo, Consolas, monospace;
+      --base-font-size: 15px;
+      --base-line-height: 1.65;
+      --link-color: #a78bfa;
+      --link-color--hover: #6d28d9;
+      --code-inline-background: #161d28;
+      --code-inline-color: #c9d1d9;
+      --code-block-background: #0f141c;
+      --code-block-border-color: #1f2933;
+      --blockquote-border-color: #6d28d9;
+      --blockquote-background: #0f141c;
+      --table-head-background: #161d28;
+      --table-row-even-background: #0f141c;
+      --table-cell-border-color: #1f2933;
+      --search-background: #0f141c;
+      --search-result-keyword-color: #6d28d9;
+      --notice-tip-border-color: #6d28d9;
+      --accent: #6d28d9;
+      --accent2: #a78bfa;
+      --muted: #6e7681;
+      --border: #1f2933;
+      --sb-thumb: #1f2933;
     }
-    .sidebar .app-name { font-weight: 700; }
-    .markdown-section code { font-size: 0.85em; }
-    /* dark mode */
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --base-background-color: #1a1a2e;
-        --base-color: #e0e0e0;
-        --sidebar-background: #16213e;
-        --sidebar-nav-link-color: #cbd5e1;
-        --sidebar-nav-link-color--active: #a78bfa;
-        --cover-background-color: #1a1a2e;
-        --theme-color: #a78bfa;
+
+    /* light theme */
+    :root[data-theme="light"] {
+      --base-background-color: #ffffff;
+      --cover-background-color: #ffffff;
+      --sidebar-background: #f6f8fa;
+      --sidebar-border-color: #d0d7de;
+      --heading-color: #1f2328;
+      --heading-h2-border-color: #d0d7de;
+      --base-color: #1f2328;
+      --link-color: #6d28d9;
+      --link-color--hover: #4c1d95;
+      --code-inline-background: #eff1f3;
+      --code-inline-color: #1f2328;
+      --code-block-background: #f6f8fa;
+      --code-block-border-color: #d0d7de;
+      --blockquote-background: #f6f8fa;
+      --table-head-background: #f6f8fa;
+      --table-head-color: #1f2328;
+      --table-row-even-background: #f6f8fa;
+      --table-row-odd-background: #ffffff;
+      --table-cell-border-color: #d0d7de;
+      --search-background: #f6f8fa;
+      --search-input-color: #1f2328;
+      --search-input-placeholder-color: #656d76;
+      --search-input-background-color: #ffffff;
+      --search-input-border-color: #d0d7de;
+      --search-clear-icon-color1: #656d76;
+      --search-clear-icon-color2: #ffffff;
+      --accent: #6d28d9;
+      --accent2: #4c1d95;
+      --muted: #656d76;
+      --border: #d0d7de;
+      --sb-thumb: #d0d7de;
+    }
+
+    :root[data-theme="light"] .sidebar .search input[type=search] {
+      color: #1f2328;
+    }
+    :root[data-theme="light"] .sidebar .search input[type=search]::placeholder {
+      color: #656d76;
+    }
+    .search .input-wrap {
+      position: relative;
+    }
+    .search .clear-button {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      transition: color .15s;
+    }
+    .search .clear-button:hover {
+      color: var(--accent);
+    }
+    .search input {
+      padding-right: 28px;
+    }
+
+    .sidebar-nav > ul > li > a {
+      font-weight: 700;
+      color: var(--accent) !important;
+    }
+    .sidebar-nav li.active > p > a {
+      color: var(--sidebar-nav-link-color--active, var(--accent));
+      border-right: 2px solid var(--sidebar-nav-link-border-color--active, var(--accent));
+      padding-right: 6px;
+    }
+
+    .markdown-section h1 {
+      color: var(--accent);
+    }
+
+    .markdown-section h2::before {
+      content: "# ";
+      color: var(--accent2);
+    }
+
+    .markdown-section h3::before {
+      content: "## ";
+      color: var(--muted);
+    }
+
+    .markdown-section code {
+      border: 1px solid var(--border);
+      border-radius: 5px;
+    }
+
+    .app-name-link {
+      font-family: var(--base-font-family);
+      letter-spacing: 0.2px;
+    }
+
+    .app-name-link::before {
+      content: "🍱 ";
+    }
+
+    /* bottom-right controls */
+    .sidebar-controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 50;
+      display: flex;
+      gap: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    .sidebar-controls button {
+      font: 13px/1 ui-monospace, "JetBrains Mono", "Fira Code", SFMono-Regular, Menlo, Consolas, monospace;
+      cursor: pointer;
+      color: var(--base-color);
+      background: var(--sidebar-background);
+      border: none;
+      border-right: 1px solid var(--border);
+      padding: 10px 14px;
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, color .15s;
+    }
+    .sidebar-controls button:last-child {
+      border-right: none;
+    }
+    .sidebar-controls button:hover {
+      background: var(--base-background-color);
+      color: var(--accent);
+    }
+
+    /* readable font — Inter for body, keep mono for code */
+    :root[data-font="readable"] {
+      --base-font-family: "Inter", "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --base-font-size: 16px;
+      --base-line-height: 1.75;
+    }
+
+    /* GitHub corner adapts to theme */
+    .github-corner svg {
+      fill: var(--accent);
+      color: var(--base-background-color);
+    }
+
+    /* table styling */
+    .markdown-section table {
+      border-collapse: collapse;
+      width: 100%;
+      display: table;
+    }
+    .markdown-section th {
+      background: var(--table-head-background);
+      color: var(--heading-color);
+      font-weight: 700;
+      border: 1px solid var(--table-cell-border-color);
+      padding: 8px 12px;
+    }
+    .markdown-section td {
+      border: 1px solid var(--table-cell-border-color);
+      padding: 8px 12px;
+      color: var(--base-color);
+    }
+    .markdown-section tr:nth-child(even) td {
+      background: var(--table-row-even-background);
+    }
+    .markdown-section tr:nth-child(odd) td {
+      background: var(--base-background-color);
+    }
+
+    /* wider sidebar + content, no text truncation */
+    :root {
+      --sidebar-width: 280px;
+      --content-max-width: 800px;
+      --sidebar-toggle-height: 28px;
+      --sidebar-toggle-width: 28px;
+      --sidebar-toggle-icon-width: 12px;
+      --sidebar-toggle-icon-height: 8px;
+      --sidebar-toggle-icon-stroke-width: 1px;
+    }
+    @media (min-width: 48em) {
+      .sidebar-toggle {
+        top: auto !important;
+        bottom: 24px;
+        left: 0;
       }
-      body { background-color: #1a1a2e; color: #e0e0e0; }
-      .markdown-section { color: #e0e0e0; }
-      .markdown-section code { background: #2d2d44; color: #e0e0e0; }
-      .markdown-section pre { background: #1e1e30 !important; }
-      .sidebar { background: #16213e; border-right: 1px solid #2d2d44; }
-      .search input { background: #2d2d44; color: #e0e0e0; border-color: #3d3d5c; }
     }
+    .markdown-section {
+      padding: 30px 40px 30px 30px;
+    }
+    .sidebar-nav li a {
+      overflow: visible;
+      white-space: normal;
+      text-overflow: unset;
+    }
+    .sidebar-nav li {
+      overflow: visible;
+    }
+    .sidebar {
+      overflow-x: hidden;
+    }
+    .sidebar-nav {
+      margin-top: 8px;
+    }
+
+    /* right sidebar TOC */
+    .page_toc {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 200px;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 60px 16px 20px 16px;
+      border-left: 1px solid var(--border);
+      background: var(--base-background-color);
+      z-index: 10;
+      box-sizing: border-box;
+    }
+    .page_toc a {
+      font-family: var(--base-font-family);
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 3px 0 3px 12px;
+      border-left: 2px solid var(--border);
+      color: var(--muted) !important;
+      text-decoration: none !important;
+      display: block;
+      transition: color .15s, border-color .15s;
+    }
+    .page_toc a:hover,
+    .page_toc a.active {
+      color: var(--accent) !important;
+      border-left-color: var(--accent);
+    }
+    .page_toc .lv3 a,
+    .page_toc a[data-level="3"] {
+      padding-left: 24px;
+      font-size: 12px;
+    }
+    .page_toc.hidden,
+    .toc-hidden .page_toc {
+      display: none;
+    }
+    :root:not(.toc-hidden) section.content {
+      margin-right: 200px;
+    }
+    @media (max-width: 1100px) {
+      .page_toc { display: none; }
+      section.content { margin-right: 0 !important; }
+    }
+
+    /* center mermaid diagrams */
+    .mermaid {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 24px auto;
+      width: 100%;
+    }
+    .mermaid svg {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body>
-  <div id="app">Loading…</div>
+  <div class="sidebar-controls">
+    <button id="toc-toggle" type="button" aria-label="Toggle table of contents"></button>
+    <button id="font-toggle" type="button" aria-label="Toggle font"></button>
+    <button id="theme-toggle" type="button" aria-label="Toggle theme"></button>
+  </div>
+  <div id="app"></div>
   <script>
     window.$docsify = {
-      name: '🍱 mise',
+      name: 'mise',
       repo: 'https://github.com/dannyota/mise',
       loadSidebar: true,
       subMaxLevel: 2,
@@ -54,6 +406,11 @@
         '/CHANGELOG': '/CHANGELOG.md',
       },
       notFoundPage: true,
+      toc: {
+        tocMaxLevel: 3,
+        target: 'h2, h3',
+        ignoreHeaders: ['<!-- {docsify-ignore} -->'],
+      },
       search: {
         placeholder: 'Search docs',
         noData: 'No results',
@@ -63,39 +420,163 @@
         buttonText: 'Copy',
         successText: 'Copied',
       },
-    };
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-go.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-sql.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script>
-    // Render mermaid fences
-    const defined = txt => txt != null;
-    mermaid.initialize({ startOnLoad: false, theme: 'default' });
-    window.$docsify.markdown = {
-      renderer: {
-        code(code, lang) {
-          if (lang === 'mermaid') {
-            return '<div class="mermaid">' + code + '</div>';
-          }
-          return this.origin.code.apply(this, arguments);
+      markdown: {
+        renderer: {
+          code: function (code, lang) {
+            if (lang === 'mermaid') {
+              var escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              return '<div class="mermaid">' + escaped + '</div>';
+            }
+            return this.origin.code.apply(this, arguments);
+          },
         },
       },
     };
-    // Re-render mermaid after page change
-    window.$docsify.plugins = [
-      function (hook) {
-        hook.doneEach(function () {
-          mermaid.run({ querySelector: '.mermaid' });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"
+          integrity="sha384-KaHhgnx/OTLoJ4J33SSJsF4x1pk4I7q3s5ZOfIDHJYl6IG7Oyn2vNDsHiWJe46fD"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"
+          integrity="sha384-LthJPBJ4RGco78kBY+EmKz5rmISZ5vrtAu3+l2ALQ2mrZHOe6Wyf6knyKjeC4cL6"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2/dist/docsify-copy-code.min.js"
+          integrity="sha384-t4d9b4/0dEBkoJ5e77XEPBrqJ790jbFQFmEaTbBqIlTDeGosM1AbZvC1NQwqTg+5"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-plugin-toc@1/dist/docsify-plugin-toc.min.js"
+          integrity="sha384-icWHoofPSfLRreEAp2noqJ/rqON+5+nVSSvkzXla4qliMT+DP2V1dEaFsEIzjJDd"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"
+          integrity="sha384-9WmlN8ABpoFSSHvBGGjhvB3E/D8UkNB9HpLJjBQFC2VSQsM1odiQDv4NbEo+7l15"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-go.min.js"
+          integrity="sha384-YxCco6ByOY5rJ3jD18514fa8w5so07zigIyV6tZa3CWSE5vYrbDSuFkZ5zOknnZ6"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-sql.min.js"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"
+          integrity="sha384-AKAiycghK0jDCjD+aavMHzDkLzRR7Yzcwh3+xL/295cvyVMe+cxQfyQC8xxGGcI8"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
+          integrity="sha384-qX9VvWkP79m/O121ZE6sOYp0nf/pldQgtvWDbkpzi+3mUo4Wn4Ix4cFzNPay3VaB"
+          crossorigin="anonymous"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: document.documentElement.getAttribute('data-theme') !== 'light' ? 'dark' : 'default' });
+    window._mermaidSources = {};
+    function rerenderMermaid() {
+      var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+      mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+      document.querySelectorAll('.mermaid').forEach(function (el) {
+        var id = el.getAttribute('data-mermaid-id');
+        if (id && window._mermaidSources[id]) {
+          el.textContent = window._mermaidSources[id];
+        }
+        el.removeAttribute('data-processed');
+        el.innerHTML = el.textContent;
+      });
+      mermaid.run({ querySelector: '.mermaid' });
+    }
+    function initMermaid(hook) {
+      hook.doneEach(function () {
+        document.querySelectorAll('.mermaid').forEach(function (el, i) {
+          var id = 'mmd-' + i;
+          el.setAttribute('data-mermaid-id', id);
+          window._mermaidSources[id] = el.textContent;
         });
-      },
-    ];
+        rerenderMermaid();
+      });
+    }
+    function initTocState(hook) {
+      hook.doneEach(function () { applyToc(tocMode()); });
+    }
+    function initHomeActive(hook) {
+      hook.doneEach(function () {
+        var hash = window.location.hash;
+        var isHome = !hash || hash === '#' || hash === '#/' || hash === '#/?id=';
+        document.querySelectorAll('.sidebar-nav a').forEach(function (a) {
+          var href = a.getAttribute('href');
+          if (href === '#/' || href === '#' || href === '/') {
+            var li = a.closest('li');
+            if (li) {
+              if (isHome) li.classList.add('active');
+              else li.classList.remove('active');
+            }
+          }
+        });
+      });
+    }
+    window.$docsify = window.$docsify || {};
+    function updateTitle(hook) {
+      hook.doneEach(function () {
+        var h1 = document.querySelector('.markdown-section h1');
+        var base = 'mise';
+        document.title = h1
+          ? h1.textContent.trim() + ' — ' + base
+          : base + ' — regulatory intelligence for banks';
+      });
+    }
+    window.$docsify.plugins = (window.$docsify.plugins || []).concat(initMermaid, initTocState, initHomeActive, updateTitle);
+  </script>
+  <script>
+    function sysDark() {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function themeMode() {
+      try { var t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') return t; } catch (e) {}
+      return sysDark() ? 'dark' : 'light';
+    }
+    function applyTheme(m) {
+      document.documentElement.setAttribute('data-theme', m);
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = (m === 'dark' ? '☾' : '☀') + ' ' + (m === 'dark' ? 'Dark' : 'Light');
+    }
+    function tocMode() {
+      try { var v = localStorage.getItem('toc'); if (v === 'visible') return v; } catch (e) {}
+      return 'hidden';
+    }
+    function applyToc(v) {
+      var toc = document.querySelector('.page_toc');
+      var btn = document.getElementById('toc-toggle');
+      if (toc) {
+        if (v === 'hidden') { toc.classList.add('hidden'); document.documentElement.classList.add('toc-hidden'); }
+        else { toc.classList.remove('hidden'); document.documentElement.classList.remove('toc-hidden'); }
+      }
+      if (btn) btn.textContent = v === 'hidden' ? 'TOC ▸' : 'TOC ◂';
+    }
+    function fontMode() {
+      try { var f = localStorage.getItem('font'); if (f === 'mono') return f; } catch (e) {}
+      return 'readable';
+    }
+    function applyFont(f) {
+      if (f === 'mono') document.documentElement.removeAttribute('data-font');
+      else document.documentElement.setAttribute('data-font', 'readable');
+      var btn = document.getElementById('font-toggle');
+      if (btn) btn.textContent = f === 'mono' ? 'Mono' : 'Sans';
+    }
+    applyTheme(themeMode());
+    applyFont(fontMode());
+    document.addEventListener('DOMContentLoaded', function () {
+      applyTheme(themeMode());
+      applyFont(fontMode());
+      applyToc(tocMode());
+      document.getElementById('theme-toggle').addEventListener('click', function () {
+        var next = themeMode() === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem('theme', next); } catch (e) {}
+        applyTheme(next);
+        rerenderMermaid();
+      });
+      document.getElementById('font-toggle').addEventListener('click', function () {
+        var next = fontMode() === 'readable' ? 'mono' : 'readable';
+        try { localStorage.setItem('font', next); } catch (e) {}
+        applyFont(next);
+      });
+      document.getElementById('toc-toggle').addEventListener('click', function () {
+        var next = tocMode() === 'hidden' ? 'visible' : 'hidden';
+        try { localStorage.setItem('toc', next); } catch (e) {}
+        applyToc(next);
+      });
+    });
   </script>
 </body>
 </html>
