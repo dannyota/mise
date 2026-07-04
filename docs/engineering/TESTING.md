@@ -111,6 +111,16 @@ The crown jewel (cross-lingual `satisfies` mapping) needs a runnable quality gat
   compare against the stored baseline and fail only when thresholds are set above 0.
 - Runs nightly on `master` against a fixed corpus snapshot so results are comparable.
 
+### Q&A eval baseline (M4)
+
+- **Golden set:** `deploy/eval/golden-qa-vn.json` (5 cases) + `deploy/eval/golden-qa-my.json`
+  (3 cases) — question + expected kind (answer/abstain) + expected citation.
+- **Metrics:** abstention accuracy (≥ 0.95), citation correctness (≥ 0.95), current-law
+  precision (= 1.0).
+- **Harness:** `apps/reasoning/src/eval/qa-eval.ts` — runs cases against the agent loop,
+  computes metrics.
+- **Gate:** baseline-not-gate (thresholds are 0 until first calibration run, matching DEC 30).
+
 ---
 
 ## 6. Load test (prove the SLO)

@@ -35,7 +35,7 @@ Each phase reaches one milestone; the milestone _is_ the phase's demonstrable ou
 | **M1b**   | [M1-ingest](./plan/M1-ingest/README.md) WS2+3 | internal corpora ingested via SharePoint, metadata envelope + tier tagging complete         | all 5 corpora tier-isolated and retrievable           |
 | **M2**    | [M2-graph](./plan/M2-graph/README.md)         | the `graph` schema + explicit internal edges + graph API (done)                             | the SOP→Policy→Group chain query                      |
 | **M3** ✅ | [M3-detectors](./plan/M3-detectors/README.md) | the 4 detectors + findings + the review queue                                               | a grounded `satisfies` candidate + a conflict finding |
-| **M4**    | [M4-audit-qa](./plan/M4-audit-qa/README.md)   | cited, grounded answers over REST + MCP + SSE                                               | ask a question → cited answer / abstain               |
+| **M4** ✅ | [M4-audit-qa](./plan/M4-audit-qa/README.md)   | cited, grounded answers over REST + MCP + SSE                                               | ask a question → cited answer / abstain               |
 | **M5**    | [M5-web-ui](./plan/M5-web-ui/README.md)       | all screens live in the Vue SPA                                                             | the full product in a browser                         |
 | **M6**    | [M6-scale](./plan/M6-scale/README.md)         | corpus registry GA + multimodal + new scope by descriptor only                              | add a corpus with zero core edits                     |
 

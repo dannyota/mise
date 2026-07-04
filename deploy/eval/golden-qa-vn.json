@@ -1,0 +1,37 @@
+[
+  {
+    "question": "What are the IT risk management requirements for Vietnamese banks?",
+    "expected_kind": "answer",
+    "expected_corpus": "vn-reg",
+    "expected_citation_contains": "Điều 7",
+    "notes": "Circular 09/2020/TT-NHNN Article 7 on IT risk management"
+  },
+  {
+    "question": "What are the requirements for cloud outsourcing by Vietnamese banks?",
+    "expected_kind": "answer",
+    "expected_corpus": "vn-reg",
+    "expected_citation_contains": "Điều",
+    "notes": "Cloud outsourcing covered in Circular 09"
+  },
+  {
+    "question": "What are the cybersecurity incident reporting deadlines?",
+    "expected_kind": "answer",
+    "expected_corpus": "vn-reg",
+    "expected_citation_contains": "Điều",
+    "notes": "Incident reporting requirements"
+  },
+  {
+    "question": "What are the quantum computing regulations for Vietnamese banks?",
+    "expected_kind": "abstain",
+    "expected_corpus": null,
+    "expected_citation_contains": null,
+    "notes": "No quantum computing regulations exist — should abstain"
+  },
+  {
+    "question": "What is the capital requirements for cryptocurrency exchanges in Vietnam?",
+    "expected_kind": "abstain",
+    "expected_corpus": null,
+    "expected_citation_contains": null,
+    "notes": "Crypto exchanges are not regulated via banking law — should abstain"
+  }
+]

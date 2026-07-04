@@ -59,6 +59,7 @@ type Hit struct {
 	ValidityStatus string
 	SourceURL      string
 	Score          float64
+	AccessTier     string
 }
 
 // defaultTopK is Search's result cap when opts.TopK is unset (<=0).

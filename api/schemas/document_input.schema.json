@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mise.dannyota.dev/schemas/document_input.schema.json",
+  "title": "mise MCP document tool input",
+  "description": "Input for mise's MCP `document` tool (API-CONTRACT.md §2). Mirrors pkg/mcp.DocumentInput.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["corpus_id", "document_id"],
+  "properties": {
+    "corpus_id": { "type": "string" },
+    "document_id": { "type": "string", "format": "uuid" }
+  }
+}
