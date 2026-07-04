@@ -31,7 +31,7 @@ func descriptorToWire(d corpus.Descriptor) CorpusDescriptorWire {
 		SchemaName: d.SchemaName, CitationScheme: d.CitationScheme,
 		AccessTier: string(d.AccessTier), Tier: string(d.Tier),
 		Jurisdiction: d.Jurisdiction,
-		EmbedModel: d.Embed.Model, EmbedDims: d.Embed.Dims,
+		EmbedModel:   d.Embed.Model, EmbedDims: d.Embed.Dims,
 		CanSource: d.GraphRole.CanSource, CanTarget: d.GraphRole.CanTarget,
 	}
 }

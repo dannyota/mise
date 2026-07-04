@@ -11,9 +11,9 @@ func TestNewScope_DescriptorOnly(t *testing.T) {
 	myPolicy := corpus.Descriptor{
 		ID: "local-policy-my", Kind: corpus.KindPolicy,
 		SchemaName: "local_policy_my", CitationScheme: "policy-section",
-		Embed:      corpus.EmbedConfig{Model: "gemini-embedding-001", Dims: 1536, TaskType: "RETRIEVAL_DOCUMENT"},
-		AccessTier: corpus.TierLocalConfidential,
-		Tier:       corpus.TierLocal,
+		Embed:        corpus.EmbedConfig{Model: "gemini-embedding-001", Dims: 1536, TaskType: "RETRIEVAL_DOCUMENT"},
+		AccessTier:   corpus.TierLocalConfidential,
+		Tier:         corpus.TierLocal,
 		Jurisdiction: "my",
 		GraphRole: corpus.GraphRole{
 			CanSource: true, CanTarget: true,
