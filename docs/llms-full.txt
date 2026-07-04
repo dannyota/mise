@@ -1,0 +1,574 @@
+# mise — full documentation
+
+> Evidence-only regulatory & policy intelligence for banks.
+> Ingest public law + internal controls, build a compliance graph, detect gaps/conflicts/staleness, answer audit questions with cited evidence. Open source (AGPL-3.0), single-tenant, self-hosted.
+
+---
+
+---
+
+
+# Overview
+
+mise is **evidence-only regulatory & policy intelligence** for banks. It ingests regulatory
+law (Vietnam, Malaysia) and an institution's internal control documents, embeds them into one
+shared vector space, builds a cross-corpus compliance graph, detects gaps/conflicts/staleness,
+and answers audit questions with cited, grounded evidence.
+
+## What it does
+
+1. **Ingests 5 corpora** — VN & MY regulation (public) + Group standards / Local policies / SOPs
+   (internal, tiered) — into one AlloyDB instance with per-corpus schemas and RLS.
+2. **Builds a compliance graph** — which control _satisfies_ which law, which policy _implements_
+   which standard — with every AI-proposed edge gated by a grounding check and human attestation.
+3. **Detects issues** — gaps (unmapped obligations), conflicts (standard vs law contradiction),
+   staleness (law amendments that outdate downstream controls).
+4. **Answers audit questions** — a backend Claude agent composes cited answers over the evidence;
+   the read path is fast (Go + AlloyDB); reasoning runs server-side via the Claude Agent SDK.
+5. **Never asserts compliance** — mise serves verbatim evidence and human-attested mappings only.
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    subgraph READ["Read / serve plane"]
+        WEB["Web UI (Vue SPA)"]
+        REASON["Reasoning endpoint (Claude Agent SDK)"]
+        SERVING["Serving (Go + AlloyDB)"]
+        WEB --> REASON
+        WEB --> SERVING
+        REASON --> SERVING
+    end
+    DB[("AlloyDB Omni")]
+    subgraph WRITE["Write / ingest plane"]
+        SRC["Sources"] --> ORCH["Temporal workers"]
+    end
+    SERVING --> DB
+    ORCH --> DB
+    ORCH <--> GEM["Vertex AI (write)"]
+    REASON --> CLA["Vertex AI (serve)"]
+    classDef ai fill:#6d28d9,stroke:#a78bfa,color:#fff
+    class GEM,CLA ai
+```
+
+## Key design choices
+
+- **Single-tenant, bank-operated** — one instance per enterprise, in the bank's own GCP project.
+- **AGPL-3.0 open source** — build from source, self-host; dual-license option for the author.
+- **Evidence-only** — no AI-generated assertions; every answer traces to a verbatim source span.
+- **Human-in-the-loop** — AI proposes, grounding gates, humans attest. Nothing auto-promotes.
+- **One embedding space** — `gemini-embedding-001` @ 1536-d across all corpora.
+
+## Next steps
+
+- [Deploy mise](deploy.md) — set up the GKE cluster and local dev stack.
+- [Ingest your first corpus](first-corpus.md) — public law (no internal docs needed).
+
+---
+
+
+# Deploy
+
+mise runs **single-tenant** — one instance in each bank's own GCP project. This guide covers
+the reference deployment on GKE and the local dev stack.
+
+## Prerequisites
+
+- A GCP project with billing enabled
+- `gcloud` CLI authenticated with sufficient IAM
+- Podman (local dev) or a GKE cluster (production)
+- Go 1.26+, pnpm 11+, Node 24 LTS
+
+## Local development (recommended start)
+
+The local stack uses Podman Compose with `VERTEX=fake` — no GCP calls, no cost.
+
+```bash
+# Clone and enter the repo
+git clone https://github.com/dannyota/mise.git
+cd mise
+
+# Start the local stack (AlloyDB Omni + Temporal + workers)
+podman compose up -d
+
+# Run migrations
+go run ./cmd/migrate up
+
+# Start the serving process
+go run ./cmd/serving
+
+# In another terminal — start the reasoning endpoint
+cd apps/reasoning && pnpm install && pnpm dev
+```
+
+The local stack provisions:
+
+- **AlloyDB Omni** container (1 vCPU, schema-per-corpus + `graph` schema, ScaNN, RLS)
+- **Temporal** server + Go workers (ingest + detect workflows)
+- All Vertex seams faked (`VERTEX=fake`) — embed, judge, ground, rank return deterministic results
+
+See [LOCAL-DEV](/engineering/LOCAL-DEV.md) for the full local-dev guide.
+
+## Production deployment (GKE)
+
+The reference deployment is a single GKE cluster with no HA (scale-down to zero when idle).
+
+### 1. Provision infrastructure
+
+```bash
+# Create the GKE cluster (Autopilot recommended)
+gcloud container clusters create-auto mise \
+  --region=<region> --project=<project-id>
+
+# Enable required APIs
+gcloud services enable \
+  alloydb.googleapis.com \
+  aiplatform.googleapis.com \
+  documentai.googleapis.com \
+  discoveryengine.googleapis.com \
+  secretmanager.googleapis.com
+```
+
+### 2. Deploy AlloyDB Omni
+
+AlloyDB Omni runs as a StatefulSet in the cluster (not managed AlloyDB — keeps everything
+inside the bank's perimeter with no Google-managed control plane access to data).
+
+```bash
+kubectl apply -f deploy/alloydb/
+```
+
+### 3. Deploy mise services
+
+```bash
+# Build containers (Podman/Buildah)
+podman build -t mise-serving -f deploy/containers/serving.Containerfile .
+podman build -t mise-worker -f deploy/containers/worker.Containerfile .
+podman build -t mise-reasoning -f deploy/containers/reasoning.Containerfile .
+
+# Push to Artifact Registry and deploy
+kubectl apply -f deploy/k8s/
+```
+
+### 4. Configure secrets
+
+```bash
+# Store AD credentials for SharePoint crawl (if using internal connectors)
+gcloud secrets create mise-ad-credentials --data-file=./ad-creds.json
+
+# The Vertex AI connection uses Workload Identity (ADC) — no secret needed
+```
+
+### 5. Verify
+
+```bash
+# Health check
+curl https://<mise-endpoint>/healthz
+
+# Run the eval harness against the local stack
+go run ./cmd/eval -corpus vn-reg -min-recall 0.7
+```
+
+## Environment variables
+
+| Variable               | Default            | Purpose                                                       |
+| ---------------------- | ------------------ | ------------------------------------------------------------- |
+| `VERTEX`               | `fake`             | `fake` = deterministic fakes (CI/local); `real` = live Vertex |
+| `DB_URL`               | (required)         | AlloyDB connection string                                     |
+| `TEMPORAL_HOST`        | `localhost:7233`   | Temporal frontend address                                     |
+| `JUDGE_MODEL`          | `gemini-3.5-flash` | Gemini model for the judge                                    |
+| `JUDGE_CONFIDENCE_MIN` | `0.7`              | Minimum confidence to write a candidate edge                  |
+| `JUDGE_GROUNDING_MIN`  | `0.6`              | Minimum grounding score to write a candidate edge             |
+
+## What's next
+
+- [Ingest your first corpus](first-corpus.md) — start with public law, no internal docs needed.
+- [DEPLOYMENT](/engineering/DEPLOYMENT.md) — full runtime topology reference.
+- [DELIVERY-MODEL](/engineering/DELIVERY-MODEL.md) — tenancy, upstream/adopter split.
+
+---
+
+
+# First corpus
+
+Start with **public law** — no internal documents, no SharePoint credentials, no security
+sign-offs needed. This guide ingests the Vietnamese banking regulation corpus (`vn-reg`) and
+verifies search works.
+
+## Prerequisites
+
+- mise running locally (`podman compose up -d` + `go run ./cmd/serving`)
+- Or a deployed instance with `VERTEX=real` for production-quality embeddings
+
+## 1. Register the corpus
+
+The corpus registry accepts a descriptor — no code change needed:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/registry \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "vn-reg",
+    "kind": "law",
+    "source_plugin": "vbpl_crawler",
+    "citation_scheme": "dieu_khoan_diem",
+    "embed": { "model": "gemini-embedding-001", "dims": 1536, "task_type": "RETRIEVAL_DOCUMENT" },
+    "access_tier": "public",
+    "jurisdiction": "vn",
+    "graph_role": { "can_source": false, "can_target": true, "default_edges": ["satisfies"] }
+  }'
+```
+
+## 2. Trigger ingest
+
+```bash
+# Start the ingest workflow for vn-reg
+curl -X POST http://localhost:8080/api/v1/ingest \
+  -H 'Content-Type: application/json' \
+  -d '{"corpus": "vn-reg"}'
+```
+
+The Temporal workflow runs: **Discover → Fetch → Parse → Normalize → Embed → Index**.
+
+Monitor progress:
+
+```bash
+# Check workflow status
+temporal workflow list --query 'WorkflowType="IngestWorkflow" AND ExecutionStatus="Running"'
+```
+
+## 3. Verify search
+
+Once ingest completes, search the corpus:
+
+```bash
+# Search for IT system safety requirements
+curl 'http://localhost:8080/api/v1/search?q=IT+system+safety+requirements&corpus=vn-reg'
+```
+
+Expected: ranked results with verbatim Vietnamese law text, citation references
+(Điều/Khoản/Điểm), and relevance scores.
+
+## 4. Run the eval harness
+
+```bash
+go run ./cmd/eval \
+  -corpus vn-reg \
+  -golden deploy/eval/golden-vn.json \
+  -min-recall 0 \
+  -min-mrr 0
+```
+
+The first run sets the baseline — metrics are logged but not gated (thresholds start at 0).
+
+## Adding Malaysia regulation
+
+Same pattern — register `my-reg` with `jurisdiction: "my"` and `source_plugin: "agc_crawler"`:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/registry \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "my-reg",
+    "kind": "law",
+    "source_plugin": "agc_crawler",
+    "citation_scheme": "part_section",
+    "embed": { "model": "gemini-embedding-001", "dims": 1536, "task_type": "RETRIEVAL_DOCUMENT" },
+    "access_tier": "public",
+    "jurisdiction": "my",
+    "graph_role": { "can_source": false, "can_target": true, "default_edges": ["satisfies"] }
+  }'
+```
+
+## What's next
+
+- [Graph & detectors](graph-detectors.md) — add internal docs and watch the compliance graph build.
+- [DATA-MODEL §1](/design/DATA-MODEL.md) — full corpus schema reference.
+
+---
+
+
+# Graph & detectors
+
+Once public law corpora are ingested, add internal control documents to build the compliance
+graph. The detectors run automatically and propose mappings for human review.
+
+## Add internal corpora
+
+Register internal corpora (Group standards, Local policies, SOPs) with their access tiers:
+
+```bash
+# Group standards (visible to the whole group)
+curl -X POST http://localhost:8080/api/v1/registry \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "group-std",
+    "kind": "standard",
+    "source_plugin": "sharepoint_crawl",
+    "access_tier": "group-confidential",
+    "tier": "group",
+    "jurisdiction": "my",
+    "graph_role": { "can_source": true, "can_target": true, "default_edges": ["satisfies","implements"] }
+  }'
+```
+
+Ingest runs the same medallion pipeline. Internal docs additionally extract **doc-control
+headers** (signer, version, effective date) and resolve ownership to a durable `org_role`.
+
+## How the graph builds
+
+Edges are created by two mechanisms:
+
+| Method                   | Edge types              | Source                        | Confidence                 |
+| ------------------------ | ----------------------- | ----------------------------- | -------------------------- |
+| **Method A — extracted** | `implements`, `derives` | doc-control header (explicit) | 1.0 (human-authored)       |
+| **Method B — proposed**  | `satisfies`, `covers`   | AI judge + grounding check    | variable (threshold-gated) |
+
+Method A edges appear immediately on ingest. Method B runs as a Temporal workflow:
+
+```
+chunk → embed (FACT_VERIFICATION) → ScaNN ANN → Ranking API rerank
+  → Gemini judge (edge_type, confidence, spans) → Check Grounding
+  → write relation_edge (promoted=false) → review queue
+```
+
+## The 4 detectors
+
+| Detector           | Raises                      | Severity | Trigger                          |
+| ------------------ | --------------------------- | -------- | -------------------------------- |
+| **RelationDetect** | candidate `satisfies` edges | —        | new/changed control chunk        |
+| **ConflictDetect** | `conflict` findings         | critical | Group-std vs law contradiction   |
+| **GapScan**        | `gap` findings              | medium   | obligation with 0 coverage       |
+| **StaleScan**      | `staleness` findings        | high     | law amendment outdating controls |
+
+All findings enter the **review queue** with `promoted=false`. Nothing auto-promotes.
+
+## Review & promote
+
+Use the Review Workbench (Web UI) or the REST API:
+
+```bash
+# List pending candidates
+curl http://localhost:8080/api/v1/reviews?status=pending
+
+# Promote a candidate edge (human attestation)
+curl -X POST http://localhost:8080/api/v1/reviews/<edge-id>/promote
+
+# Reject a candidate
+curl -X POST http://localhost:8080/api/v1/reviews/<edge-id>/reject
+
+# Relink (correct the target)
+curl -X POST http://localhost:8080/api/v1/reviews/<edge-id>/relink \
+  -d '{"new_target": {"corpus_id": "my-reg", "document_id": "...", "section_id": "..."}}'
+```
+
+## Resolve findings
+
+Findings have four dispositions:
+
+- **Map** — coverage exists, just unlinked; promote/relink an edge to close.
+- **Document** — the paperwork is incomplete; update the policy/SOP and re-ingest.
+- **Accept** — risk-accept the gap with a rationale.
+- **Escalate** — a real control gap; track owner + due date.
+
+Closure is **evidence-verified** — the finding closes when re-detection confirms it's gone
+(except `accept`, which closes on rationale).
+
+## What's next
+
+- [Audit Q&A](audit-qa.md) — ask questions over the evidence.
+- [DATA-MODEL §4–§7](/design/DATA-MODEL.md) — graph schema reference.
+
+---
+
+
+# Audit Q&A
+
+The reasoning endpoint answers audit questions with **cited, grounded** evidence. It runs
+server-side (never in the browser) and streams answers via SSE.
+
+## How it works
+
+```mermaid
+flowchart LR
+    Q["Audit question"] --> AGENT["Claude Agent SDK<br/>(Haiku/Sonnet on Vertex)"]
+    AGENT -->|MCP tools| MISE["mise serving<br/>(evidence, graph, search)"]
+    AGENT -->|SSE stream| UI["Web UI / API client"]
+    classDef ai fill:#6d28d9,stroke:#a78bfa,color:#fff
+    class AGENT ai
+```
+
+The Claude agent has access to mise's MCP tools (read-only, tier-filtered):
+
+- `search` — hybrid retrieval (ScaNN + FTS, RRF) over any corpus the caller can see
+- `document` — fetch a full provision with metadata and citations
+- `graph` — walk the compliance chain (edges, evidence, findings)
+
+The agent decides what to do: search, walk the graph, compose a cited answer, or **abstain**
+if the evidence doesn't support an answer.
+
+## REST API
+
+```bash
+# Ask a question (SSE stream)
+curl -N http://localhost:3000/api/v1/qa \
+  -H 'Content-Type: application/json' \
+  -d '{"question": "What are the IT system safety requirements for banks in Vietnam?"}'
+```
+
+SSE events:
+
+- `token` — answer text (streaming)
+- `citation` — a cited source span
+- `chain` — the compliance chain the agent traversed
+- `evidence_checked` — evidence verified via grounding
+- `abstain` — the agent could not ground an answer
+- `done` — stream complete
+- `error` — something went wrong
+
+## Grounding & abstain
+
+The agent **never asserts** what it can't ground:
+
+- Every claim in the answer must have a `citation` event linking to a verbatim source span.
+- If the evidence is insufficient, the agent emits `abstain` with a reason — it does not
+  hallucinate an answer.
+- The grounding guarantee is enforced by the Agent SDK's PostToolUse hook: the agent's output
+  is checked against the cited evidence before delivery.
+
+## Access tiers
+
+The agent sees only what the caller's tier allows:
+
+- A `public`-tier caller gets answers from public law only.
+- A `group-confidential` caller sees law + Group standards.
+- A `local-confidential` caller sees everything.
+
+RLS filtering happens at the database — the agent cannot bypass it even if prompted to.
+
+## What's next
+
+- [Web UI](web-ui.md) — the full product in a browser.
+- [API-CONTRACT §4](/design/API-CONTRACT.md) — SSE event specification.
+- [AI-GOVERNANCE §5](/design/AI-GOVERNANCE.md) — agent guardrails and audit.
+
+---
+
+
+# Web UI
+
+The Vue 3.5 SPA provides the full product experience — dashboards, graph exploration, review,
+Q&A, and administration. It **never calls a model** directly; all AI work is server-side.
+
+## Screens
+
+| Screen                    | Purpose                                                            |
+| ------------------------- | ------------------------------------------------------------------ |
+| **Dashboard**             | corpus health, finding counts by severity, recent activity         |
+| **Graph Explorer**        | visual compliance chain (Vue Flow/elkjs), click-to-expand nodes    |
+| **Review Workbench**      | pending candidates, promote/reject/relink with evidence side-panel |
+| **Findings & Resolution** | finding list by kind/severity, disposition workflow, action plans  |
+| **Q&A Chat**              | audit questions → cited answers (SSE streaming)                    |
+| **Notifications**         | in-app inbox (finding events, overdue resolutions)                 |
+| **Coverage Report**       | regulation → SOP chain with gaps highlighted                       |
+| **Change Timeline**       | amendment impact view (which controls are now stale)               |
+| **Admin**                 | corpus registry, user/role management, system health               |
+
+## Running locally
+
+```bash
+cd apps/web
+pnpm install
+pnpm dev
+# → http://localhost:5173
+```
+
+The dev server proxies API calls to the local serving process (`localhost:8080`).
+
+## Access tiers in the UI
+
+The UI respects the caller's access tier — screens show only data the user is cleared for.
+Tier filtering is enforced by the API (RLS), not the frontend. The UI adapts by hiding
+empty sections (e.g. a public-tier user sees no internal findings or review items).
+
+## What's next
+
+- [Operations](operations.md) — monitoring, backup, upgrades.
+- [UI-DESIGN](/design/UI-DESIGN.md) — design principles and screen details.
+
+---
+
+
+# Operations
+
+Day-to-day operation of a mise deployment — monitoring, backup, upgrades, and scaling.
+
+## Monitoring
+
+mise exports metrics and traces via OpenTelemetry:
+
+- **Metrics** — request latency (p50/p95/p99), ingest throughput, detector run counts,
+  embedding cache hit rate, Temporal workflow health.
+- **Traces** — distributed traces across serving → reasoning → Vertex calls.
+- **Logs** — structured JSON (Go `slog`), correlated with trace IDs.
+
+Ship to your existing observability stack (Cloud Monitoring, Grafana, Datadog — any OTLP
+receiver). See [OBSERVABILITY](/engineering/OBSERVABILITY.md) for SLOs and alerting guidance.
+
+## Backup & recovery
+
+- **AlloyDB Omni** — standard PostgreSQL backup (`pg_dump` / WAL archiving). The reference
+  deployment uses a CronJob for nightly `pg_dump` to GCS.
+- **Temporal** — persistence is in the shared AlloyDB instance; backed up with it.
+- **No external state** — mise is stateless beyond the database. Lose a pod, not data.
+
+Recovery: restore the database, redeploy containers. Ingest is idempotent — re-running it
+after a restore is safe (dedup keys prevent duplicates).
+
+## Upgrades
+
+mise follows semver. Upgrade path:
+
+1. Pull the new tag from source.
+2. Run `go run ./cmd/migrate up` — migrations are forward-only (goose).
+3. Rebuild and redeploy containers.
+4. Verify with the eval harness.
+
+No breaking schema changes without a major version bump. Temporal workflows in flight will
+drain on the old worker before new workers pick up new work.
+
+## Scaling
+
+The reference deployment is single-replica, no HA (cost-appropriate for the typical audit
+team size). If you need more:
+
+- **Serving** — horizontal scale (stateless); add replicas behind a load balancer.
+- **Workers** — scale Temporal worker count for ingest throughput.
+- **AlloyDB** — increase vCPU (2 → 4 → 8) for heavier concurrent search loads.
+- **Reasoning** — scale the TS service replicas; each is independent.
+
+KEDA + cluster autoscaler handle scale-down to zero when idle (ingest workers, reasoning).
+
+## Ingest scheduling
+
+Ingest runs on-demand or on a cron schedule (Temporal cron workflows):
+
+```bash
+# Trigger a one-off ingest
+curl -X POST http://localhost:8080/api/v1/ingest -d '{"corpus": "vn-reg"}'
+
+# Cron ingest is configured in deploy/temporal/schedules.yaml
+```
+
+Public law corpora: weekly (regulations change slowly).
+Internal corpora: daily or on SharePoint webhook (detect doc updates).
+
+## Security operations
+
+- **Secrets** are in GCP Secret Manager — never in env vars or config files.
+- **Container scanning** — Trivy runs in CI; images are signed with cosign.
+- **Dependency scanning** — govulncheck (Go), osv-scanner (npm) in CI.
+- **Access** — Workload Identity for GCP services; no long-lived keys.
+
+See [THREAT-MODEL](/engineering/THREAT-MODEL.md) for the full security posture.
+

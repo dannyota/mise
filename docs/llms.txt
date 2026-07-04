@@ -1,0 +1,40 @@
+# mise
+
+> Evidence-only regulatory & policy intelligence for banks.
+> Ingest public law + internal controls, build a compliance graph, detect gaps/conflicts/staleness, answer audit questions with cited evidence. Open source (AGPL-3.0), single-tenant, self-hosted.
+
+- [Home](https://mise.danny.vn/#/): Documentation hub for mise — regulatory intelligence for banks.
+
+## Getting started
+
+- [Overview](https://mise.danny.vn/#/guides/overview): What mise does — 5 corpora, compliance graph, 4 detectors, evidence-only Q&A.
+- [Deploy](https://mise.danny.vn/#/guides/deploy): Local dev with Podman + VERTEX=fake, or production GKE deployment.
+- [First corpus](https://mise.danny.vn/#/guides/first-corpus): Ingest Vietnamese banking law (vn-reg) — no credentials needed.
+- [Graph & detectors](https://mise.danny.vn/#/guides/graph-detectors): Add internal docs, build the compliance graph, review proposed edges.
+- [Audit Q&A](https://mise.danny.vn/#/guides/audit-qa): Ask audit questions — Claude agent answers with cited, grounded evidence via SSE.
+- [Web UI](https://mise.danny.vn/#/guides/web-ui): Vue 3.5 SPA — graph explorer, review workbench, findings, Q&A chat.
+- [Operations](https://mise.danny.vn/#/guides/operations): Monitoring, backup, upgrades, scaling, security operations.
+
+## Design
+
+- [Architecture](https://mise.danny.vn/#/design/ARCHITECTURE): Read/write planes, Go serving, Claude reasoning, Gemini ingest, AlloyDB Omni.
+- [Data model](https://mise.danny.vn/#/design/DATA-MODEL): Corpus schemas, graph schema, edge types, findings, notifications.
+- [AI governance](https://mise.danny.vn/#/design/AI-GOVERNANCE): Model gates, agent guardrails, grounding checks, audit trail.
+- [Data governance](https://mise.danny.vn/#/design/DATA-GOVERNANCE): Access tiers, RLS, HITL, data audit, egress control.
+- [UI design](https://mise.danny.vn/#/design/UI-DESIGN): Screen designs, component library, interaction patterns.
+- [API contract](https://mise.danny.vn/#/design/API-CONTRACT): REST + MCP + SSE API surfaces, generated OpenAPI contract.
+
+## Engineering
+
+- [Toolchain](https://mise.danny.vn/#/design/engineering/TOOLCHAIN): Go 1.26, pnpm 11, golangci-lint v2, gts, Vitest 4.
+- [CI/CD](https://mise.danny.vn/#/engineering/CI-CD): Pipeline, SAST, SCA, SBOM, container scanning, signing.
+- [Testing](https://mise.danny.vn/#/engineering/TESTING): Test pyramid, MCP contract tests, eval golden-set, load tests.
+- [Deployment](https://mise.danny.vn/#/engineering/DEPLOYMENT): GKE runtime topology, scale-down, backup/DR.
+- [Threat model](https://mise.danny.vn/#/engineering/THREAT-MODEL): Assets, trust boundaries, STRIDE, residual risks.
+
+## Project
+
+- [Roadmap](https://mise.danny.vn/#/project/ROADMAP): M0–M8 milestones, all complete (v0.1.0 design-doc release).
+- [Decisions](https://mise.danny.vn/#/project/DECISIONS): 30 locked architectural decisions + open items.
+- [GitHub](https://github.com/dannyota/mise)
+
