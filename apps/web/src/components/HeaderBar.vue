@@ -7,9 +7,9 @@ const { sub, tier, logout } = useAuth();
 
 <template>
   <header class="flex h-12 items-center justify-between border-b bg-white px-4">
-    <span class="text-sm text-gray-500">{{ tier.value }}</span>
+    <span class="text-sm text-gray-500">{{ tier }}</span>
     <div class="flex items-center gap-3">
-      <span class="text-sm">{{ sub.value ?? 'dev-user' }}</span>
+      <span class="text-sm">{{ sub ?? 'dev-user' }}</span>
       <button
         class="rounded p-1 hover:bg-gray-100"
         title="Logout"

@@ -31,8 +31,8 @@ async function handleToggle(): Promise<void> {
 <template>
   <div>
     <button
-      v-if="canTranslate.value"
-      :disabled="isTranslating.value || translated.value"
+      v-if="canTranslate"
+      :disabled="isTranslating || translated"
       class="flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-gray-100 disabled:opacity-50"
       @click="handleToggle"
     >

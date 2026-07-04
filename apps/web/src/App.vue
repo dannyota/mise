@@ -8,7 +8,7 @@ const { isAuthenticated } = useAuth();
 </script>
 
 <template>
-  <div v-if="isAuthenticated.value" class="flex h-screen">
+  <div v-if="isAuthenticated" class="flex h-screen">
     <SidebarNav />
     <div class="flex flex-1 flex-col overflow-hidden">
       <HeaderBar />
