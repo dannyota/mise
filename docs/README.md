@@ -12,9 +12,62 @@ audit questions with **cited, grounded evidence**. mise never asserts compliance
 
 > Single-tenant. Bank-operated. Open source (AGPL-3.0).
 
-New here? **[Overview](guides/overview.md) &rarr;
-[Deploy](guides/deploy.md).**
-Building it? **[Architecture](design/ARCHITECTURE.md).**
+## How it fits together
+
+```mermaid
+flowchart LR
+    subgraph SOURCES["Sources"]
+        LAW["Public law<br/>VN · MY (7 built-in crawlers)"]
+        LIB["Internal docs<br/>drop folder (LIBRARY_ROOT)"]
+    end
+    subgraph WRITE["Ingest plane (Temporal workers)"]
+        PIPE["Discover → Parse →<br/>Normalize → Embed → Index"]
+        DET["4 detectors<br/>gap · conflict · stale · relation"]
+    end
+    DB[("AlloyDB Omni<br/>schema-per-corpus · RLS · graph")]
+    subgraph READ["Serve plane"]
+        SERVING["Go serving<br/>REST + MCP"]
+        REASON["Reasoning endpoint<br/>Claude Agent SDK"]
+        WEB["Web UI (Vue)"]
+    end
+    HITL["Review Workbench<br/>human attests every edge"]
+
+    LAW --> PIPE
+    LIB --> PIPE
+    PIPE --> DB
+    PIPE <--> GEM["Vertex AI<br/>Gemini · Doc AI · Grounding"]
+    DET --> DB
+    DB --> SERVING
+    SERVING --> REASON
+    REASON --> CLA["Vertex AI<br/>Claude Haiku/Sonnet"]
+    SERVING --> WEB
+    REASON --> WEB
+    DB --> HITL
+    HITL --> DB
+
+    classDef ai fill:#6d28d9,stroke:#a78bfa,color:#fff
+    class GEM,CLA,DET ai
+```
+
+AI (violet) **proposes**; a grounding check gates every proposal; a **human attests** before
+anything is served as a mapping. The read path serves verbatim, tier-gated evidence only.
+
+## Getting started
+
+1. **[Deploy](guides/deploy.md)** — `podman compose up -d` locally (zero GCP cost with
+   `VERTEX=fake`), or GKE for production. All configuration is environment variables —
+   the [table](guides/deploy.md#environment-variables) lists every one.
+2. **[Ingest public law](guides/first-corpus.md)** — VN + MY crawlers are built in; trigger
+   one Temporal workflow per corpus, nothing to configure.
+3. **[Add internal documents](guides/graph-detectors.md)** — set `LIBRARY_ROOT`, drop files
+   under `group-std/` · `local-policy/` · `local-sop/`, optional `.meta.json` sidecars for
+   doc-control metadata. The graph and detectors run from there.
+4. **[Ask audit questions](guides/audit-qa.md)** — cited, grounded answers over SSE; the
+   agent abstains when evidence is insufficient.
+5. **[Use the Web UI](guides/web-ui.md)** and **[operate it](guides/operations.md)** —
+   review workbench, findings, dashboards; monitoring, backup, upgrades.
+
+The [Overview](guides/overview.md) explains the product in five minutes.
 
 ## At a glance
 
@@ -25,16 +78,6 @@ Building it? **[Architecture](design/ARCHITECTURE.md).**
 | **Ingest** | Temporal workers + Gemini 3.5 Flash + Doc AI + Check Grounding         |
 | **Web**    | Vue 3.5 SPA (Vite + Tailwind 4)                                        |
 | **Deploy** | Single-tenant GKE — one instance per bank, scale-to-zero               |
-
-## Guides
-
-- [Overview](guides/overview.md) — what mise does
-- [Deploy](guides/deploy.md) — local dev (Podman) or production (GKE)
-- [First corpus](guides/first-corpus.md) — ingest public law, no credentials needed
-- [Graph & detectors](guides/graph-detectors.md) — build the compliance graph
-- [Audit Q&A](guides/audit-qa.md) — cited answers via Claude agent
-- [Web UI](guides/web-ui.md) — the full product in a browser
-- [Operations](guides/operations.md) — monitoring, backup, upgrades
 
 ## Design
 
@@ -60,7 +103,7 @@ Building it? **[Architecture](design/ARCHITECTURE.md).**
 
 ## Project
 
-- [Roadmap](project/ROADMAP.md) — M0–M8 (all ✅)
+- [Roadmap](project/ROADMAP.md) — M0–M9 (all ✅)
 - [Decisions](project/DECISIONS.md) — locked + open
 - [Risks](project/RISKS.md) — delivery risk register
 - [Cost](project/COST.md) — unit rates, build, recurring
