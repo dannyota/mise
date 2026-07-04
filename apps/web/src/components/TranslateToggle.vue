@@ -18,7 +18,11 @@ const translated = ref(false);
 
 async function handleToggle(): Promise<void> {
   if (!canTranslate.value || translated.value) return;
-  const result = await translate(props.text, props.sourceLang, props.targetLang);
+  const result = await translate(
+    props.text,
+    props.sourceLang,
+    props.targetLang,
+  );
   translated.value = true;
   emit('translated', result);
 }
@@ -35,7 +39,11 @@ async function handleToggle(): Promise<void> {
       <Languages :size="14" />
       {{ translated ? 'Translated' : 'Translate' }}
     </button>
-    <span v-else class="text-xs text-gray-400" title="Translation not available for this tier">
+    <span
+      v-else
+      class="text-xs text-gray-400"
+      title="Translation not available for this tier"
+    >
       Translation restricted
     </span>
   </div>

@@ -64,7 +64,9 @@ describe('useTranslate', () => {
       admin_allowed: false,
     });
     const { translate } = useTranslate();
-    await expect(translate('text', 'vi', 'en')).rejects.toThrow('Translation not permitted');
+    await expect(translate('text', 'vi', 'en')).rejects.toThrow(
+      'Translation not permitted',
+    );
   });
 
   it('caches results', async () => {

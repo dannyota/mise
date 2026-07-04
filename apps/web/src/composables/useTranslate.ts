@@ -10,7 +10,11 @@ export function useTranslate() {
   const isTranslating = ref(false);
   const canTranslate = computed(() => store.capabilities.translate_allowed);
 
-  async function translate(text: string, sourceLang: string, targetLang: string): Promise<string> {
+  async function translate(
+    text: string,
+    sourceLang: string,
+    targetLang: string,
+  ): Promise<string> {
     if (!canTranslate.value) {
       throw new Error('Translation not permitted');
     }
